@@ -1,0 +1,270 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 30% 94%; /* beige background */
+    --foreground: 198 100% 13%; /* navy text */
+
+    --card: 0 0% 100%;
+    --card-foreground: 198 100% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 198 100% 13%;
+
+    --primary: 201 65% 55%; /* light blue */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 36 100% 71%; /* orange */
+    --secondary-foreground: 198 100% 13%;
+
+    --muted: 36 30% 90%; /* lighter beige */
+    --muted-foreground: 198 70% 20%;
+
+    --accent: 36 100% 71%; /* orange */
+    --accent-foreground: 198 100% 13%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 36 30% 94%;
+
+    --border: 198 20% 80%;
+    --input: 198 20% 80%;
+    --ring: 201 65% 55%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 198 100% 13%; /* navy */
+    --sidebar-foreground: 36 30% 94%; /* beige */
+    --sidebar-primary: 201 65% 55%; /* light blue */
+    --sidebar-primary-foreground: 0 0% 100%; /* white */
+    --sidebar-accent: 36 100% 71%; /* orange */
+    --sidebar-accent-foreground: 198 100% 13%; /* navy */
+    --sidebar-border: 198 70% 20%;
+    --sidebar-ring: 201 65% 55%;
+  }
+
+  .dark {
+    --background: 198 100% 10%; /* darker navy */
+    --foreground: 36 30% 94%; /* beige text */
+
+    --card: 198 100% 13%;
+    --card-foreground: 36 30% 94%;
+
+    --popover: 198 100% 13%;
+    --popover-foreground: 36 30% 94%;
+
+    --primary: 201 65% 55%; /* light blue */
+    --primary-foreground: 0 0% 100%; /* white */
+
+    --secondary: 36 100% 71%; /* orange */
+    --secondary-foreground: 198 100% 13%; /* navy */
+
+    --muted: 198 50% 20%;
+    --muted-foreground: 36 20% 80%;
+
+    --accent: 36 100% 71%; /* orange */
+    --accent-foreground: 198 100% 13%; /* navy */
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 36 30% 94%;
+
+    --border: 198 50% 20%;
+    --input: 198 50% 20%;
+    --ring: 201 65% 55%;
+
+    --sidebar-background: 198 100% 16%; /* slightly lighter navy */
+    --sidebar-foreground: 36 30% 94%; /* beige */
+    --sidebar-primary: 201 65% 55%; /* light blue */
+    --sidebar-primary-foreground: 0 0% 100%; /* white */
+    --sidebar-accent: 36 100% 71%; /* orange */
+    --sidebar-accent-foreground: 198 100% 13%; /* navy */
+    --sidebar-border: 198 50% 25%;
+    --sidebar-ring: 201 65% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply overflow-x-hidden font-sans;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-x-hidden;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight text-navy-800;
+  }
+  
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+  
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+  
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  h4 {
+    @apply text-base sm:text-lg md:text-xl;
+  }
+
+  /* Links */
+  a {
+    @apply transition-colors duration-200;
+  }
+  
+  /* Scrollbar styles */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-beige-100;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-lightblue-300 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-lightblue-400;
+  }
+
+  /* Mobile-first adjustments */
+  .container {
+    @apply px-4 md:px-6 mx-auto;
+  }
+}
+
+/* Custom components */
+@layer components {
+  .clinical-card {
+    @apply bg-white rounded-lg shadow p-4 border border-border transition-all hover:shadow-md;
+  }
+  
+  .stat-card {
+    @apply clinical-card flex flex-col gap-2;
+  }
+  
+  .stat-value {
+    @apply text-xl sm:text-2xl font-bold text-clinical;
+  }
+  
+  .stat-label {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Navigation items */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200;
+  }
+
+  .nav-item-light {
+    @apply nav-item text-navy-700 hover:bg-lightblue-50 hover:text-lightblue-600;
+  }
+
+  .nav-item-light.active {
+    @apply bg-lightblue-100 text-lightblue-700 font-medium;
+  }
+
+  .nav-item-dark {
+    @apply nav-item text-beige-100 hover:bg-navy-700 hover:text-orange-400;
+  }
+
+  .nav-item-dark.active {
+    @apply bg-navy-700 text-orange-400 font-medium;
+  }
+
+  .nav-item-sidebar {
+    @apply nav-item text-sidebar-foreground hover:bg-sidebar-primary/20 hover:text-sidebar-primary;
+  }
+
+  .nav-item-sidebar.active {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground font-medium;
+  }
+
+  /* Responsive grid layouts */
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4;
+  }
+
+  /* Mobile navigation */
+  .mobile-nav-item {
+    @apply flex items-center gap-3 p-3 rounded-md;
+  }
+
+  .animate-fade-in {
+    opacity: 0;
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUp 0.6s ease-out forwards;
+  }
+
+  /* Button hover effects */
+  .btn-hover-glow {
+    @apply hover:shadow-[0_0_8px_rgba(58,161,222,0.5)] transition-shadow duration-300;
+  }
+
+  .btn-hover-scale {
+    @apply hover:scale-105 transition-transform duration-200;
+  }
+
+  /* Card hover effects */
+  .hover-card {
+    @apply transition-all duration-300 hover:shadow-md hover:-translate-y-1;
+  }
+
+  /* Section styling */
+  .section-divider {
+    @apply w-16 h-1 bg-orange-400 rounded-full my-4;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .responsive-table {
+    @apply block w-full overflow-x-auto;
+  }
+  
+  .responsive-table table {
+    @apply min-w-full;
+  }
+}
