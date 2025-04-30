@@ -235,7 +235,8 @@ export const mockAppointments: Appointment[] = [
     startTime: "09:00",
     endTime: "09:30",
     reason: "Diabetes Follow-up",
-    status: "Scheduled"
+    status: "Scheduled",
+    isVirtual: false
   },
   {
     id: "A002",
@@ -247,7 +248,8 @@ export const mockAppointments: Appointment[] = [
     startTime: "10:00",
     endTime: "10:30",
     reason: "Asthma Review",
-    status: "Scheduled"
+    status: "Scheduled",
+    isVirtual: true
   },
   {
     id: "A003",
@@ -259,7 +261,8 @@ export const mockAppointments: Appointment[] = [
     startTime: "14:00",
     endTime: "14:30",
     reason: "Migraine Consultation",
-    status: "Scheduled"
+    status: "Scheduled",
+    isVirtual: false
   },
   {
     id: "A004",
@@ -271,7 +274,8 @@ export const mockAppointments: Appointment[] = [
     startTime: "11:00",
     endTime: "11:30",
     reason: "Annual Physical",
-    status: "Scheduled"
+    status: "Scheduled",
+    isVirtual: false
   },
   {
     id: "A005",
@@ -283,7 +287,8 @@ export const mockAppointments: Appointment[] = [
     startTime: "15:30",
     endTime: "16:00",
     reason: "Cardiac Follow-up",
-    status: "Scheduled"
+    status: "Scheduled",
+    isVirtual: true
   },
   {
     id: "A006",
@@ -295,7 +300,8 @@ export const mockAppointments: Appointment[] = [
     startTime: "10:30",
     endTime: "11:00",
     reason: "Blood Pressure Check",
-    status: "Completed"
+    status: "Completed",
+    isVirtual: false
   },
   {
     id: "A007",
@@ -307,7 +313,8 @@ export const mockAppointments: Appointment[] = [
     startTime: "09:30",
     endTime: "10:00",
     reason: "Prescription Refill",
-    status: "Completed"
+    status: "Completed",
+    isVirtual: true
   },
   {
     id: "A008",
@@ -319,6 +326,7 @@ export const mockAppointments: Appointment[] = [
     startTime: "16:00",
     endTime: "16:30",
     reason: "Initial Consultation",
-    status: "Scheduled"
+    status: "Scheduled",
+    isVirtual: true
   }
 ];

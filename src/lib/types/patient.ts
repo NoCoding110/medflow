@@ -1,4 +1,3 @@
-
 import { MedicalHistory, Medication, Note } from './medical';
 
 export interface Patient {
@@ -30,4 +29,5 @@ export interface Appointment {
   reason: string;
   status: 'Scheduled' | 'Completed' | 'Cancelled' | 'No-show';
   notes?: string;
+  isVirtual?: boolean;
 }
