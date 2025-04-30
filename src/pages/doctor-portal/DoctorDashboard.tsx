@@ -3,12 +3,72 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/lib/auth";
 import { Calendar, Clock, Users, MessageSquare, Bell, Activity, FileText } from "lucide-react";
 import { mockAppointments } from "@/lib/data/mock-data";
+import MessageDialog, { Message } from "@/components/MessageDialog";
+import { toast } from "sonner";
 
 interface Task {
   id: string;
   text: string;
   completed: boolean;
 }
+
+// Mock messages data
+const mockMessages: Message[] = [
+  {
+    id: "1",
+    sender: "Nurse Wilson",
+    content: "Room 4 is ready for the next patient",
+    timestamp: "2024-01-30T10:32:00",
+    type: "nurse",
+    additionalInfo: {
+      roomNumber: "4"
+    }
+  },
+  {
+    id: "2",
+    sender: "System",
+    content: "3 new lab results are ready for review",
+    timestamp: "2024-01-30T09:45:00",
+    type: "system",
+    additionalInfo: {
+      labResults: [
+        {
+          id: "lab1",
+          name: "Complete Blood Count",
+          status: "Abnormal",
+          date: "2024-01-29"
+        },
+        {
+          id: "lab2",
+          name: "Metabolic Panel",
+          status: "Normal",
+          date: "2024-01-29"
+        },
+        {
+          id: "lab3",
+          name: "Lipid Panel",
+          status: "Pending Review",
+          date: "2024-01-29"
+        }
+      ]
+    }
+  },
+  {
+    id: "3",
+    sender: "Patient Portal",
+    content: "Jessica Lee has requested a prescription refill",
+    timestamp: "2024-01-29T14:20:00",
+    type: "patient",
+    additionalInfo: {
+      patientName: "Jessica Lee",
+      prescriptionDetails: {
+        medication: "Lisinopril 10mg",
+        lastFilled: "2023-12-29",
+        quantity: "30 tablets"
+      }
+    }
+  }
+];
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -64,6 +124,35 @@ const DoctorDashboard = () => {
     const [hours, minutes] = time.split(':');
     return new Date(0, 0, 0, parseInt(hours), parseInt(minutes))
       .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  // Add message dialog state
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+
+  // Handle message click
+  const handleMessageClick = (message: Message) => {
+    setSelectedMessage(message);
+    setIsMessageDialogOpen(true);
+  };
+
+  // Handle message actions
+  const handleMessageAction = (action: string, message: Message) => {
+    switch (action) {
+      case 'acknowledge':
+        toast.success(`Acknowledged message from ${message.sender}`);
+        break;
+      case 'review':
+        toast.success('Opening lab results for review');
+        break;
+      case 'approve':
+        toast.success('Prescription refill approved');
+        break;
+      case 'deny':
+        toast.error('Prescription refill denied');
+        break;
+    }
+    setIsMessageDialogOpen(false);
   };
 
   return (
@@ -229,44 +318,31 @@ const DoctorDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                  <MessageSquare className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <p className="font-medium">Nurse Wilson</p>
-                    <p className="text-xs text-muted-foreground">10:32 AM</p>
+              {mockMessages.map((message) => (
+                <button
+                  key={message.id}
+                  className="w-full flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-left"
+                  onClick={() => handleMessageClick(message)}
+                >
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+                    {message.type === 'nurse' && <MessageSquare className="h-5 w-5" />}
+                    {message.type === 'system' && <FileText className="h-5 w-5" />}
+                    {message.type === 'patient' && <Users className="h-5 w-5" />}
                   </div>
-                  <p className="text-sm">Room 4 is ready for the next patient</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <p className="font-medium">System</p>
-                    <p className="text-xs text-muted-foreground">9:45 AM</p>
+                  <div className="flex-1">
+                    <div className="flex justify-between">
+                      <p className="font-medium">{message.sender}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(message.timestamp).toLocaleTimeString([], { 
+                          hour: 'numeric', 
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <p className="text-sm">{message.content}</p>
                   </div>
-                  <p className="text-sm">3 new lab results are ready for review</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <p className="font-medium">Patient Portal</p>
-                    <p className="text-xs text-muted-foreground">Yesterday</p>
-                  </div>
-                  <p className="text-sm">Jessica Lee has requested a prescription refill</p>
-                </div>
-              </div>
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -376,6 +452,13 @@ const DoctorDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <MessageDialog
+        message={selectedMessage}
+        open={isMessageDialogOpen}
+        onClose={() => setIsMessageDialogOpen(false)}
+        onAction={handleMessageAction}
+      />
     </div>
   );
 };
