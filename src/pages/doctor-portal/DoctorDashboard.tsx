@@ -22,6 +22,9 @@ const DoctorDashboard = () => {
     { id: '5', text: 'Complete CME course (due Friday)', completed: false },
   ]);
 
+  // Add selected date state
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  
   // Add task toggle handler
   const toggleTask = (taskId: string) => {
     setTasks(tasks.map(task => 
@@ -43,9 +46,9 @@ const DoctorDashboard = () => {
     [user?.id]
   );
 
-  // Get appointments for today
-  const todayStr = today.toISOString().split('T')[0];
-  const todaysAppointments = doctorAppointments.filter(apt => apt.date === todayStr);
+  // Get appointments for selected date
+  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  const selectedDateAppointments = doctorAppointments.filter(apt => apt.date === selectedDateStr);
 
   // Get appointments count for each day of the week
   const weeklyAppointmentCounts = currentWeek.map(date => {
@@ -56,18 +59,11 @@ const DoctorDashboard = () => {
     };
   });
 
-  // Calculate time until appointment
-  const getTimeUntil = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    const appointmentTime = new Date();
-    appointmentTime.setHours(hours, minutes, 0);
-    
-    const diff = appointmentTime.getTime() - today.getTime();
-    const minutesUntil = Math.floor(diff / 1000 / 60);
-    
-    if (minutesUntil < 0) return 'Past';
-    if (minutesUntil < 60) return `In ${minutesUntil}min`;
-    return `In ${Math.floor(minutesUntil / 60)}h ${minutesUntil % 60}m`;
+  // Format time for display
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    return new Date(0, 0, 0, parseInt(hours), parseInt(minutes))
+      .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   };
 
   return (
@@ -91,16 +87,16 @@ const DoctorDashboard = () => {
               <Calendar className="mr-2 h-5 w-5 text-purple-600" /> 
               Today's Appointments
             </CardTitle>
-            <CardDescription>{todaysAppointments.length} scheduled for today</CardDescription>
+            <CardDescription>{selectedDateAppointments.length} scheduled for today</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {todaysAppointments.length === 0 ? (
+              {selectedDateAppointments.length === 0 ? (
                 <div className="text-center py-4 text-muted-foreground">
                   No appointments scheduled for today
                 </div>
               ) : (
-                todaysAppointments.slice(0, 3).map((appointment) => (
+                selectedDateAppointments.slice(0, 3).map((appointment) => (
                   <div key={appointment.id} className="flex justify-between items-center">
                     <div>
                       <p className="font-medium">{appointment.patientName}</p>
@@ -109,11 +105,11 @@ const DoctorDashboard = () => {
                       </p>
                     </div>
                     <div className={`px-2 py-1 rounded text-xs ${
-                      getTimeUntil(appointment.startTime) === 'Past'
+                      formatTime(appointment.startTime) === 'Past'
                         ? 'bg-gray-100 text-gray-700'
                         : 'bg-blue-100 text-blue-700'
                     }`}>
-                      {getTimeUntil(appointment.startTime)}
+                      {formatTime(appointment.startTime)}
                     </div>
                   </div>
                 ))
@@ -283,23 +279,57 @@ const DoctorDashboard = () => {
             <CardDescription>Upcoming appointments and events</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-6">
               <div className="grid grid-cols-7 gap-2">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
                   <div key={day} className="text-center font-medium">{day}</div>
                 ))}
                 {weeklyAppointmentCounts.map(({ date, count }, i) => (
-                  <div 
-                    key={i} 
-                    className={`aspect-square border rounded-md flex flex-col items-center justify-center p-1 ${
-                      date.toDateString() === today.toDateString() ? 'bg-blue-50 border-blue-200' : ''
+                  <button
+                    key={i}
+                    onClick={() => setSelectedDate(date)}
+                    className={`aspect-square border rounded-md flex flex-col items-center justify-center p-1 hover:bg-gray-50 transition-colors ${
+                      date.toDateString() === selectedDate.toDateString()
+                        ? 'bg-blue-100 border-blue-300'
+                        : date.toDateString() === today.toDateString()
+                        ? 'bg-blue-50 border-blue-200'
+                        : ''
                     }`}
                   >
                     <p className="text-sm font-semibold">{date.getDate()}</p>
                     <p className="text-xs text-muted-foreground">{count}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
+
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium mb-3">
+                  Appointments for {selectedDate.toLocaleDateString()}
+                </h3>
+                {selectedDateAppointments.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No appointments scheduled</p>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedDateAppointments.map((apt) => (
+                      <div key={apt.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div>
+                          <p className="font-medium">{apt.patientName}</p>
+                          <p className="text-sm text-muted-foreground">{apt.reason}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">
+                            {formatTime(apt.startTime)} - {formatTime(apt.endTime)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {apt.isVirtual ? 'Telehealth' : 'In-person'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-blue-500"></div>
