@@ -70,26 +70,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Auto-login as test patient in development
-    const testUser: User = {
-      id: 'P001',
-      name: 'John Smith',
-      email: 'john.smith@example.com',
-      role: 'patient'
-    };
-    setUser(testUser);
+    // Just set loading to false initially
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    // In development, just set the test user
-    const testUser: User = {
-      id: 'P001',
-      name: 'John Smith',
-      email: 'john.smith@example.com',
-      role: 'patient'
-    };
-    setUser(testUser);
+    // Find user with matching credentials
+    const user = mockUsers.find(u => u.email === email && u.password === password);
+    
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+
+    // Set the authenticated user
+    setUser({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar
+    });
   };
 
   const logout = () => {

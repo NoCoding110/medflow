@@ -7,15 +7,30 @@ const Index = () => {
   const navigate = useNavigate();
   
   React.useEffect(() => {
-    // In development, always redirect to patient portal
-    navigate('/patient');
-  }, [navigate]);
+    if (isAuthenticated && user) {
+      switch (user.role) {
+        case 'doctor':
+          navigate('/doctor');
+          break;
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'patient':
+          navigate('/patient');
+          break;
+        default:
+          navigate('/dashboard');
+      }
+    } else {
+      navigate('/login');
+    }
+  }, [navigate, isAuthenticated, user]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
         <div className="mb-4 h-6 w-6 animate-spin rounded-full border-b-2 border-t-2 border-primary"></div>
-        <p>Redirecting to patient portal...</p>
+        <p>Redirecting...</p>
       </div>
     </div>
   );
