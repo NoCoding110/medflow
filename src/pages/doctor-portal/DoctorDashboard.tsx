@@ -7,6 +7,7 @@ import MessageDialog, { Message } from "@/components/MessageDialog";
 import { toast } from "sonner";
 import PatientDialog from "@/components/PatientDialog";
 import { Patient } from "@/lib/types/patient";
+import AlertDialog, { Alert } from "@/components/AlertDialog";
 
 interface Task {
   id: string;
@@ -67,6 +68,128 @@ const mockMessages: Message[] = [
         medication: "Lisinopril 10mg",
         lastFilled: "2023-12-29",
         quantity: "30 tablets"
+      }
+    }
+  }
+];
+
+// Mock alerts data
+const mockAlerts: Alert[] = [
+  {
+    id: "1",
+    type: "lab",
+    title: "Lab Result: Maria Garcia",
+    description: "Abnormal blood count results",
+    severity: "high",
+    timestamp: new Date().toISOString(),
+    details: {
+      patientName: "Maria Garcia",
+      patientId: "P006",
+      data: {
+        labResults: [
+          {
+            test: "Complete Blood Count (CBC)",
+            value: "3.2 x 10^9/L",
+            normalRange: "4.0-11.0 x 10^9/L",
+            status: "Abnormal",
+            date: "2024-01-30"
+          },
+          {
+            test: "Hemoglobin",
+            value: "11.2 g/dL",
+            normalRange: "12.0-15.5 g/dL",
+            status: "Low",
+            date: "2024-01-30"
+          }
+        ]
+      }
+    }
+  },
+  {
+    id: "2",
+    type: "medication",
+    title: "Medication Alert: David Brown",
+    description: "Possible drug interaction detected",
+    severity: "high",
+    timestamp: new Date().toISOString(),
+    details: {
+      patientName: "David Brown",
+      patientId: "P007",
+      data: {
+        medications: {
+          current: "Warfarin 5mg daily",
+          interacting: "New prescription: Aspirin 81mg daily",
+          severity: "High Risk",
+          recommendation: "Consider alternative antiplatelet therapy or adjust Warfarin dosage"
+        }
+      }
+    }
+  },
+  {
+    id: "3",
+    type: "message",
+    title: "Patient Message: Lisa Wilson",
+    description: "Reports severe symptoms",
+    severity: "medium",
+    timestamp: new Date().toISOString(),
+    details: {
+      patientName: "Lisa Wilson",
+      patientId: "P008",
+      data: {
+        symptoms: {
+          reported: ["Severe Headache", "Nausea", "Vision Changes"],
+          severity: "Severe",
+          duration: "24 hours",
+          notes: "Symptoms worsen with movement and light exposure"
+        }
+      }
+    }
+  }
+];
+
+// Mock insights data
+const mockInsights: Alert[] = [
+  {
+    id: "4",
+    type: "insight",
+    title: "Thomas Moore's blood pressure trending upward",
+    description: "+15% in last 3 readings",
+    severity: "medium",
+    timestamp: new Date().toISOString(),
+    details: {
+      patientName: "Thomas Moore",
+      patientId: "P009",
+      data: {
+        trends: {
+          metric: "Blood Pressure",
+          current: "142/90 mmHg",
+          previous: "128/82 mmHg",
+          change: "+15% increase",
+          dates: ["2024-01-15", "2024-01-22", "2024-01-29"],
+          values: [128, 135, 142]
+        }
+      }
+    }
+  },
+  {
+    id: "5",
+    type: "insight",
+    title: "Sarah Lee meeting fitness goals",
+    description: "Consistent improvement for 2 weeks",
+    severity: "low",
+    timestamp: new Date().toISOString(),
+    details: {
+      patientName: "Sarah Lee",
+      patientId: "P010",
+      data: {
+        trends: {
+          metric: "Daily Steps",
+          current: "8,500 steps",
+          previous: "6,200 steps",
+          change: "+37% increase",
+          dates: ["2024-01-15", "2024-01-22", "2024-01-29"],
+          values: [6200, 7300, 8500]
+        }
       }
     }
   }
@@ -173,6 +296,41 @@ const DoctorDashboard = () => {
     }
   };
 
+  // Add alert dialog state
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
+
+  // Handle alert click
+  const handleAlertClick = (alert: Alert) => {
+    setSelectedAlert(alert);
+    setIsAlertDialogOpen(true);
+  };
+
+  // Handle alert actions
+  const handleAlertAction = (action: string, alert: Alert) => {
+    switch (action) {
+      case 'review':
+        toast.success(`Opening ${alert.type === 'lab' ? 'lab results' : 'trend data'} for ${alert.details.patientName}`);
+        break;
+      case 'order':
+        toast.success(`Ordering follow-up tests for ${alert.details.patientName}`);
+        break;
+      case 'adjust':
+        toast.success(`Opening medication adjustment form for ${alert.details.patientName}`);
+        break;
+      case 'consult':
+        toast.success(`Initiating pharmacy consultation for ${alert.details.patientName}`);
+        break;
+      case 'contact':
+        toast.success(`Opening communication channel with ${alert.details.patientName}`);
+        break;
+      case 'schedule':
+        toast.success(`Opening scheduler for ${alert.details.patientName}`);
+        break;
+    }
+    setIsAlertDialogOpen(false);
+  };
+
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -235,27 +393,23 @@ const DoctorDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                <div>
-                  <p className="font-medium">Lab Result: Maria Garcia</p>
-                  <p className="text-sm text-muted-foreground">Abnormal blood count results</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                <div>
-                  <p className="font-medium">Medication Alert: David Brown</p>
-                  <p className="text-sm text-muted-foreground">Possible drug interaction detected</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                <div>
-                  <p className="font-medium">Patient Message: Lisa Wilson</p>
-                  <p className="text-sm text-muted-foreground">Reports severe symptoms</p>
-                </div>
-              </div>
+              {mockAlerts.map((alert) => (
+                <button
+                  key={alert.id}
+                  onClick={() => handleAlertClick(alert)}
+                  className="w-full flex items-center gap-3 hover:bg-gray-50 p-3 rounded-lg transition-colors text-left"
+                >
+                  <div className={`h-2 w-2 rounded-full ${
+                    alert.severity === 'high' ? 'bg-red-500' :
+                    alert.severity === 'medium' ? 'bg-yellow-500' :
+                    'bg-green-500'
+                  }`} />
+                  <div>
+                    <p className="font-medium">{alert.title}</p>
+                    <p className="text-sm text-muted-foreground">{alert.description}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -270,20 +424,25 @@ const DoctorDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700">AI</div>
-                <div>
-                  <p className="font-medium">Thomas Moore's blood pressure trending upward</p>
-                  <p className="text-sm text-muted-foreground">+15% in last 3 readings</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-700">AI</div>
-                <div>
-                  <p className="font-medium">Sarah Lee meeting fitness goals</p>
-                  <p className="text-sm text-muted-foreground">Consistent improvement for 2 weeks</p>
-                </div>
-              </div>
+              {mockInsights.map((insight) => (
+                <button
+                  key={insight.id}
+                  onClick={() => handleAlertClick(insight)}
+                  className="w-full flex items-center gap-3 hover:bg-gray-50 p-3 rounded-lg transition-colors text-left"
+                >
+                  <div className={`h-8 w-8 rounded-full ${
+                    insight.severity === 'high' ? 'bg-red-100 text-red-700' :
+                    insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-green-100 text-green-700'
+                  } flex items-center justify-center`}>
+                    AI
+                  </div>
+                  <div>
+                    <p className="font-medium">{insight.title}</p>
+                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -487,6 +646,13 @@ const DoctorDashboard = () => {
         patient={selectedPatient}
         open={isPatientDialogOpen}
         onClose={() => setIsPatientDialogOpen(false)}
+      />
+
+      <AlertDialog
+        alert={selectedAlert}
+        open={isAlertDialogOpen}
+        onClose={() => setIsAlertDialogOpen(false)}
+        onAction={handleAlertAction}
       />
     </div>
   );
