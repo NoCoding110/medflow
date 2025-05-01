@@ -9,8 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --coverage"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -58,6 +59,7 @@
     "date-fns": "^3.3.1",
     "embla-carousel-react": "^8.3.0",
     "file-saver": "^2.0.5",
+    "framer-motion": "^12.9.4",
     "input-otp": "^1.2.4",
     "lodash": "^4.17.21",
     "lucide-react": "^0.462.0",

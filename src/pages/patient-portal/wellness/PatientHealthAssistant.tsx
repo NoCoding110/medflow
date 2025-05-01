@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Search, Thermometer, Heart, Activity, Clock, User, Upload, Mic, BookOpen, FileText, Bell, Target, AlertTriangle, Phone, Calendar, Download, Save, RefreshCw, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportData, importData, createBackup, restoreBackup, syncWithBackend } from '@/lib/data-management';
 import { TestDataInitializer } from '@/components/TestDataInitializer';
+import { debounce } from 'lodash';
 
 interface HealthMetric {
   type: 'heartRate' | 'bloodPressure' | 'bloodSugar' | 'temperature';
@@ -57,55 +58,61 @@ interface EmergencyContact {
   isPrimary: boolean;
 }
 
-const STORAGE_KEYS = {
-  MESSAGES: 'ai_messages',
-  HEALTH_METRICS: 'health_metrics',
-  MEDICATIONS: 'medications',
-  SYMPTOMS: 'symptoms',
-  HEALTH_GOALS: 'health_goals',
-  EMERGENCY_CONTACTS: 'emergency_contacts',
-} as const;
-
 const PatientHealthAssistant = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize state with persisted data
-  const [messages, setMessages] = useState<AIMessage[]>(() => {
-    const savedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    return savedMessages ? JSON.parse(savedMessages) : [{
-      role: "assistant",
-      content: "Hello! I'm your AI Health Assistant. How can I help you today?",
-      timestamp: new Date(),
-    }];
-  });
+  // Memoize the storage keys to prevent unnecessary re-renders
+  const storageKeys = useMemo(() => ({
+    MESSAGES: 'ai_messages',
+    HEALTH_METRICS: 'health_metrics',
+    MEDICATIONS: 'medications',
+    SYMPTOMS: 'symptoms',
+    HEALTH_GOALS: 'health_goals',
+    EMERGENCY_CONTACTS: 'emergency_contacts',
+  }), []);
 
-  const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>(() => {
-    const savedMetrics = localStorage.getItem(STORAGE_KEYS.HEALTH_METRICS);
-    return savedMetrics ? JSON.parse(savedMetrics) : [];
-  });
+  // Custom hook for localStorage state management
+  const useLocalStorageState = <T,>(key: string, initialValue: T) => {
+    const [state, setState] = useState<T>(() => {
+      try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : initialValue;
+      } catch (error) {
+        console.error(`Error reading ${key} from localStorage:`, error);
+        return initialValue;
+      }
+    });
 
-  const [medications, setMedications] = useState<Medication[]>(() => {
-    const savedMeds = localStorage.getItem(STORAGE_KEYS.MEDICATIONS);
-    return savedMeds ? JSON.parse(savedMeds) : [];
-  });
+    const setStateAndStorage = useCallback((value: T | ((prev: T) => T)) => {
+      setState(prev => {
+        const nextValue = value instanceof Function ? value(prev) : value;
+        try {
+          localStorage.setItem(key, JSON.stringify(nextValue));
+        } catch (error) {
+          console.error(`Error saving ${key} to localStorage:`, error);
+        }
+        return nextValue;
+      });
+    }, [key]);
 
-  const [symptoms, setSymptoms] = useState<Symptom[]>(() => {
-    const savedSymptoms = localStorage.getItem(STORAGE_KEYS.SYMPTOMS);
-    return savedSymptoms ? JSON.parse(savedSymptoms) : [];
-  });
+    return [state, setStateAndStorage] as const;
+  };
 
-  const [healthGoals, setHealthGoals] = useState<HealthGoal[]>(() => {
-    const savedGoals = localStorage.getItem(STORAGE_KEYS.HEALTH_GOALS);
-    return savedGoals ? JSON.parse(savedGoals) : [];
-  });
+  // Initialize state with persisted data using the custom hook
+  const [messages, setMessages] = useLocalStorageState<AIMessage[]>(storageKeys.MESSAGES, [{
+    role: "assistant",
+    content: "Hello! I'm your AI Health Assistant. How can I help you today?",
+    timestamp: new Date(),
+  }]);
 
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>(() => {
-    const savedContacts = localStorage.getItem(STORAGE_KEYS.EMERGENCY_CONTACTS);
-    return savedContacts ? JSON.parse(savedContacts) : [];
-  });
+  const [healthMetrics, setHealthMetrics] = useLocalStorageState<HealthMetric[]>(storageKeys.HEALTH_METRICS, []);
+  const [medications, setMedications] = useLocalStorageState<Medication[]>(storageKeys.MEDICATIONS, []);
+  const [symptoms, setSymptoms] = useLocalStorageState<Symptom[]>(storageKeys.SYMPTOMS, []);
+  const [healthGoals, setHealthGoals] = useLocalStorageState<HealthGoal[]>(storageKeys.HEALTH_GOALS, []);
+  const [emergencyContacts, setEmergencyContacts] = useLocalStorageState<EmergencyContact[]>(storageKeys.EMERGENCY_CONTACTS, []);
 
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +131,13 @@ const PatientHealthAssistant = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
 
+  // Debounce tab changes to prevent rapid state updates
+  const debouncedSetActiveTab = useMemo(
+    () => debounce((tab: string) => setActiveTab(tab), 100),
+    []
+  );
+
+  // Handle sending messages with optimistic updates
   const handleSendMessage = useCallback(async (message?: string) => {
     const messageToSend = message || inputMessage;
     if (!messageToSend.trim()) return;
@@ -134,18 +148,17 @@ const PatientHealthAssistant = () => {
       timestamp: new Date(),
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(updatedMessages));
+    // Optimistic update
+    setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
     setIsLoading(true);
 
     try {
       const response = await aiService.sendMessage(messageToSend, 'patient-health');
-      const finalMessages = [...updatedMessages, response];
-      setMessages(finalMessages);
-      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(finalMessages));
+      setMessages(prev => [...prev, response]);
     } catch (error) {
+      // Revert optimistic update on error
+      setMessages(prev => prev.filter(msg => msg !== userMessage));
       toast({
         title: "Error",
         description: "Failed to get response from AI assistant. Please try again.",
@@ -154,9 +167,14 @@ const PatientHealthAssistant = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [inputMessage, toast, messages]);
+  }, [inputMessage, setMessages, toast]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleTabChange = useCallback((value: string) => {
+    debouncedSetActiveTab(value);
+  }, [debouncedSetActiveTab]);
+
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -171,7 +189,7 @@ const PatientHealthAssistant = () => {
         result = await aiService.analyzePathology(file);
       }
       setAnalysisResult(result);
-      setActiveTab('analysis');
+      handleTabChange('analysis');
     } catch (error) {
       toast({
         title: "Error",
@@ -181,7 +199,7 @@ const PatientHealthAssistant = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [handleTabChange, toast]);
 
   const handleVoiceInput = async () => {
     if (!('webkitSpeechRecognition' in window)) {
@@ -227,7 +245,7 @@ const PatientHealthAssistant = () => {
     try {
       const results = await aiService.searchLiterature(query);
       setLiteratureResults(results);
-      setActiveTab('literature');
+      handleTabChange('literature');
     } catch (error) {
       toast({
         title: "Error",
@@ -246,7 +264,7 @@ const PatientHealthAssistant = () => {
     try {
       const result = await aiService.analyzeCarePathway(user.id);
       setCarePathway(result);
-      setActiveTab('care-pathway');
+      handleTabChange('care-pathway');
     } catch (error) {
       toast({
         title: "Error",
@@ -290,7 +308,7 @@ const PatientHealthAssistant = () => {
 
     const updatedMetrics = [...healthMetrics, newMetric];
     setHealthMetrics(updatedMetrics);
-    localStorage.setItem(STORAGE_KEYS.HEALTH_METRICS, JSON.stringify(updatedMetrics));
+    localStorage.setItem(storageKeys.HEALTH_METRICS, JSON.stringify(updatedMetrics));
     setShowAddMetric(false);
 
     if (status === 'critical') {
@@ -305,7 +323,7 @@ const PatientHealthAssistant = () => {
   const handleAddMedication = (medication: Medication) => {
     const updatedMeds = [...medications, medication];
     setMedications(updatedMeds);
-    localStorage.setItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(updatedMeds));
+    localStorage.setItem(storageKeys.MEDICATIONS, JSON.stringify(updatedMeds));
     setShowAddMedication(false);
 
     const timeUntilNextDose = medication.nextDose.getTime() - Date.now();
@@ -322,7 +340,7 @@ const PatientHealthAssistant = () => {
   const handleAddSymptom = (symptom: Symptom) => {
     const updatedSymptoms = [...symptoms, symptom];
     setSymptoms(updatedSymptoms);
-    localStorage.setItem(STORAGE_KEYS.SYMPTOMS, JSON.stringify(updatedSymptoms));
+    localStorage.setItem(storageKeys.SYMPTOMS, JSON.stringify(updatedSymptoms));
     setShowAddSymptom(false);
 
     if (symptom.severity === 'severe') {
@@ -342,7 +360,7 @@ const PatientHealthAssistant = () => {
 
     const updatedGoals = [...healthGoals, newGoal];
     setHealthGoals(updatedGoals);
-    localStorage.setItem(STORAGE_KEYS.HEALTH_GOALS, JSON.stringify(updatedGoals));
+    localStorage.setItem(storageKeys.HEALTH_GOALS, JSON.stringify(updatedGoals));
     setShowAddGoal(false);
   };
 
@@ -352,7 +370,7 @@ const PatientHealthAssistant = () => {
       : [...emergencyContacts, contact];
     
     setEmergencyContacts(updatedContacts);
-    localStorage.setItem(STORAGE_KEYS.EMERGENCY_CONTACTS, JSON.stringify(updatedContacts));
+    localStorage.setItem(storageKeys.EMERGENCY_CONTACTS, JSON.stringify(updatedContacts));
     setShowAddContact(false);
   };
 
@@ -365,7 +383,7 @@ const PatientHealthAssistant = () => {
     };
     
     setHealthGoals(updatedGoals);
-    localStorage.setItem(STORAGE_KEYS.HEALTH_GOALS, JSON.stringify(updatedGoals));
+    localStorage.setItem(storageKeys.HEALTH_GOALS, JSON.stringify(updatedGoals));
   };
 
   // Effect to check for upcoming medication doses
@@ -398,7 +416,7 @@ const PatientHealthAssistant = () => {
 
     if (updatedMetrics.length !== healthMetrics.length) {
       setHealthMetrics(updatedMetrics);
-      localStorage.setItem(STORAGE_KEYS.HEALTH_METRICS, JSON.stringify(updatedMetrics));
+      localStorage.setItem(storageKeys.HEALTH_METRICS, JSON.stringify(updatedMetrics));
     }
   }, [healthMetrics]);
 
@@ -507,7 +525,7 @@ const PatientHealthAssistant = () => {
 
       <div className="grid gap-6 md:grid-cols-[1fr_300px]">
         <div className="space-y-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
             <TabsList>
               <TabsTrigger value="chat" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
