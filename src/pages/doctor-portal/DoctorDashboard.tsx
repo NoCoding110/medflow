@@ -2,9 +2,11 @@ import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { Calendar, Clock, Users, MessageSquare, Bell, Activity, FileText } from "lucide-react";
-import { mockAppointments } from "@/lib/data/mock-data";
+import { mockAppointments, mockPatients } from "@/lib/data/mock-data";
 import MessageDialog, { Message } from "@/components/MessageDialog";
 import { toast } from "sonner";
+import PatientDialog from "@/components/PatientDialog";
+import { Patient } from "@/lib/types/patient";
 
 interface Task {
   id: string;
@@ -155,6 +157,22 @@ const DoctorDashboard = () => {
     setIsMessageDialogOpen(false);
   };
 
+  // Add patient dialog state
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
+
+  // Handle patient click
+  const handlePatientClick = (patientName: string) => {
+    const [lastName, firstName] = patientName.split(", ");
+    const patient = mockPatients.find(
+      p => p.firstName === firstName && p.lastName === lastName
+    );
+    if (patient) {
+      setSelectedPatient(patient);
+      setIsPatientDialogOpen(true);
+    }
+  };
+
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -295,7 +313,12 @@ const DoctorDashboard = () => {
                       {patient.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium">{patient.name}</p>
+                      <button
+                        onClick={() => handlePatientClick(patient.name)}
+                        className="font-medium hover:text-purple-600 transition-colors text-left"
+                      >
+                        {patient.name}
+                      </button>
                       <p className="text-sm text-muted-foreground">{patient.reason}</p>
                     </div>
                   </div>
@@ -458,6 +481,12 @@ const DoctorDashboard = () => {
         open={isMessageDialogOpen}
         onClose={() => setIsMessageDialogOpen(false)}
         onAction={handleMessageAction}
+      />
+
+      <PatientDialog
+        patient={selectedPatient}
+        open={isPatientDialogOpen}
+        onClose={() => setIsPatientDialogOpen(false)}
       />
     </div>
   );
