@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { mockPatients, calculateAge, Patient } from "@/lib/data";
+import { mockPatients, calculateAge } from "@/lib/data";
 import { Search, PlusCircle, ArrowUpDown } from "lucide-react";
 import NewPatientDialog from "@/components/NewPatientDialog";
 import PatientActions from "@/components/PatientActions";
@@ -22,13 +22,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Patient } from "@/lib/types/patient";
+import { useToast } from "@/components/ui/use-toast";
 
 const Patients = () => {
+  const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<keyof Patient>("lastName");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [showNewPatientDialog, setShowNewPatientDialog] = useState(false);
+  const { toast } = useToast();
 
   const handleSort = (field: keyof Patient) => {
     if (sortField === field) {
@@ -39,33 +43,54 @@ const Patients = () => {
     }
   };
 
-  const filteredPatients = mockPatients
-    .filter((patient) => {
-      // Apply search filter
-      const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = fullName.includes(searchLower) ||
-        patient.email?.toLowerCase().includes(searchLower) ||
-        patient.phone?.includes(searchTerm);
+  const handleStatusChange = (patientId: string, newStatus: 'active' | 'inactive') => {
+    setPatients(currentPatients =>
+      currentPatients.map(patient =>
+        patient.id === patientId
+          ? { ...patient, status: newStatus }
+          : patient
+      )
+    );
+  };
 
-      // Apply status filter
-      if (statusFilter === "all") return matchesSearch;
-      const isActive = !patient.status || patient.status === "active";
-      return matchesSearch && (
-        (statusFilter === "active" && isActive) ||
-        (statusFilter === "inactive" && !isActive)
-      );
-    })
-    .sort((a, b) => {
-      const aValue = a[sortField]?.toString().toLowerCase() || "";
-      const bValue = b[sortField]?.toString().toLowerCase() || "";
-      
-      if (sortDirection === "asc") {
-        return aValue.localeCompare(bValue);
-      } else {
-        return bValue.localeCompare(aValue);
-      }
+  const handleNewPatient = (patient: Patient) => {
+    setPatients(currentPatients => [...currentPatients, patient]);
+    setShowNewPatientDialog(false);
+    toast({
+      title: "Success",
+      description: "New patient has been added successfully",
     });
+  };
+
+  const filteredPatients = useMemo(() => {
+    return patients
+      .filter((patient) => {
+        // Apply search filter
+        const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch = fullName.includes(searchLower) ||
+          patient.email?.toLowerCase().includes(searchLower) ||
+          patient.phone?.includes(searchTerm);
+
+        // Apply status filter
+        if (statusFilter === "all") return matchesSearch;
+        const isActive = !patient.status || patient.status === "active";
+        return matchesSearch && (
+          (statusFilter === "active" && isActive) ||
+          (statusFilter === "inactive" && !isActive)
+        );
+      })
+      .sort((a, b) => {
+        const aValue = a[sortField]?.toString().toLowerCase() || "";
+        const bValue = b[sortField]?.toString().toLowerCase() || "";
+        
+        if (sortDirection === "asc") {
+          return aValue.localeCompare(bValue);
+        } else {
+          return bValue.localeCompare(aValue);
+        }
+      });
+  }, [patients, searchTerm, statusFilter, sortField, sortDirection]);
 
   return (
     <Layout>
@@ -117,15 +142,43 @@ const Patients = () => {
                 >
                   <div className="flex items-center gap-1">
                     Name
-                    <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    {sortField === "lastName" && (
+                      <ArrowUpDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
+                        sortDirection === "desc" ? "rotate-180" : ""
+                      }`} />
+                    )}
                   </div>
                 </TableHead>
                 <TableHead>Date of Birth</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead>Gender</TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => handleSort("gender")}
+                >
+                  <div className="flex items-center gap-1">
+                    Gender
+                    {sortField === "gender" && (
+                      <ArrowUpDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
+                        sortDirection === "desc" ? "rotate-180" : ""
+                      }`} />
+                    )}
+                  </div>
+                </TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Insurance</TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => handleSort("insuranceProvider")}
+                >
+                  <div className="flex items-center gap-1">
+                    Insurance
+                    {sortField === "insuranceProvider" && (
+                      <ArrowUpDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
+                        sortDirection === "desc" ? "rotate-180" : ""
+                      }`} />
+                    )}
+                  </div>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -156,7 +209,10 @@ const Patients = () => {
                     <TableCell>{patient.email || "—"}</TableCell>
                     <TableCell>{patient.insuranceProvider || "—"}</TableCell>
                     <TableCell className="text-right">
-                      <PatientActions patientId={patient.id} />
+                      <PatientActions 
+                        patientId={patient.id} 
+                        onStatusChange={handleStatusChange}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
@@ -168,7 +224,8 @@ const Patients = () => {
 
       <NewPatientDialog 
         open={showNewPatientDialog} 
-        onClose={() => setShowNewPatientDialog(false)} 
+        onClose={() => setShowNewPatientDialog(false)}
+        onSubmit={handleNewPatient}
       />
     </Layout>
   );

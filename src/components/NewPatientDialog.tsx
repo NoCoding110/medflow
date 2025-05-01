@@ -10,13 +10,15 @@ import PatientForm from "./PatientForm";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { createPatient } from "@/lib/services/patient-service";
+import { Patient } from "@/lib/types/patient";
 
 interface NewPatientDialogProps {
   open: boolean;
   onClose: () => void;
+  onSubmit?: (patient: Patient) => void;
 }
 
-const NewPatientDialog = ({ open, onClose }: NewPatientDialogProps) => {
+const NewPatientDialog = ({ open, onClose, onSubmit }: NewPatientDialogProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -27,6 +29,9 @@ const NewPatientDialog = ({ open, onClose }: NewPatientDialogProps) => {
         title: "Success",
         description: "Patient added successfully",
       });
+      if (onSubmit) {
+        onSubmit(newPatient);
+      }
       onClose();
       navigate(`/patients/${newPatient.id}`);
     } catch (error) {
