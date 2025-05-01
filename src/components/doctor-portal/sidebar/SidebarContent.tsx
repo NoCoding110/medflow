@@ -5,7 +5,7 @@ import { SmartFeaturesSection } from "./SmartFeaturesSection";
 import { AIAutomationSection } from "./AIAutomationSection";
 import { CollaborationSection } from "./CollaborationSection";
 import { SecuritySection } from "./SecuritySection";
-import { Search } from "lucide-react";
+import { Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +26,13 @@ const categories = [
 export const SidebarContent = ({ closeMenu }: SidebarContentProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    "main menu": true,
+    "smart features": true,
+    "ai & automation": true,
+    "collaboration": true,
+    "security": true
+  });
 
   // Function to check if a section should be visible based on search and category
   const isSectionVisible = (sectionName: string, content: React.ReactNode) => {
@@ -42,8 +49,15 @@ export const SidebarContent = ({ closeMenu }: SidebarContentProps) => {
     return contentString.includes(searchQuery.toLowerCase());
   };
 
+  const toggleSection = (sectionName: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionName]: !prev[sectionName]
+    }));
+  };
+
   return (
-    <div className="flex-1 overflow-hidden">
+    <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -69,34 +83,96 @@ export const SidebarContent = ({ closeMenu }: SidebarContentProps) => {
         </div>
       </div>
       
-      <ScrollArea className="flex-1 p-3">
-        <nav className="space-y-1">
+      <ScrollArea className="flex-1">
+        <nav className="space-y-1 p-3">
           {isSectionVisible("main menu", <MainMenuSection closeMenu={closeMenu} />) && (
-            <MainMenuSection closeMenu={closeMenu} searchQuery={searchQuery} />
+            <div>
+              <div 
+                className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-lightblue-50 rounded-md"
+                onClick={() => toggleSection("main menu")}
+              >
+                <h3 className="text-xs font-semibold uppercase text-navy-400">Main Menu</h3>
+                {expandedSections["main menu"] ? 
+                  <ChevronDown className="h-4 w-4 text-navy-400" /> : 
+                  <ChevronRight className="h-4 w-4 text-navy-400" />
+                }
+              </div>
+              {expandedSections["main menu"] && (
+                <MainMenuSection closeMenu={closeMenu} searchQuery={searchQuery} />
+              )}
+            </div>
           )}
 
           {isSectionVisible("smart features", <SmartFeaturesSection closeMenu={closeMenu} />) && (
-            <SidebarSection title="Smart Features">
-              <SmartFeaturesSection closeMenu={closeMenu} searchQuery={searchQuery} />
-            </SidebarSection>
+            <div>
+              <div 
+                className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-lightblue-50 rounded-md"
+                onClick={() => toggleSection("smart features")}
+              >
+                <h3 className="text-xs font-semibold uppercase text-navy-400">Smart Features</h3>
+                {expandedSections["smart features"] ? 
+                  <ChevronDown className="h-4 w-4 text-navy-400" /> : 
+                  <ChevronRight className="h-4 w-4 text-navy-400" />
+                }
+              </div>
+              {expandedSections["smart features"] && (
+                <SmartFeaturesSection closeMenu={closeMenu} searchQuery={searchQuery} />
+              )}
+            </div>
           )}
 
           {isSectionVisible("ai & automation", <AIAutomationSection closeMenu={closeMenu} />) && (
-            <SidebarSection title="AI & Automation">
-              <AIAutomationSection closeMenu={closeMenu} searchQuery={searchQuery} />
-            </SidebarSection>
+            <div>
+              <div 
+                className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-lightblue-50 rounded-md"
+                onClick={() => toggleSection("ai & automation")}
+              >
+                <h3 className="text-xs font-semibold uppercase text-navy-400">AI & Automation</h3>
+                {expandedSections["ai & automation"] ? 
+                  <ChevronDown className="h-4 w-4 text-navy-400" /> : 
+                  <ChevronRight className="h-4 w-4 text-navy-400" />
+                }
+              </div>
+              {expandedSections["ai & automation"] && (
+                <AIAutomationSection closeMenu={closeMenu} searchQuery={searchQuery} />
+              )}
+            </div>
           )}
 
           {isSectionVisible("collaboration", <CollaborationSection closeMenu={closeMenu} />) && (
-            <SidebarSection title="Collaboration">
-              <CollaborationSection closeMenu={closeMenu} searchQuery={searchQuery} />
-            </SidebarSection>
+            <div>
+              <div 
+                className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-lightblue-50 rounded-md"
+                onClick={() => toggleSection("collaboration")}
+              >
+                <h3 className="text-xs font-semibold uppercase text-navy-400">Collaboration</h3>
+                {expandedSections["collaboration"] ? 
+                  <ChevronDown className="h-4 w-4 text-navy-400" /> : 
+                  <ChevronRight className="h-4 w-4 text-navy-400" />
+                }
+              </div>
+              {expandedSections["collaboration"] && (
+                <CollaborationSection closeMenu={closeMenu} searchQuery={searchQuery} />
+              )}
+            </div>
           )}
 
           {isSectionVisible("security", <SecuritySection closeMenu={closeMenu} />) && (
-            <SidebarSection title="Security">
-              <SecuritySection closeMenu={closeMenu} searchQuery={searchQuery} />
-            </SidebarSection>
+            <div>
+              <div 
+                className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-lightblue-50 rounded-md"
+                onClick={() => toggleSection("security")}
+              >
+                <h3 className="text-xs font-semibold uppercase text-navy-400">Security</h3>
+                {expandedSections["security"] ? 
+                  <ChevronDown className="h-4 w-4 text-navy-400" /> : 
+                  <ChevronRight className="h-4 w-4 text-navy-400" />
+                }
+              </div>
+              {expandedSections["security"] && (
+                <SecuritySection closeMenu={closeMenu} searchQuery={searchQuery} />
+              )}
+            </div>
           )}
         </nav>
       </ScrollArea>

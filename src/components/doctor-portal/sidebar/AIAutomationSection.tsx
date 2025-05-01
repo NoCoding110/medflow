@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   Brain, 
@@ -13,62 +12,80 @@ import { NavItem } from "./NavItem";
 
 interface AIAutomationSectionProps {
   closeMenu: () => void;
+  searchQuery?: string;
 }
 
-export const AIAutomationSection = ({ closeMenu }: AIAutomationSectionProps) => {
+export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomationSectionProps) => {
+  const menuItems = [
+    {
+      icon: <Brain className="h-5 w-5" />,
+      label: "Specialized Modules",
+      to: "/doctor/specialized-modules",
+      badge: "NEW",
+      onClick: closeMenu
+    },
+    {
+      icon: <Microscope className="h-5 w-5" />,
+      label: "AI Pathology Analysis",
+      to: "/doctor/pathology-analysis",
+      badge: "AI",
+      onClick: closeMenu
+    },
+    {
+      icon: <Activity className="h-5 w-5" />,
+      label: "Care Pathway Monitor",
+      to: "/doctor/care-pathway-monitor",
+      badge: "NEW",
+      onClick: closeMenu
+    },
+    {
+      icon: <BookOpen className="h-5 w-5" />,
+      label: "Smart Visit Prep",
+      to: "/doctor/visit-prep",
+      onClick: closeMenu
+    },
+    {
+      icon: <Activity className="h-5 w-5" />,
+      label: "Differential Suggestions",
+      to: "/doctor/differential",
+      onClick: closeMenu
+    },
+    {
+      icon: <Heart className="h-5 w-5" />,
+      label: "Lifestyle Assistant",
+      to: "/doctor/lifestyle",
+      onClick: closeMenu
+    },
+    {
+      icon: <Bell className="h-5 w-5" />,
+      label: "Wellness Alerts",
+      to: "/doctor/wellness-alerts",
+      onClick: closeMenu
+    },
+    {
+      icon: <FileBarChart className="h-5 w-5" />,
+      label: "Visit Comparisons",
+      to: "/doctor/visit-compare",
+      onClick: closeMenu
+    }
+  ];
+
+  const filteredItems = menuItems.filter(item =>
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <>
-      <NavItem
-        to="/doctor/specialized-modules"
-        icon={<Brain className="h-5 w-5" />}
-        label="Specialized Modules"
-        badge="NEW"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/pathology-analysis"
-        icon={<Microscope className="h-5 w-5" />}
-        label="AI Pathology Analysis"
-        badge="AI"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/care-pathway-monitor"
-        icon={<Activity className="h-5 w-5" />}
-        label="Care Pathway Monitor"
-        badge="NEW"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/visit-prep"
-        icon={<BookOpen className="h-5 w-5" />}
-        label="Smart Visit Prep"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/differential"
-        icon={<Activity className="h-5 w-5" />}
-        label="Differential Suggestions"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/lifestyle"
-        icon={<Heart className="h-5 w-5" />}
-        label="Lifestyle Assistant"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/wellness-alerts"
-        icon={<Bell className="h-5 w-5" />}
-        label="Wellness Alerts"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/visit-compare"
-        icon={<FileBarChart className="h-5 w-5" />}
-        label="Visit Comparisons"
-        onClick={closeMenu}
-      />
-    </>
+    <div className="space-y-1">
+      {filteredItems.map((item, index) => (
+        <NavItem
+          key={index}
+          icon={item.icon}
+          label={item.label}
+          to={item.to}
+          badge={item.badge}
+          onClick={item.onClick}
+        />
+      ))}
+    </div>
   );
 };
