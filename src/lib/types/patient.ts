@@ -15,6 +15,7 @@ export interface Patient {
   allergies?: string[];
   medications?: Medication[];
   notes?: Note[];
+  status?: 'active' | 'inactive';
 }
 
 export interface Appointment {

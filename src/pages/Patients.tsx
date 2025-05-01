@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { Link } from "react-router-dom";
@@ -13,58 +12,60 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { mockPatients, calculateAge, Patient } from "@/lib/data";
-import { Search, PlusCircle, Filter, ArrowUpDown } from "lucide-react";
+import { Search, PlusCircle, ArrowUpDown } from "lucide-react";
+import NewPatientDialog from "@/components/NewPatientDialog";
+import PatientActions from "@/components/PatientActions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Patients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<keyof Patient>("lastName");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [showNewPatientDialog, setShowNewPatientDialog] = useState(false);
 
   const handleSort = (field: keyof Patient) => {
     if (sortField === field) {
-      // If already sorting by this field, toggle direction
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      // New field, default to ascending
       setSortField(field);
       setSortDirection("asc");
     }
   };
 
-  const filteredPatients = mockPatients.filter((patient) => {
-    const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      fullName.includes(searchLower) ||
-      patient.email?.toLowerCase().includes(searchLower) ||
-      patient.phone?.includes(searchTerm)
-    );
-  });
+  const filteredPatients = mockPatients
+    .filter((patient) => {
+      // Apply search filter
+      const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = fullName.includes(searchLower) ||
+        patient.email?.toLowerCase().includes(searchLower) ||
+        patient.phone?.includes(searchTerm);
 
-  const sortedPatients = [...filteredPatients].sort((a, b) => {
-    let aValue = a[sortField];
-    let bValue = b[sortField];
-    
-    // Special case for sorting by name (use lastName)
-    if (sortField === "lastName") {
-      aValue = a.lastName.toLowerCase();
-      bValue = b.lastName.toLowerCase();
-    }
-    
-    // Handle undefined values
-    if (aValue === undefined) return 1;
-    if (bValue === undefined) return -1;
-    
-    // String comparison
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      const comparison = aValue.localeCompare(bValue);
-      return sortDirection === "asc" ? comparison : -comparison;
-    }
-    
-    // Default comparison
-    const comparison = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    return sortDirection === "asc" ? comparison : -comparison;
-  });
+      // Apply status filter
+      if (statusFilter === "all") return matchesSearch;
+      const isActive = !patient.status || patient.status === "active";
+      return matchesSearch && (
+        (statusFilter === "active" && isActive) ||
+        (statusFilter === "inactive" && !isActive)
+      );
+    })
+    .sort((a, b) => {
+      const aValue = a[sortField]?.toString().toLowerCase() || "";
+      const bValue = b[sortField]?.toString().toLowerCase() || "";
+      
+      if (sortDirection === "asc") {
+        return aValue.localeCompare(bValue);
+      } else {
+        return bValue.localeCompare(aValue);
+      }
+    });
 
   return (
     <Layout>
@@ -77,11 +78,9 @@ const Patients = () => {
             </p>
           </div>
           <div>
-            <Button asChild>
-              <Link to="/patients/new" className="flex items-center gap-2">
-                <PlusCircle className="h-4 w-4" />
-                Add New Patient
-              </Link>
+            <Button onClick={() => setShowNewPatientDialog(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add New Patient
             </Button>
           </div>
         </div>
@@ -96,16 +95,26 @@ const Patients = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Patients</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="rounded-lg border shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort("lastName")}>
+                <TableHead 
+                  className="w-[250px] cursor-pointer" 
+                  onClick={() => handleSort("lastName")}
+                >
                   <div className="flex items-center gap-1">
                     Name
                     <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
@@ -117,18 +126,18 @@ const Patients = () => {
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Insurance</TableHead>
-                <TableHead className="text-right"></TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedPatients.length === 0 ? (
+              {filteredPatients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
                     No patients found.
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedPatients.map((patient) => (
+                filteredPatients.map((patient) => (
                   <TableRow key={patient.id}>
                     <TableCell className="font-medium">
                       <Link
@@ -147,9 +156,7 @@ const Patients = () => {
                     <TableCell>{patient.email || "—"}</TableCell>
                     <TableCell>{patient.insuranceProvider || "—"}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/patients/${patient.id}`}>View</Link>
-                      </Button>
+                      <PatientActions patientId={patient.id} />
                     </TableCell>
                   </TableRow>
                 ))
@@ -158,6 +165,11 @@ const Patients = () => {
           </Table>
         </div>
       </div>
+
+      <NewPatientDialog 
+        open={showNewPatientDialog} 
+        onClose={() => setShowNewPatientDialog(false)} 
+      />
     </Layout>
   );
 };
