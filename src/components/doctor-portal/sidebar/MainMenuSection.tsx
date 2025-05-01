@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Users, Calendar, FileText, Flask } from "lucide-react";
+import { Home, Users, Calendar, FileText, TestTube } from "lucide-react";
 import { NavItem } from "./NavItem";
 
 interface MainMenuSectionProps {
@@ -15,6 +15,7 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
     {
       icon: <Home className="h-5 w-5" />,
       label: "Dashboard",
+      to: "/doctor",
       onClick: () => {
         navigate("/doctor");
         closeMenu();
@@ -23,6 +24,7 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
     {
       icon: <Users className="h-5 w-5" />,
       label: "Patients",
+      to: "/doctor/patients",
       onClick: () => {
         navigate("/doctor/patients");
         closeMenu();
@@ -31,6 +33,7 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
     {
       icon: <Calendar className="h-5 w-5" />,
       label: "Appointments",
+      to: "/doctor/appointments",
       onClick: () => {
         navigate("/doctor/appointments");
         closeMenu();
@@ -39,14 +42,16 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
     {
       icon: <FileText className="h-5 w-5" />,
       label: "Medical Records",
+      to: "/doctor/records",
       onClick: () => {
         navigate("/doctor/records");
         closeMenu();
       },
     },
     {
-      icon: <Flask className="h-5 w-5" />,
+      icon: <TestTube className="h-5 w-5" />,
       label: "Laboratory",
+      to: "/doctor/lab",
       onClick: () => {
         navigate("/doctor/lab");
         closeMenu();
@@ -64,10 +69,10 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
         <NavItem
           key={index}
           icon={item.icon}
+          label={item.label}
+          to={item.to}
           onClick={item.onClick}
-        >
-          {item.label}
-        </NavItem>
+        />
       ))}
     </div>
   );
