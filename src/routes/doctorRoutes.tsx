@@ -16,10 +16,10 @@ import WellnessAlerts from "@/pages/doctor-portal/smart-features/WellnessAlerts"
 import VisitComparison from "@/pages/doctor-portal/smart-features/VisitComparison";
 import SecureMessaging from "@/pages/doctor-portal/collaboration/SecureMessaging";
 import PatientMessaging from "@/pages/doctor-portal/collaboration/PatientMessaging";
-import TaskManagement from "@/pages/NotFound";
-import AccessControl from "@/pages/NotFound";
-import AuditLogs from "@/pages/NotFound";
-import SecuritySettings from "@/pages/NotFound";
+import TaskManagement from "@/pages/doctor-portal/admin/TaskManagement";
+import AccessControl from "@/pages/doctor-portal/admin/AccessControl";
+import AuditLogs from "@/pages/doctor-portal/admin/AuditLogs";
+import SecuritySettings from "@/pages/doctor-portal/admin/SecuritySettings";
 import WellnessDashboard from "@/pages/doctor-portal/smart-features/WellnessDashboard";
 import VitalsTracker from "@/pages/doctor-portal/smart-features/VitalsTracker";
 import FitnessTracking from "@/pages/doctor-portal/smart-features/FitnessTracking";
@@ -43,8 +43,8 @@ import RealWorldDataPlatform from "@/pages/doctor-portal/ai-features/RealWorldDa
 import { GenerativeAI } from "@/pages/doctor-portal/ai-features/GenerativeAI";
 import { PredictiveAnalysis } from "@/pages/doctor-portal/ai-features/PredictiveAnalysis";
 import { ConversationalAI } from "@/pages/doctor-portal/ai-features/ConversationalAI";
-import DoctorMessages from "@/pages/doctor-portal/DoctorMessages";
-import DoctorSettings from "@/pages/doctor-portal/DoctorSettings";
+import DoctorMessages from "@/pages/doctor-portal/messages/DoctorMessages";
+import DoctorSettings from "@/pages/doctor-portal/settings/DoctorSettings";
 import LabIntegration from "@/pages/doctor-portal/lab-integration/LabIntegration";
 
 interface DoctorRouteProps {
