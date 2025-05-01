@@ -1,62 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Card,
-  CardContent,
-  CardHeader,
-  IconButton,
-  Button,
-  Chip,
-  Stack,
-  LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Tab,
-  Tabs,
-  TabsContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  CircularProgress,
-  Alert,
-  TextField,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Tooltip,
-  Snackbar
-} from '@mui/material';
-import {
-  Timeline,
-  Assessment,
-  Science,
-  Warning,
-  TrendingUp,
-  Image,
-  Psychology,
-  Medication,
-  BarChart,
-  CompareArrows,
-  Notifications,
-  Refresh,
-  FilterList,
-  Download,
-  Sort,
-  PsychologyAlt
-} from '@mui/icons-material';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Activity, LineChart, Pill } from "lucide-react";
-import { AlertDescription } from "@/components/ui/alert";
-import { Button as ShadcnButton } from "@/components/ui/button";
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Brain, Activity, LineChart, Pill, RefreshCw, Filter, Download, ArrowUpDown } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "react-hot-toast";
 
 interface NeurologyStats {
   pendingAnalysis: number;
@@ -117,7 +74,7 @@ const NeurologyDashboard = () => {
   const [selectedAssessment, setSelectedAssessment] = useState<CognitiveAssessment | null>(null);
   const [showScanDialog, setShowScanDialog] = useState(false);
   const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(false);
   const [recentScans, setRecentScans] = useState<ScanAnalysis[]>([]);
   const [recentAssessments, setRecentAssessments] = useState<CognitiveAssessment[]>([]);
@@ -153,6 +110,7 @@ const NeurologyDashboard = () => {
       setRecentAssessments(assessmentsData);
     } catch (error) {
       console.error('Error fetching neurology data:', error);
+      setError('Failed to fetch neurology data');
     } finally {
       setLoading(false);
     }
@@ -165,11 +123,11 @@ const NeurologyDashboard = () => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const analysisResult = await response.json();
-      // Update the scan with AI analysis results
       setSelectedScan(analysisResult);
       setShowScanDialog(true);
     } catch (error) {
       console.error('Error analyzing scan:', error);
+      toast.error('Failed to analyze scan');
     }
   };
 
@@ -184,6 +142,7 @@ const NeurologyDashboard = () => {
       setShowAssessmentDialog(true);
     } catch (error) {
       console.error('Error analyzing assessment:', error);
+      toast.error('Failed to analyze assessment');
     }
   };
 
@@ -191,7 +150,7 @@ const NeurologyDashboard = () => {
     setRefreshLoading(true);
     try {
       await fetchNeurologyData();
-      setSnackbar({ open: true, message: 'Data refreshed successfully' });
+      toast.success('Data refreshed successfully');
     } catch (error) {
       setError('Failed to refresh data');
     } finally {
@@ -248,538 +207,329 @@ const NeurologyDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Neurology Module</h1>
-        <p className="text-gray-600">Comprehensive neurological assessment and monitoring</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Pending Analysis</p>
-                <h3 className="text-2xl font-bold">{stats.pendingAnalysis}</h3>
-              </div>
-              <Brain className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Cognitive Assessments</p>
-                <h3 className="text-2xl font-bold">{stats.cognitiveAssessments}</h3>
-              </div>
-              <Activity className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Active Treatments</p>
-                <h3 className="text-2xl font-bold">{stats.activeTreatments}</h3>
-              </div>
-              <Pill className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Patients</p>
-                <h3 className="text-2xl font-bold">{stats.totalPatients}</h3>
-              </div>
-              <LineChart className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs value={currentPath} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="">
-            <div className="flex items-center gap-2">
-              <Brain className="h-4 w-4" />
-              Dashboard
-            </div>
-          </TabsTrigger>
-          <TabsTrigger value="imaging">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Imaging Analysis
-            </div>
-          </TabsTrigger>
-          <TabsTrigger value="cognitive">
-            <div className="flex items-center gap-2">
-              <LineChart className="h-4 w-4" />
-              Cognitive Assessment
-            </div>
-          </TabsTrigger>
-          <TabsTrigger value="treatment">
-            <div className="flex items-center gap-2">
-              <Pill className="h-4 w-4" />
-              Treatment Monitoring
-            </div>
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="">
-          <div className="p-4">
-            <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
-            <p>Select a section to view detailed information.</p>
-          </div>
-        </TabsContent>
-        <TabsContent value="imaging">
-          <Outlet />
-        </TabsContent>
-        <TabsContent value="cognitive">
-          <Outlet />
-        </TabsContent>
-        <TabsContent value="treatment">
-          <Outlet />
-        </TabsContent>
-      </Tabs>
-
-      <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" className="flex items-center gap-2" onClick={handleRefresh} disabled={refreshLoading}>
-          <Activity className="h-4 w-4" />
-          Export Data
-        </Button>
-        <Button className="flex items-center gap-2" onClick={() => navigate('/doctor/neurology-module/new-analysis')}>
-          <Brain className="h-4 w-4" />
-          New Analysis
-        </Button>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" className="flex items-center gap-2" onClick={handleRefresh} disabled={refreshLoading}>
-            <Activity className="h-4 w-4" />
-            Export Data
+    <div className="container py-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Neurology Dashboard</h1>
+          <p className="text-muted-foreground">Monitor and analyze neurological assessments and scans</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshLoading ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-          <Button className="flex items-center gap-2" onClick={() => navigate('/doctor/neurology-module/new-analysis')}>
-            <Brain className="h-4 w-4" />
-            New Analysis
+          <Button>
+            <Brain className="h-4 w-4 mr-2" />
+            New Assessment
           </Button>
         </div>
       </div>
 
-      {/* Filters Section */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Scan Status</InputLabel>
-              <Select
-                value={filters.scanStatus}
-                onChange={(e) => handleFilterChange('scanStatus', e.target.value)}
-                label="Scan Status"
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Assessment Score</InputLabel>
-              <Select
-                value={filters.assessmentScore}
-                onChange={(e) => handleFilterChange('assessmentScore', e.target.value)}
-                label="Assessment Score"
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value=">70">Above 70%</MenuItem>
-                <MenuItem value="<70">Below 70%</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Date Range</InputLabel>
-              <Select
-                value={filters.dateRange}
-                onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-                label="Date Range"
-              >
-                <MenuItem value="7d">Last 7 days</MenuItem>
-                <MenuItem value="30d">Last 30 days</MenuItem>
-                <MenuItem value="90d">Last 90 days</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </Paper>
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      {/* Main Content */}
-      <Grid container spacing={3}>
-        {/* Left Column - Imaging Analysis */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-              <Typography variant="h6">
-                <Image sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Imaging Analysis
-              </Typography>
-              <Button variant="contained" color="primary" startIcon={<Science />}>
-                New Analysis
-              </Button>
-            </Stack>
+      <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Pending Analysis</p>
+                <h3 className="text-2xl font-bold">{stats.pendingAnalysis}</h3>
+              </div>
+              <Brain className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Cognitive Assessments</p>
+                <h3 className="text-2xl font-bold">{stats.cognitiveAssessments}</h3>
+              </div>
+              <Activity className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Treatments</p>
+                <h3 className="text-2xl font-bold">{stats.activeTreatments}</h3>
+              </div>
+              <Pill className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Patients</p>
+                <h3 className="text-2xl font-bold">{stats.totalPatients}</h3>
+              </div>
+              <LineChart className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            <List>
-              {filteredScans.map((scan) => (
-                <ListItem
-                  key={scan.id}
-                  onClick={() => handleScanAnalysis(scan.id)}
-                  divider
-                  secondaryAction={
-                    <Tooltip title="Export Report">
-                      <IconButton
-                        edge="end"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExportReport('scan', scan.id);
-                        }}
-                      >
-                        <Download />
-                      </IconButton>
-                    </Tooltip>
-                  }
-                >
-                  <ListItemIcon>
-                    <PsychologyAlt color={scan.status === 'pending' ? 'warning' : 'success'} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={scan.patientName}
-                    secondary={`${scan.scanType} • ${scan.date}`}
-                  />
-                  <Chip
-                    label={scan.status}
-                    color={scan.status === 'pending' ? 'warning' : 'success'}
-                    size="small"
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="scans">Brain Scans</TabsTrigger>
+            <TabsTrigger value="assessments">Cognitive Assessments</TabsTrigger>
+            <TabsTrigger value="treatments">Treatments</TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-2">
+            <Select
+              value={filters.dateRange}
+              onValueChange={(value) => handleFilterChange('dateRange', value)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select date range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="all">All time</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon" onClick={handleSortToggle}>
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
-          {/* AI Insights */}
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              <Science sx={{ mr: 1, verticalAlign: 'middle' }} />
-              AI Insights
-            </Typography>
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <TrendingUp color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Pattern Recognition"
-                  secondary="AI detected 3 new patterns in recent scans"
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <CompareArrows color="secondary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Comparative Analysis"
-                  secondary="2 cases require attention based on historical data"
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <Warning color="warning" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Early Detection"
-                  secondary="AI flagged potential early signs in 1 case"
-                />
-              </ListItem>
-            </List>
-          </Paper>
-        </Grid>
+        <TabsContent value="overview">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Brain Scans</CardTitle>
+                <CardDescription>Latest neurological scan analyses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[400px]">
+                    {recentScans.map((scan) => (
+                      <div key={scan.id} className="p-4 border-b last:border-0">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{scan.patientName}</h4>
+                            <p className="text-sm text-muted-foreground">{scan.scanType}</p>
+                          </div>
+                          <Badge variant={scan.status === 'Completed' ? 'default' : 'secondary'}>
+                            {scan.status}
+                          </Badge>
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-sm text-muted-foreground">
+                            Date: {new Date(scan.date).toLocaleDateString()}
+                          </p>
+                          {scan.aiFindings && (
+                            <div className="mt-2">
+                              <Progress value={scan.aiFindings.confidence * 100} className="h-1" />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                AI Confidence: {(scan.aiFindings.confidence * 100).toFixed(1)}%
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex justify-end mt-2">
+                          <Button variant="outline" size="sm" onClick={() => handleScanAnalysis(scan.id)}>
+                            View Analysis
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Right Column - Cognitive Assessment & Treatment */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-              <Typography variant="h6">
-                <Psychology sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Cognitive Assessments
-              </Typography>
-              <Button variant="contained" color="secondary" startIcon={<Assessment />}>
-                New Assessment
-              </Button>
-            </Stack>
+            <Card>
+              <CardHeader>
+                <CardTitle>Cognitive Assessments</CardTitle>
+                <CardDescription>Recent cognitive evaluation results</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[400px]">
+                    {recentAssessments.map((assessment) => (
+                      <div key={assessment.id} className="p-4 border-b last:border-0">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{assessment.patientName}</h4>
+                            <p className="text-sm text-muted-foreground">{assessment.type}</p>
+                          </div>
+                          <Badge variant={assessment.score >= 70 ? 'default' : 'secondary'}>
+                            Score: {assessment.score}
+                          </Badge>
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-sm text-muted-foreground">
+                            Date: {new Date(assessment.date).toLocaleDateString()}
+                          </p>
+                          <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Memory</p>
+                              <Progress 
+                                value={assessment.trends.memory[assessment.trends.memory.length - 1]} 
+                                className="h-1" 
+                              />
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Attention</p>
+                              <Progress 
+                                value={assessment.trends.attention[assessment.trends.attention.length - 1]} 
+                                className="h-1" 
+                              />
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Executive</p>
+                              <Progress 
+                                value={assessment.trends.executive[assessment.trends.executive.length - 1]} 
+                                className="h-1" 
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-end mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleAssessmentAnalysis(assessment.id)}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-            <List>
-              {filteredAssessments.map((assessment) => (
-                <ListItem
-                  key={assessment.id}
-                  onClick={() => handleAssessmentAnalysis(assessment.id)}
-                  divider
-                  secondaryAction={
-                    <Tooltip title="Export Report">
-                      <IconButton
-                        edge="end"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExportReport('assessment', assessment.id);
-                        }}
-                      >
-                        <Download />
-                      </IconButton>
-                    </Tooltip>
-                  }
-                >
-                  <ListItemIcon>
-                    <Psychology color={assessment.score > 70 ? 'success' : 'warning'} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={assessment.patientName}
-                    secondary={`${assessment.type} • ${assessment.date}`}
-                  />
-                  <Box sx={{ minWidth: 100 }}>
-                    <Typography variant="body2" color="textSecondary">
-                      Score: {assessment.score}%
-                    </Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={assessment.score}
-                      color={assessment.score > 70 ? 'success' : 'warning'}
-                      sx={{ height: 6, borderRadius: 3 }}
-                    />
-                  </Box>
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
+        <TabsContent value="scans">
+          {/* Brain Scans content */}
+        </TabsContent>
 
-          {/* Treatment Monitoring */}
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              <Timeline sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Treatment Monitoring
-            </Typography>
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <Notifications color="success" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Treatment Progress"
-                  secondary="2 patients showing significant improvement"
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <BarChart color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Response Analysis"
-                  secondary="AI predicts positive outcomes for current protocols"
-                />
-              </ListItem>
-            </List>
-          </Paper>
-        </Grid>
-      </Grid>
+        <TabsContent value="assessments">
+          {/* Cognitive Assessments content */}
+        </TabsContent>
+
+        <TabsContent value="treatments">
+          {/* Treatments content */}
+        </TabsContent>
+      </Tabs>
 
       {/* Scan Analysis Dialog */}
-      <Dialog
-        open={showScanDialog}
-        onClose={() => setShowScanDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        {selectedScan && (
-          <>
-            <DialogTitle>
-              <Typography variant="h6">
-                Scan Analysis Results
-              </Typography>
-              <Typography variant="subtitle2" color="textSecondary">
-                {selectedScan.patientName} • {selectedScan.scanType} • {selectedScan.date}
-              </Typography>
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  AI Findings
-                </Typography>
-                <Alert severity={selectedScan.aiFindings.confidence > 0.8 ? 'success' : 'warning'}>
-                  Confidence Level: {(selectedScan.aiFindings.confidence * 100).toFixed(1)}%
-                </Alert>
-              </Box>
-
-              <Typography variant="subtitle1" gutterBottom>
-                Detected Abnormalities
-              </Typography>
-              <List>
-                {selectedScan.aiFindings.abnormalities.map((abnormality, index) => (
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      <Warning color="warning" />
-                    </ListItemIcon>
-                    <ListItemText primary={abnormality} />
-                  </ListItem>
-                ))}
-              </List>
-
-              <Typography variant="subtitle1" gutterBottom>
-                Recommendations
-              </Typography>
-              <List>
-                {selectedScan.aiFindings.recommendations.map((recommendation, index) => (
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      <Assessment color="info" />
-                    </ListItemIcon>
-                    <ListItemText primary={recommendation} />
-                  </ListItem>
-                ))}
-              </List>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setShowScanDialog(false)}>Close</Button>
-              <Button variant="contained" color="primary">
-                Add to Patient Record
-              </Button>
-            </DialogActions>
-          </>
-        )}
+      <Dialog open={showScanDialog} onOpenChange={setShowScanDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Scan Analysis Results</DialogTitle>
+            <DialogDescription>
+              Detailed analysis of the brain scan
+            </DialogDescription>
+          </DialogHeader>
+          {selectedScan && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Patient</Label>
+                  <p className="font-medium">{selectedScan.patientName}</p>
+                </div>
+                <div>
+                  <Label>Scan Type</Label>
+                  <p className="font-medium">{selectedScan.scanType}</p>
+                </div>
+                <div>
+                  <Label>Date</Label>
+                  <p className="font-medium">{new Date(selectedScan.date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Badge variant={selectedScan.status === 'Completed' ? 'default' : 'secondary'}>
+                    {selectedScan.status}
+                  </Badge>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <Label>AI Findings</Label>
+                <div className="mt-2 space-y-2">
+                  {selectedScan.aiFindings.abnormalities.map((abnormality, index) => (
+                    <Alert key={index}>
+                      <AlertDescription>{abnormality}</AlertDescription>
+                    </Alert>
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <Label>Recommendations</Label>
+                  <ul className="mt-2 space-y-2">
+                    {selectedScan.aiFindings.recommendations.map((recommendation, index) => (
+                      <li key={index} className="text-sm">• {recommendation}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowScanDialog(false)}>
+              Close
+            </Button>
+            <Button onClick={() => handleExportReport('scan', selectedScan?.id || '')}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Assessment Analysis Dialog */}
-      <Dialog
-        open={showAssessmentDialog}
-        onClose={() => setShowAssessmentDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        {selectedAssessment && (
-          <>
-            <DialogTitle>
-              <Typography variant="h6">
-                Cognitive Assessment Results
-              </Typography>
-              <Typography variant="subtitle2" color="textSecondary">
-                {selectedAssessment.patientName} • {selectedAssessment.type} • {selectedAssessment.date}
-              </Typography>
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Overall Score
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <CircularProgress
-                    variant="determinate"
-                    value={selectedAssessment.score}
-                    size={80}
-                    thickness={4}
-                    color={selectedAssessment.score > 70 ? 'success' : 'warning'}
-                    sx={{ mr: 2 }}
-                  />
-                  <Box>
-                    <Typography variant="h4">
-                      {selectedAssessment.score}%
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Overall Performance
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-
-              <Typography variant="subtitle1" gutterBottom>
-                Cognitive Domain Trends
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <Card>
-                    <CardHeader
-                      title="Memory"
-                      subheader={`${selectedAssessment.trends.memory[selectedAssessment.trends.memory.length - 1]}%`}
-                    />
-                    <CardContent>
-                      <LinearProgress
-                        variant="determinate"
-                        value={selectedAssessment.trends.memory[selectedAssessment.trends.memory.length - 1]}
-                        color="primary"
-                        sx={{ height: 8, borderRadius: 4 }}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Card>
-                    <CardHeader
-                      title="Attention"
-                      subheader={`${selectedAssessment.trends.attention[selectedAssessment.trends.attention.length - 1]}%`}
-                    />
-                    <CardContent>
-                      <LinearProgress
-                        variant="determinate"
-                        value={selectedAssessment.trends.attention[selectedAssessment.trends.attention.length - 1]}
-                        color="secondary"
-                        sx={{ height: 8, borderRadius: 4 }}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Card>
-                    <CardHeader
-                      title="Executive Function"
-                      subheader={`${selectedAssessment.trends.executive[selectedAssessment.trends.executive.length - 1]}%`}
-                    />
-                    <CardContent>
-                      <LinearProgress
-                        variant="determinate"
-                        value={selectedAssessment.trends.executive[selectedAssessment.trends.executive.length - 1]}
-                        color="info"
-                        sx={{ height: 8, borderRadius: 4 }}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setShowAssessmentDialog(false)}>Close</Button>
-              <Button variant="contained" color="primary">
-                Generate Report
-              </Button>
-            </DialogActions>
-          </>
-        )}
+      <Dialog open={showAssessmentDialog} onOpenChange={setShowAssessmentDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Assessment Details</DialogTitle>
+            <DialogDescription>
+              Detailed cognitive assessment results
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAssessment && (
+            <div className="space-y-4">
+              {/* Assessment details content */}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssessmentDialog(false)}>
+              Close
+            </Button>
+            <Button onClick={() => handleExportReport('assessment', selectedAssessment?.id || '')}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        message={snackbar.message}
-      />
     </div>
   );
 };
