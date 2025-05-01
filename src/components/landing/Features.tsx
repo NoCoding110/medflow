@@ -1,11 +1,13 @@
-
 import React from "react";
 import {
   Users, Calendar, FileText, Heart, Brain, 
   LineChart, Shield, User, Star, Bell, Activity,
   Database, MessageSquare, Thermometer,
   ChartBar, Award, Search, TrendingUp, 
-  Settings, MapPin, AlarmClock
+  Settings, MapPin, AlarmClock, Stethoscope,
+  Microscope, Zap, Bot, Cpu, Lock, PieChart,
+  Fingerprint, BookOpen, Lightbulb, Sparkles,
+  Syringe, Pill, Clipboard, HeartPulse
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,14 +17,59 @@ const Features = () => {
       <div className="container">
         <div className="mx-auto max-w-[58rem] text-center">
           <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent animate-fade-in">
-            Comprehensive EHR Features
+            Advanced Healthcare Technology
           </h2>
           <p className="text-xl text-muted-foreground animate-fade-in">
-            A complete healthcare ecosystem designed for patients, doctors, and administrators
+            Powered by cutting-edge AI and machine learning for superior healthcare delivery
           </p>
         </div>
 
         <div className="mx-auto mt-16 space-y-20">
+          {/* AI & Technology Features */}
+          <div className="feature-section">
+            <h3 className="text-3xl font-semibold text-center mb-8 bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">
+              AI & Advanced Technology
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <FeatureCard
+                icon={<Bot className="h-6 w-6 text-violet-500" />}
+                title="Clinical AI Assistant"
+                description="Advanced natural language processing for medical documentation and decision support."
+                delay={0}
+              />
+              <FeatureCard
+                icon={<Cpu className="h-6 w-6 text-indigo-500" />}
+                title="Predictive Analytics"
+                description="ML-powered health outcome predictions and early warning systems."
+                delay={100}
+              />
+              <FeatureCard
+                icon={<HeartPulse className="h-6 w-6 text-rose-500" />}
+                title="Smart ECG Analysis"
+                description="Real-time ECG interpretation with AI-powered anomaly detection."
+                delay={200}
+              />
+              <FeatureCard
+                icon={<Microscope className="h-6 w-6 text-emerald-500" />}
+                title="Imaging AI"
+                description="Advanced medical imaging analysis with deep learning algorithms."
+                delay={300}
+              />
+              <FeatureCard
+                icon={<Sparkles className="h-6 w-6 text-amber-500" />}
+                title="Generative AI Reports"
+                description="Automated medical report generation with natural language processing."
+                delay={400}
+              />
+              <FeatureCard
+                icon={<Zap className="h-6 w-6 text-blue-500" />}
+                title="Smart Automation"
+                description="Intelligent workflow automation and task prioritization."
+                delay={500}
+              />
+            </div>
+          </div>
+
           {/* Patient Portal Features */}
           <div className="feature-section">
             <h3 className="text-3xl font-semibold text-center mb-8 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
@@ -32,37 +79,37 @@ const Features = () => {
               <FeatureCard
                 icon={<Activity className="h-6 w-6 text-blue-500" />}
                 title="Wellness & Lifestyle"
-                description="Personalized coaching, diet plans, and health tips tailored to your needs."
+                description="Personalized AI coaching, diet plans, and health tips tailored to your needs."
                 delay={0}
               />
               <FeatureCard
                 icon={<Heart className="h-6 w-6 text-rose-500" />}
-                title="Vital Signs Monitoring"
-                description="Sync with wearables to track steps, sleep, heart rate, and more in real-time."
+                title="Smart Health Monitoring"
+                description="AI-powered vital signs tracking with predictive alerts and trends."
                 delay={100}
               />
               <FeatureCard
                 icon={<Brain className="h-6 w-6 text-purple-500" />}
                 title="AI Health Assistant"
-                description="24/7 virtual support for health queries, lab results, and appointment scheduling."
+                description="24/7 intelligent virtual support with natural language understanding."
                 delay={200}
               />
               <FeatureCard
-                icon={<Bell className="h-6 w-6 text-amber-500" />}
-                title="Smart Notifications"
-                description="Timely reminders for medications, appointments, and health goals."
+                icon={<Pill className="h-6 w-6 text-emerald-500" />}
+                title="Medication Management"
+                description="Smart medication tracking with AI-powered interaction checks."
                 delay={300}
               />
               <FeatureCard
-                icon={<ChartBar className="h-6 w-6 text-emerald-500" />}
-                title="Health Analytics"
-                description="Detailed insights and trends about your health journey."
+                icon={<ChartBar className="h-6 w-6 text-amber-500" />}
+                title="Predictive Analytics"
+                description="Personal health forecasting and risk assessment."
                 delay={400}
               />
               <FeatureCard
-                icon={<MessageSquare className="h-6 w-6 text-cyan-500" />}
-                title="Secure Messaging"
-                description="Direct communication with your healthcare providers."
+                icon={<Clipboard className="h-6 w-6 text-cyan-500" />}
+                title="Digital Health Records"
+                description="Comprehensive health history with AI-powered insights."
                 delay={500}
               />
             </div>
@@ -75,39 +122,39 @@ const Features = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <FeatureCard
-                icon={<User className="h-6 w-6 text-blue-500" />}
-                title="Patient Management"
-                description="Complete patient profiles with medical history and smart documentation."
+                icon={<Stethoscope className="h-6 w-6 text-blue-500" />}
+                title="Smart Diagnostics"
+                description="AI-assisted diagnosis with evidence-based recommendations."
                 delay={0}
               />
               <FeatureCard
-                icon={<FileText className="h-6 w-6 text-emerald-500" />}
-                title="Clinical Documentation"
-                description="SOAP notes, customizable templates, and quick documentation tools."
+                icon={<BookOpen className="h-6 w-6 text-emerald-500" />}
+                title="Clinical Knowledge Base"
+                description="AI-powered medical research assistant and literature analysis."
                 delay={100}
               />
               <FeatureCard
                 icon={<Calendar className="h-6 w-6 text-purple-500" />}
-                title="Smart Scheduling"
-                description="AI-powered calendar management with telehealth integration."
+                title="Intelligent Scheduling"
+                description="ML-optimized appointment management with smart prioritization."
                 delay={200}
               />
               <FeatureCard
-                icon={<LineChart className="h-6 w-6 text-rose-500" />}
-                title="Analytics Dashboard"
-                description="Visual insights into patient health trends and outcomes."
+                icon={<Lightbulb className="h-6 w-6 text-amber-500" />}
+                title="Treatment Suggestions"
+                description="AI-powered treatment planning and protocol recommendations."
                 delay={300}
               />
               <FeatureCard
-                icon={<Database className="h-6 w-6 text-amber-500" />}
-                title="Lab Integration"
-                description="Digital lab ordering with real-time result tracking."
+                icon={<Database className="h-6 w-6 text-rose-500" />}
+                title="Smart Lab Integration"
+                description="Automated lab result analysis with trend detection."
                 delay={400}
               />
               <FeatureCard
                 icon={<Shield className="h-6 w-6 text-cyan-500" />}
-                title="E-Prescriptions"
-                description="Secure electronic prescribing with drug interaction checks."
+                title="Clinical Decision Support"
+                description="AI-enhanced decision support with risk stratification."
                 delay={500}
               />
             </div>
@@ -120,39 +167,39 @@ const Features = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <FeatureCard
-                icon={<Users className="h-6 w-6 text-indigo-500" />}
-                title="User Management"
-                description="Advanced role-based access control and staff management."
+                icon={<PieChart className="h-6 w-6 text-indigo-500" />}
+                title="Intelligent Analytics"
+                description="AI-driven insights for operational efficiency and resource allocation."
                 delay={0}
               />
               <FeatureCard
-                icon={<TrendingUp className="h-6 w-6 text-emerald-500" />}
-                title="Smart Analytics"
-                description="Real-time KPIs, revenue tracking, and performance metrics."
+                icon={<Fingerprint className="h-6 w-6 text-emerald-500" />}
+                title="Smart Access Control"
+                description="AI-powered security and role-based access management."
                 delay={100}
               />
               <FeatureCard
                 icon={<Search className="h-6 w-6 text-blue-500" />}
-                title="AI Billing Assistant"
-                description="Automated coding suggestions and revenue optimization."
+                title="Revenue Optimization"
+                description="ML-powered billing optimization and fraud detection."
                 delay={200}
               />
               <FeatureCard
                 icon={<MapPin className="h-6 w-6 text-rose-500" />}
-                title="Clinic Load Map"
-                description="Visual heatmaps and smart staff rotation planning."
+                title="Resource Management"
+                description="AI-optimized resource allocation and capacity planning."
                 delay={300}
               />
               <FeatureCard
-                icon={<Star className="h-6 w-6 text-amber-500" />}
-                title="Staff Recognition"
-                description="Gamified leaderboards and performance recognition."
+                icon={<Lock className="h-6 w-6 text-amber-500" />}
+                title="Compliance AI"
+                description="Automated compliance monitoring and risk assessment."
                 delay={400}
               />
               <FeatureCard
                 icon={<Settings className="h-6 w-6 text-slate-500" />}
-                title="Clinic Settings"
-                description="Comprehensive clinic configuration and automation tools."
+                title="Smart Automation"
+                description="AI-powered workflow optimization and process automation."
                 delay={500}
               />
             </div>
