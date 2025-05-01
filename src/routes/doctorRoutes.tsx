@@ -9,7 +9,7 @@ import DoctorPrescriptions from "@/pages/doctor-portal/prescriptions/DoctorPresc
 import DoctorBilling from "@/pages/doctor-portal/billing/DoctorBilling";
 import DoctorLab from "@/pages/doctor-portal/lab/DoctorLab";
 import DoctorTelehealth from "@/pages/doctor-portal/telehealth/DoctorTelehealth";
-import SmartVisitPrep from "@/pages/doctor-portal/smart-features/SmartVisitPrep";
+import { SmartVisitPrep } from "@/pages/doctor-portal/smart-features/SmartVisitPrep";
 import SmartDifferential from "@/pages/doctor-portal/smart-features/SmartDifferential";
 import LifestyleAssistant from "@/pages/doctor-portal/smart-features/LifestyleAssistant";
 import WellnessAlerts from "@/pages/doctor-portal/smart-features/WellnessAlerts";
