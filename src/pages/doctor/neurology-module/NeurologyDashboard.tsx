@@ -19,6 +19,7 @@ import {
   DialogActions,
   Tab,
   Tabs,
+  TabsContent,
   List,
   ListItem,
   ListItemText,
@@ -51,6 +52,11 @@ import {
   Sort,
   PsychologyAlt
 } from '@mui/icons-material';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Brain, Activity, LineChart, Pill } from "lucide-react";
+import { AlertDescription } from "@/components/ui/alert";
+import { Button as ShadcnButton } from "@/components/ui/button";
 
 interface NeurologyStats {
   pendingAnalysis: number;
@@ -92,7 +98,15 @@ interface FilterOptions {
   dateRange: string;
 }
 
-const NeurologyDashboard: React.FC = () => {
+const NeurologyDashboard = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname.split('/').pop() || '';
+
+  const handleTabChange = (value: string) => {
+    navigate(`/doctor/neurology-module/${value}`);
+  };
+
   const [stats, setStats] = useState<NeurologyStats>({
     pendingAnalysis: 2,
     cognitiveAssessments: 2,
@@ -234,98 +248,136 @@ const NeurologyDashboard: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <div className="container mx-auto p-6">
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Neurology Module</h1>
+        <p className="text-gray-600">Comprehensive neurological assessment and monitoring</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Pending Analysis</p>
+                <h3 className="text-2xl font-bold">{stats.pendingAnalysis}</h3>
+              </div>
+              <Brain className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Cognitive Assessments</p>
+                <h3 className="text-2xl font-bold">{stats.cognitiveAssessments}</h3>
+              </div>
+              <Activity className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Active Treatments</p>
+                <h3 className="text-2xl font-bold">{stats.activeTreatments}</h3>
+              </div>
+              <Pill className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Patients</p>
+                <h3 className="text-2xl font-bold">{stats.totalPatients}</h3>
+              </div>
+              <LineChart className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs value={currentPath} onValueChange={handleTabChange}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="">
+            <div className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              Dashboard
+            </div>
+          </TabsTrigger>
+          <TabsTrigger value="imaging">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Imaging Analysis
+            </div>
+          </TabsTrigger>
+          <TabsTrigger value="cognitive">
+            <div className="flex items-center gap-2">
+              <LineChart className="h-4 w-4" />
+              Cognitive Assessment
+            </div>
+          </TabsTrigger>
+          <TabsTrigger value="treatment">
+            <div className="flex items-center gap-2">
+              <Pill className="h-4 w-4" />
+              Treatment Monitoring
+            </div>
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="">
+          <div className="p-4">
+            <h2 className="text-2xl font-bold mb-4">Dashboard Overview</h2>
+            <p>Select a section to view detailed information.</p>
+          </div>
+        </TabsContent>
+        <TabsContent value="imaging">
+          <Outlet />
+        </TabsContent>
+        <TabsContent value="cognitive">
+          <Outlet />
+        </TabsContent>
+        <TabsContent value="treatment">
+          <Outlet />
+        </TabsContent>
+      </Tabs>
+
+      <div className="mt-6 flex justify-end gap-2">
+        <Button variant="outline" className="flex items-center gap-2" onClick={handleRefresh} disabled={refreshLoading}>
+          <Activity className="h-4 w-4" />
+          Export Data
+        </Button>
+        <Button className="flex items-center gap-2" onClick={() => navigate('/doctor/neurology-module/new-analysis')}>
+          <Brain className="h-4 w-4" />
+          New Analysis
+        </Button>
+      </div>
+
       {/* Stats Overview */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Pending Analysis
-                  </Typography>
-                  <Typography variant="h4">{stats.pendingAnalysis}</Typography>
-                  <Typography variant="subtitle2">Recent scans</Typography>
-                </Box>
-                <PsychologyAlt sx={{ fontSize: 40, color: 'primary.main' }} />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Cognitive Assessments
-                  </Typography>
-                  <Typography variant="h4">{stats.cognitiveAssessments}</Typography>
-                  <Typography variant="subtitle2">Recent tests</Typography>
-                </Box>
-                <Psychology sx={{ fontSize: 40, color: 'secondary.main' }} />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Active Treatments
-                  </Typography>
-                  <Typography variant="h4">{stats.activeTreatments}</Typography>
-                  <Typography variant="subtitle2">In progress</Typography>
-                </Box>
-                <Medication sx={{ fontSize: 40, color: 'success.main' }} />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Total Patients
-                  </Typography>
-                  <Typography variant="h4">{stats.totalPatients}</Typography>
-                  <Typography variant="subtitle2">Under care</Typography>
-                </Box>
-                <Assessment sx={{ fontSize: 40, color: 'info.main' }} />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Tooltip title="Refresh Data">
-              <IconButton onClick={handleRefresh} disabled={refreshLoading}>
-                <Refresh />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Toggle Sort Order">
-              <IconButton onClick={handleSortToggle}>
-                <Sort />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Grid>
-      </Grid>
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" className="flex items-center gap-2" onClick={handleRefresh} disabled={refreshLoading}>
+            <Activity className="h-4 w-4" />
+            Export Data
+          </Button>
+          <Button className="flex items-center gap-2" onClick={() => navigate('/doctor/neurology-module/new-analysis')}>
+            <Brain className="h-4 w-4" />
+            New Analysis
+          </Button>
+        </div>
+      </div>
 
       {/* Filters Section */}
       <Paper sx={{ p: 2, mb: 3 }}>
@@ -728,7 +780,7 @@ const NeurologyDashboard: React.FC = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         message={snackbar.message}
       />
-    </Container>
+    </div>
   );
 };
 
