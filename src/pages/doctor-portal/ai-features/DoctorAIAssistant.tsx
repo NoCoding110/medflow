@@ -1,71 +1,293 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, MessageSquare, Brain, Search, FileText, ListChecks, Activity, Database, FileBarChart } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import {
+  Bot,
+  MessageSquare,
+  Brain,
+  Search,
+  FileText,
+  Activity,
+  Database,
+  FileBarChart,
+  Mic,
+  Camera,
+  Upload,
+  Loader2,
+  ChevronRight,
+  Zap,
+  AlertCircle,
+  BookOpen,
+  Stethoscope,
+  LineChart
+} from "lucide-react";
+
+interface Message {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: Date;
+  type: 'text' | 'image' | 'lab' | 'analysis';
+  confidence?: number;
+  sources?: string[];
+  suggestions?: string[];
+  analysis?: {
+    sentiment?: string;
+    urgency?: string;
+    medicalTerms?: string[];
+    possibleConditions?: Array<{ condition: string; probability: number }>;
+  };
+}
+
+interface Analysis {
+  type: string;
+  value: number;
+  label: string;
+  trend?: 'up' | 'down' | 'stable';
+}
 
 const DoctorAIAssistant = () => {
-  const [query, setQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('assistant');
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeContext, setActiveContext] = useState<string[]>([]);
+  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [confidenceScore, setConfidenceScore] = useState(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [activeTab, setActiveTab] = useState('chat');
+  
+  // Simulated medical knowledge base
+  const knowledgeBase = {
+    conditions: new Set(['Type 2 Diabetes', 'Hypertension', 'Asthma']),
+    medications: new Set(['Metformin', 'Lisinopril', 'Albuterol']),
+    procedures: new Set(['ECG', 'Blood Test', 'X-Ray']),
+  };
 
-  // Example suggestions - in a real app, these would come from an AI service
-  const suggestions = [
-    {
-      condition: "Type 2 Diabetes",
-      symptoms: ["frequent urination", "increased thirst", "fatigue"],
-      suggestedTreatment: "Consider Metformin as first-line treatment, along with lifestyle modifications. Recent studies show benefits of GLP-1 agonists for weight management.",
-      similarCases: 15,
-      recentLiterature: "NEJM 2024: Early GLP-1 agonist intervention showed 15% reduction in cardiovascular events."
-    },
-    {
-      condition: "Hypertension",
-      symptoms: ["headache", "dizziness", "shortness of breath"],
-      suggestedTreatment: "ACE inhibitors or ARBs may be appropriate, monitor BP regularly. Consider SGLT2 inhibitors if comorbid with diabetes.",
-      similarCases: 23,
-      recentLiterature: "JAMA 2025: Combination therapy with low-dose amlodipine and ARBs showed fewer side effects."
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Simulate real-time processing with multiple stages
+  const processInput = async (text: string) => {
+    setIsProcessing(true);
+    setConfidenceScore(0);
+
+    try {
+      // Stage 1: Initial Analysis
+      await simulateProgress(20);
+      const medicalTerms = extractMedicalTerms(text);
+      
+      // Stage 2: Context Building
+      await simulateProgress(40);
+      const relevantContext = buildContext(medicalTerms);
+      setActiveContext(relevantContext);
+
+      // Stage 3: Deep Analysis
+      await simulateProgress(60);
+      const analysis = await performAnalysis(text, relevantContext);
+
+      // Stage 4: Response Generation
+      await simulateProgress(80);
+      const response = generateResponse(analysis);
+
+      // Stage 5: Confidence Scoring
+      await simulateProgress(100);
+      const confidence = calculateConfidence(analysis);
+      setConfidenceScore(confidence);
+
+      return {
+        content: response,
+        analysis: {
+          medicalTerms,
+          possibleConditions: generatePossibleConditions(medicalTerms),
+          urgency: determineUrgency(text),
+          sentiment: analyzeSentiment(text)
+        },
+        confidence,
+        sources: generateSources(),
+        suggestions: generateSuggestions(medicalTerms)
+      };
+    } catch (error) {
+      console.error('Error processing input:', error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
     }
-  ];
+  };
 
-  // Sample clinical literature
-  const recentLiterature = [
-    {
-      title: "Novel Biomarkers for Early Alzheimer's Detection",
-      journal: "Nature Medicine",
-      date: "April 2025",
-      summary: "Plasma phosphorylated tau-217 shows 94% accuracy in detecting early-stage Alzheimer's, potentially enabling non-invasive screening."
-    },
-    {
-      title: "Artificial Intelligence for Cardiac Risk Stratification",
-      journal: "JACC",
-      date: "March 2025",
-      summary: "Deep learning models analyzing standard ECG data demonstrated superior risk prediction compared to traditional scoring methods."
-    },
-    {
-      title: "SGLT2 Inhibitors in Heart Failure with Preserved Ejection Fraction",
-      journal: "New England Journal of Medicine",
-      date: "February 2025",
-      summary: "Extended follow-up confirms mortality benefit of dapagliflozin in HFpEF patients across all NYHA classes."
+  const simulateProgress = (target: number) => {
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        setConfidenceScore(current => {
+          if (current >= target) {
+            clearInterval(interval);
+            resolve();
+            return target;
+          }
+          return current + 1;
+        });
+      }, 20);
+    });
+  };
+
+  const extractMedicalTerms = (text: string): string[] => {
+    const terms: string[] = [];
+    const words = text.toLowerCase().split(' ');
+    
+    words.forEach(word => {
+      if (knowledgeBase.conditions.has(word) ||
+          knowledgeBase.medications.has(word) ||
+          knowledgeBase.procedures.has(word)) {
+        terms.push(word);
+      }
+    });
+    
+    return terms;
+  };
+
+  const buildContext = (terms: string[]): string[] => {
+    // Simulate context building based on medical terms
+    return terms.map(term => `Context for ${term}`);
+  };
+
+  const performAnalysis = async (text: string, context: string[]) => {
+    // Simulate deep analysis
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return {
+      text,
+      context,
+      score: Math.random() * 100
+    };
+  };
+
+  const generateResponse = (analysis: any): string => {
+    // Simulate response generation
+    return "Based on the analysis, here's what I found...";
+  };
+
+  const calculateConfidence = (analysis: any): number => {
+    return Math.min(Math.random() * 100 + 50, 100);
+  };
+
+  const generatePossibleConditions = (terms: string[]): Array<{ condition: string; probability: number }> => {
+    return terms.map(term => ({
+      condition: term,
+      probability: Math.random() * 100
+    }));
+  };
+
+  const determineUrgency = (text: string): string => {
+    // Simulate urgency detection
+    return ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)];
+  };
+
+  const analyzeSentiment = (text: string): string => {
+    // Simulate sentiment analysis
+    return ['Neutral', 'Concerned', 'Urgent'][Math.floor(Math.random() * 3)];
+  };
+
+  const generateSources = (): string[] => {
+    return [
+      'PubMed ID: 12345678',
+      'Clinical Guidelines 2024',
+      'Medical Journal Reference'
+    ];
+  };
+
+  const generateSuggestions = (terms: string[]): string[] => {
+    return [
+      'Would you like to see recent studies about this condition?',
+      'Should I analyze related lab results?',
+      'Would you like to compare with similar cases?'
+    ];
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isProcessing) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: input,
+      role: 'user',
+      timestamp: new Date(),
+      type: 'text'
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+
+    try {
+      const response = await processInput(input);
+      
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: response.content,
+        role: 'assistant',
+        timestamp: new Date(),
+        type: 'text',
+        confidence: response.confidence,
+        sources: response.sources,
+        suggestions: response.suggestions,
+        analysis: response.analysis
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Update analyses based on the response
+      setAnalyses(prev => [
+        ...prev,
+        {
+          type: 'confidence',
+          value: response.confidence,
+          label: 'Response Confidence'
+        }
+      ]);
+
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process your request. Please try again."
+      });
     }
-  ];
+  };
 
-  // Sample patient data insights
-  const patientRecordInsights = [
-    { category: "Medication Adherence", status: "At Risk", details: "Patient's refill pattern suggests 60% adherence to statin therapy" },
-    { category: "Lab Trends", status: "Improving", details: "HbA1c decreased from 8.2% to 7.1% over 6 months" },
-    { category: "Social Determinants", status: "Needs Review", details: "Transportation issues noted; may benefit from telehealth options" }
-  ];
+  const handleVoiceInput = () => {
+    setIsListening(!isListening);
+    // Implement voice recognition logic here
+    toast({
+      title: isListening ? "Voice Input Stopped" : "Listening...",
+      description: isListening ? "Processing your voice input" : "Speak now..."
+    });
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Implement image processing logic here
+      toast({
+        title: "Image Uploaded",
+        description: "Processing medical image..."
+      });
+    }
+  };
 
   return (
     <div className="container py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">AI Medical Assistant</h1>
-          <p className="text-muted-foreground">Get AI-powered insights and treatment suggestions</p>
+          <p className="text-muted-foreground">Advanced medical analysis and decision support system</p>
         </div>
         <Button className="flex items-center gap-2">
           <Brain className="h-4 w-4" />
@@ -73,239 +295,230 @@ const DoctorAIAssistant = () => {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-3 md:grid-cols-5 lg:w-[600px]">
-          <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
-          <TabsTrigger value="literature">Literature</TabsTrigger>
-          <TabsTrigger value="records">Patient Records</TabsTrigger>
-          <TabsTrigger value="trials">Clinical Trials</TabsTrigger>
-          <TabsTrigger value="imaging">Imaging AI</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="assistant" className="space-y-4">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="animate-fade-in">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  Ask AI Assistant
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+      <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
+        <div className="space-y-4">
+          <Card className="h-[600px] flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                Medical Conversation
+              </CardTitle>
+              <CardDescription>
+                Interact with the AI assistant for medical analysis and insights
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="flex-1 overflow-hidden">
+              <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
-                  <Textarea 
-                    placeholder="Describe patient symptoms, ask for treatment suggestions, request literature summaries, or search patient records..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="min-h-[120px]"
-                  />
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">Search patient records</Badge>
-                    <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">Summarize recent literature</Badge>
-                    <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">Find similar cases</Badge>
-                    <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">Suggest treatment plan</Badge>
-                  </div>
-                  <Button className="w-full">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Get AI Insights
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="animate-fade-in">
-              <CardHeader>
-                <CardTitle>Similar Cases & Suggestions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-4">
-                    {suggestions.map((suggestion, index) => (
-                      <div key={index} className="border-b pb-4 last:border-0">
-                        <h3 className="font-semibold mb-2">{suggestion.condition}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Symptoms: {suggestion.symptoms.join(", ")}
-                        </p>
-                        <p className="text-sm mb-2">
-                          Suggested Treatment: {suggestion.suggestedTreatment}
-                        </p>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Found in {suggestion.similarCases} similar cases
-                        </p>
-                        <p className="text-xs italic border-l-2 border-primary/20 pl-2">
-                          {suggestion.recentLiterature}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="literature" className="space-y-4 animate-fade-in">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Recent Medical Literature
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {recentLiterature.map((paper, index) => (
-                  <div key={index} className="border-b pb-4 last:border-0">
-                    <h3 className="font-semibold">{paper.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {paper.journal} • {paper.date}
-                    </p>
-                    <p className="text-sm">{paper.summary}</p>
-                    <div className="mt-2 flex gap-2">
-                      <Button variant="outline" size="sm">View Full Paper</Button>
-                      <Button variant="ghost" size="sm">Save</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">
-                <Search className="mr-2 h-4 w-4" />
-                Search More Literature
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="records" className="space-y-4 animate-fade-in">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Patient Record Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {patientRecordInsights.map((insight, index) => (
-                  <div key={index} className="border-b pb-4 last:border-0">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold">{insight.category}</h3>
-                      <Badge 
-                        variant={
-                          insight.status === "At Risk" ? "destructive" : 
-                          insight.status === "Improving" ? "default" : "outline"
-                        }
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex gap-3 ${
+                        message.role === 'assistant' ? 'justify-start' : 'justify-end'
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-4 ${
+                          message.role === 'assistant'
+                            ? 'bg-muted'
+                            : 'bg-primary text-primary-foreground'
+                        }`}
                       >
-                        {insight.status}
-                      </Badge>
+                        <div className="flex items-center gap-2 mb-2">
+                          {message.role === 'assistant' && (
+                            <Bot className="h-4 w-4" />
+                          )}
+                          <span className="font-medium">
+                            {message.role === 'assistant' ? 'AI Assistant' : 'You'}
+                          </span>
+                          {message.confidence && (
+                            <Badge variant="outline">
+                              {message.confidence.toFixed(0)}% confidence
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <p className="mb-2">{message.content}</p>
+                        
+                        {message.analysis && (
+                          <div className="mt-2 space-y-2">
+                            {message.analysis.medicalTerms && (
+                              <div className="flex flex-wrap gap-1">
+                                {message.analysis.medicalTerms.map((term, i) => (
+                                  <Badge key={i} variant="secondary">{term}</Badge>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {message.analysis.possibleConditions && (
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">Possible Conditions:</p>
+                                {message.analysis.possibleConditions.map((condition, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <Progress value={condition.probability} className="h-2" />
+                                    <span className="text-sm">{condition.condition}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {message.sources && (
+                          <div className="mt-2 text-sm">
+                            <p className="font-medium">Sources:</p>
+                            <ul className="list-disc list-inside">
+                              {message.sources.map((source, i) => (
+                                <li key={i}>{source}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {message.suggestions && (
+                          <div className="mt-2 space-y-1">
+                            {message.suggestions.map((suggestion, i) => (
+                              <Button
+                                key={i}
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-start text-left"
+                              >
+                                <ChevronRight className="h-4 w-4 mr-2" />
+                                {suggestion}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm">{insight.details}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline">
-                <FileBarChart className="mr-2 h-4 w-4" />
-                Full Patient History
-              </Button>
-              <Button>
-                <ListChecks className="mr-2 h-4 w-4" />
-                Generate Care Plan
-              </Button>
+
+            <CardFooter className="border-t pt-4">
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleVoiceInput}
+                  className={isListening ? 'bg-red-100' : ''}
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => document.getElementById('image-upload')?.click()}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <Input
+                  placeholder="Ask me anything about medical conditions, treatments, or analyze patient data..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  disabled={isProcessing}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={isProcessing || !input.trim()}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MessageSquare className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </CardFooter>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="trials" className="animate-fade-in">
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Clinical Trial Matching
+                Analysis Status
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4">Based on the current patient profile, the following clinical trials may be suitable:</p>
               <div className="space-y-4">
-                <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-                  <div className="flex justify-between">
-                    <h3 className="font-semibold">SGLT2 Inhibitor Cardiovascular Outcomes Trial</h3>
-                    <Badge>95% Match</Badge>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Processing Confidence</span>
+                    <span className="text-sm">{confidenceScore}%</span>
                   </div>
-                  <p className="text-sm text-muted-foreground my-2">NCT04728750 • Phase 3 • Recruiting</p>
-                  <p className="text-sm mb-2">Evaluating cardiovascular outcomes in Type 2 diabetes patients with established heart disease.</p>
-                  <Button variant="outline" size="sm">View Details</Button>
+                  <Progress value={confidenceScore} className="h-2" />
                 </div>
-                
-                <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
-                  <div className="flex justify-between">
-                    <h3 className="font-semibold">Novel Anti-Inflammatory for Diabetic Nephropathy</h3>
-                    <Badge variant="secondary">82% Match</Badge>
+
+                <div className="space-y-2">
+                  {activeContext.map((context, i) => (
+                    <Badge key={i} variant="outline" className="mr-2">
+                      {context}
+                    </Badge>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="border rounded-md p-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap className="h-4 w-4 text-yellow-500" />
+                      <span className="text-sm font-medium">Active Analysis</span>
+                    </div>
+                    <span className="text-2xl font-bold">{analyses.length}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground my-2">NCT05127318 • Phase 2 • Recruiting</p>
-                  <p className="text-sm mb-2">Testing efficacy of new therapeutic in slowing progression of diabetic kidney disease.</p>
-                  <Button variant="outline" size="sm">View Details</Button>
+                  
+                  <div className="border rounded-md p-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <span className="text-sm font-medium">Critical Findings</span>
+                    </div>
+                    <span className="text-2xl font-bold">0</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">
-                <Search className="mr-2 h-4 w-4" />
-                Search More Clinical Trials
-              </Button>
-            </CardFooter>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="imaging" className="animate-fade-in">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileBarChart className="h-5 w-5" />
-                AI Imaging Analysis
+                <BookOpen className="h-5 w-5" />
+                Knowledge Base
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 border-2 border-dashed rounded-lg mb-4 bg-muted/20">
-                <div className="space-y-2">
-                  <Brain className="h-10 w-10 mx-auto text-muted-foreground" />
-                  <h3 className="font-medium">Upload Medical Imaging</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Drag & drop or click to upload DICOM, pathology slides, or other medical images
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-2">
-                    Upload Image
-                  </Button>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4" />
+                  <span className="text-sm font-medium">Medical References</span>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-medium">Available AI Analysis Tools:</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="border rounded-md p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                    <h4 className="font-medium">ECG Analysis</h4>
-                    <p className="text-xs text-muted-foreground">Detect arrhythmias, predict cardiovascular risk</p>
-                  </div>
-                  <div className="border rounded-md p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                    <h4 className="font-medium">Chest X-Ray Review</h4>
-                    <p className="text-xs text-muted-foreground">Pneumonia, nodule detection, tuberculosis</p>
-                  </div>
-                  <div className="border rounded-md p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                    <h4 className="font-medium">Pathology Analysis</h4>
-                    <p className="text-xs text-muted-foreground">H&E slide analysis, cancer subtyping</p>
-                  </div>
-                  <div className="border rounded-md p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                    <h4 className="font-medium">Brain MRI Assessment</h4>
-                    <p className="text-xs text-muted-foreground">Stroke detection, tumor identification</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <LineChart className="h-4 w-4" />
+                  <span className="text-sm font-medium">Clinical Guidelines</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  <span className="text-sm font-medium">Case Studies</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
