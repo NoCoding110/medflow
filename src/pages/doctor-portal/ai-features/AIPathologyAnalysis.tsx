@@ -1,17 +1,128 @@
-
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Microscope, Upload, Eye, FileBarChart, Layers, Zap, AlertTriangle } from "lucide-react";
+import { 
+  Microscope, 
+  Upload, 
+  Eye, 
+  FileBarChart, 
+  Layers, 
+  Zap, 
+  AlertTriangle,
+  Download,
+  Play,
+  Info
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+// Mock report data
+const recentReports = [
+  {
+    id: "1",
+    title: "H&E Slide - Patient #12458",
+    uploadTime: "2 hours ago",
+    type: "H&E",
+    patientId: "12458",
+    findings: {
+      diagnosis: "Invasive Ductal Carcinoma",
+      grade: "Grade 2",
+      tumorSize: "2.3 cm",
+      margins: "Negative",
+      lymphNodes: "0/3 positive",
+      notes: "Moderate nuclear pleomorphism, 2-3 mitotic figures per HPF"
+    }
+  },
+  {
+    id: "2",
+    title: "IHC Panel - Patient #12377",
+    uploadTime: "yesterday",
+    type: "IHC",
+    patientId: "12377",
+    findings: {
+      er: "Positive (90%)",
+      pr: "Positive (85%)",
+      her2: "Negative (1+)",
+      ki67: "20%",
+      notes: "Strong and diffuse ER/PR positivity"
+    }
+  }
+];
+
+// Mock AI models with additional details
+const aiModels = [
+  {
+    id: "breast",
+    name: "Breast Cancer Subtyping",
+    accuracy: "99%",
+    description: "Classifies invasive breast cancer subtypes and grades with high precision",
+    status: ["Validated", "FDA Approved"],
+    details: {
+      trainedOn: "100,000+ H&E slides",
+      lastUpdated: "2024-03-01",
+      supportedTypes: ["H&E", "IHC"],
+      features: [
+        "Tumor grade prediction",
+        "Molecular subtype estimation",
+        "Proliferation index calculation",
+        "Stromal TIL assessment"
+      ]
+    }
+  },
+  {
+    id: "lung",
+    name: "Lung Cancer Biomarker Predictor",
+    accuracy: "95%",
+    description: "Predicts probable biomarkers from H&E slides before molecular testing",
+    status: ["Validated"],
+    details: {
+      trainedOn: "50,000+ lung cancer cases",
+      lastUpdated: "2024-02-15",
+      supportedTypes: ["H&E"],
+      features: [
+        "EGFR mutation prediction",
+        "PD-L1 expression estimation",
+        "ALK fusion probability",
+        "Tumor mutation burden prediction"
+      ]
+    }
+  },
+  {
+    id: "lymph",
+    name: "Lymph Node Metastasis Detection",
+    accuracy: "97%",
+    description: "Identifies metastatic cells in lymph node sections",
+    status: ["Validated", "FDA Approved"],
+    details: {
+      trainedOn: "75,000+ lymph node sections",
+      lastUpdated: "2024-03-10",
+      supportedTypes: ["H&E", "IHC"],
+      features: [
+        "Micrometastasis detection",
+        "Tumor cell quantification",
+        "Extranodal extension assessment",
+        "Size measurement automation"
+      ]
+    }
+  }
+];
 
 const AIPathologyAnalysis = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<typeof recentReports[0] | null>(null);
   
   // Mock function to simulate analysis
   const startAnalysis = () => {
@@ -30,6 +141,18 @@ const AIPathologyAnalysis = () => {
         return newProgress;
       });
     }, 200);
+  };
+
+  // Function to handle AI model selection
+  const handleModelSelect = (modelId: string) => {
+    setSelectedModel(modelId);
+  };
+
+  // Function to start analysis with selected model
+  const startModelAnalysis = () => {
+    if (selectedModel) {
+      startAnalysis();
+    }
   };
 
   return (
@@ -74,20 +197,73 @@ const AIPathologyAnalysis = () => {
                 </div>
                 <div className="space-y-2">
                   <h3 className="font-medium">Recently Uploaded</h3>
-                  <div className="border rounded-md p-3 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">H&E Slide - Patient #12458</p>
-                      <p className="text-xs text-muted-foreground">Uploaded 2 hours ago</p>
-                    </div>
-                    <Button variant="ghost" size="sm">View</Button>
-                  </div>
-                  <div className="border rounded-md p-3 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">IHC Panel - Patient #12377</p>
-                      <p className="text-xs text-muted-foreground">Uploaded yesterday</p>
-                    </div>
-                    <Button variant="ghost" size="sm">View</Button>
-                  </div>
+                  {recentReports.map((report) => (
+                    <Dialog key={report.id}>
+                      <DialogTrigger asChild>
+                        <div className="border rounded-md p-3 flex justify-between items-center hover:bg-accent/50 cursor-pointer">
+                          <div>
+                            <p className="font-medium">{report.title}</p>
+                            <p className="text-xs text-muted-foreground">Uploaded {report.uploadTime}</p>
+                          </div>
+                          <Button variant="ghost" size="sm">View</Button>
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl">
+                        <DialogHeader>
+                          <DialogTitle>{report.title}</DialogTitle>
+                          <DialogDescription>
+                            Uploaded {report.uploadTime} | Type: {report.type} | Patient ID: {report.patientId}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          {report.type === 'H&E' ? (
+                            <div className="space-y-2">
+                              <h3 className="font-medium">Pathology Findings</h3>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">Diagnosis:</span> {report.findings.diagnosis}</p>
+                                  <p><span className="font-medium">Grade:</span> {report.findings.grade}</p>
+                                  <p><span className="font-medium">Tumor Size:</span> {report.findings.tumorSize}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">Margins:</span> {report.findings.margins}</p>
+                                  <p><span className="font-medium">Lymph Nodes:</span> {report.findings.lymphNodes}</p>
+                                </div>
+                              </div>
+                              <Separator className="my-2" />
+                              <p><span className="font-medium">Notes:</span> {report.findings.notes}</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <h3 className="font-medium">IHC Results</h3>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">ER Status:</span> {report.findings.er}</p>
+                                  <p><span className="font-medium">PR Status:</span> {report.findings.pr}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">HER2 Status:</span> {report.findings.her2}</p>
+                                  <p><span className="font-medium">Ki-67:</span> {report.findings.ki67}</p>
+                                </div>
+                              </div>
+                              <Separator className="my-2" />
+                              <p><span className="font-medium">Notes:</span> {report.findings.notes}</p>
+                            </div>
+                          )}
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline">
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Slide
+                            </Button>
+                            <Button>
+                              <Download className="mr-2 h-4 w-4" />
+                              Download Report
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ))}
                 </div>
               </CardContent>
               <CardFooter>
@@ -103,7 +279,7 @@ const AIPathologyAnalysis = () => {
                   <Button 
                     className="w-full"
                     onClick={startAnalysis}
-                    disabled={isAnalyzing}
+                    disabled={isAnalyzing || !selectedModel}
                   >
                     <FileBarChart className="mr-2 h-4 w-4" />
                     Start AI Analysis
@@ -121,46 +297,85 @@ const AIPathologyAnalysis = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="border rounded-lg p-4 hover:bg-muted/10 transition-colors">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-semibold">Breast Cancer Subtyping</h3>
-                      <Badge variant="outline">99% Accuracy</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground my-2">
-                      Classifies invasive breast cancer subtypes and grades with high precision
-                    </p>
-                    <div className="mt-2 flex gap-2">
-                      <Badge variant="secondary">Validated</Badge>
-                      <Badge variant="outline">FDA Approved</Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4 hover:bg-muted/10 transition-colors">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-semibold">Lung Cancer Biomarker Predictor</h3>
-                      <Badge variant="outline">95% Accuracy</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground my-2">
-                      Predicts probable biomarkers from H&E slides before molecular testing
-                    </p>
-                    <div className="mt-2 flex gap-2">
-                      <Badge variant="secondary">Validated</Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4 hover:bg-muted/10 transition-colors">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-semibold">Lymph Node Metastasis Detection</h3>
-                      <Badge variant="outline">97% Accuracy</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground my-2">
-                      Identifies metastatic cells in lymph node sections
-                    </p>
-                    <div className="mt-2 flex gap-2">
-                      <Badge variant="secondary">Validated</Badge>
-                      <Badge variant="outline">FDA Approved</Badge>
-                    </div>
-                  </div>
+                  {aiModels.map((model) => (
+                    <Dialog key={model.id}>
+                      <div className={`border rounded-lg p-4 hover:bg-muted/10 transition-colors ${
+                        selectedModel === model.id ? 'ring-2 ring-primary' : ''
+                      }`}>
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-semibold">{model.name}</h3>
+                          <Badge variant="outline">{model.accuracy} Accuracy</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground my-2">
+                          {model.description}
+                        </p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex gap-2">
+                            {model.status.map((status, index) => (
+                              <Badge key={index} variant="secondary">{status}</Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Info className="h-4 w-4 mr-1" />
+                                Details
+                              </Button>
+                            </DialogTrigger>
+                            <Button 
+                              size="sm"
+                              variant={selectedModel === model.id ? "default" : "outline"}
+                              onClick={() => handleModelSelect(model.id)}
+                            >
+                              {selectedModel === model.id ? (
+                                <>Selected</>
+                              ) : (
+                                <>
+                                  <Play className="h-4 w-4 mr-1" />
+                                  Use Model
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{model.name}</DialogTitle>
+                          <DialogDescription>{model.description}</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-medium mb-2">Model Information</h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <p><span className="font-medium">Trained On:</span> {model.details.trainedOn}</p>
+                                <p><span className="font-medium">Last Updated:</span> {model.details.lastUpdated}</p>
+                              </div>
+                              <div>
+                                <p><span className="font-medium">Supported Types:</span> {model.details.supportedTypes.join(', ')}</p>
+                                <p><span className="font-medium">Accuracy:</span> {model.accuracy}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <Separator />
+                          <div>
+                            <h4 className="font-medium mb-2">Key Features</h4>
+                            <ul className="list-disc list-inside space-y-1 text-sm">
+                              {model.details.features.map((feature, index) => (
+                                <li key={index}>{feature}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="flex justify-end">
+                            <Button onClick={() => handleModelSelect(model.id)}>
+                              Use This Model
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ))}
                 </div>
               </CardContent>
             </Card>
