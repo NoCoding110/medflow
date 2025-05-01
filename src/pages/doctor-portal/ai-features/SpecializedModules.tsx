@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ const SpecializedModules = () => {
         "Molecular Tumor Board Integration"
       ],
       color: "bg-purple-50 text-purple-700",
-      link: "/doctor/pathology-analysis"
+      link: "/doctor/oncology"
     },
     {
       id: "neurology",

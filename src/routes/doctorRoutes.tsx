@@ -46,6 +46,7 @@ import { ConversationalAI } from "@/pages/doctor-portal/ai-features/Conversation
 import DoctorMessages from "@/pages/doctor-portal/messages/DoctorMessages";
 import DoctorSettings from "@/pages/doctor-portal/settings/DoctorSettings";
 import LabIntegration from "@/pages/doctor-portal/lab-integration/LabIntegration";
+import OncologyModule from "@/pages/doctor-portal/ai-features/OncologyModule";
 
 interface DoctorRouteProps {
   children: React.ReactNode;
@@ -140,5 +141,6 @@ export const doctorRoutes = {
     { path: "vitals", element: <VitalsTracker /> },
     { path: "fitness", element: <FitnessTracking /> },
     { path: "symptoms", element: <SymptomTracker /> },
+    { path: "oncology", element: <OncologyModule /> },
   ],
 };
