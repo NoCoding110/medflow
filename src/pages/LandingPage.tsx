@@ -20,7 +20,9 @@ import {
   Zap,
   LineChart,
   Lock,
-  Laptop
+  Laptop,
+  Microscope,
+  Bot
 } from "lucide-react";
 
 const LandingPage = () => {
@@ -369,6 +371,199 @@ const LandingPage = () => {
                 <li>• Data portability support</li>
                 <li>• Privacy impact assessments</li>
               </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Advanced Portal Features */}
+        <section className="bg-gradient-to-b from-white to-navy-50/30 py-20">
+          <div className="container">
+            <h2 className="text-center text-3xl font-bold tracking-tight text-navy-800 sm:text-4xl">
+              Specialized Portal Features
+            </h2>
+            <div className="mx-auto mt-2 h-1 w-24 rounded-full bg-purple-500"></div>
+            
+            {/* Doctor Portal Advanced Features */}
+            <div className="mt-16">
+              <h3 className="text-2xl font-bold text-navy-800 mb-8 text-center">
+                <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                  Advanced Doctor Features
+                </span>
+              </h3>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    icon: <Brain className="h-5 w-5" />,
+                    title: "Smart Diagnostics",
+                    description: "AI-powered diagnostic assistance with evidence-based recommendations"
+                  },
+                  {
+                    icon: <Microscope className="h-5 w-5" />,
+                    title: "AI Pathology Analysis",
+                    description: "Advanced imaging analysis for accurate diagnosis"
+                  },
+                  {
+                    icon: <Activity className="h-5 w-5" />,
+                    title: "Clinical AI Assistant",
+                    description: "Natural language processing for medical documentation"
+                  },
+                  {
+                    icon: <Heart className="h-5 w-5" />,
+                    title: "Specialized Modules",
+                    description: "Dedicated tools for cardiology, neurology, and psychiatry"
+                  }
+                ].map((feature, index) => (
+                  <div key={index} className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="rounded-full bg-blue-100 p-2 text-blue-600">
+                        {feature.icon}
+                      </div>
+                      <h4 className="font-semibold">{feature.title}</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Patient Portal Advanced Features */}
+            <div className="mt-16">
+              <h3 className="text-2xl font-bold text-navy-800 mb-8 text-center">
+                <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
+                  Enhanced Patient Experience
+                </span>
+              </h3>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    icon: <Bot className="h-5 w-5" />,
+                    title: "AI Health Assistant",
+                    description: "24/7 intelligent virtual support for your health needs"
+                  },
+                  {
+                    icon: <Activity className="h-5 w-5" />,
+                    title: "Wellness Hub",
+                    description: "Comprehensive health tracking and lifestyle management"
+                  },
+                  {
+                    icon: <MessageSquare className="h-5 w-5" />,
+                    title: "Telehealth Suite",
+                    description: "Virtual consultations and remote monitoring"
+                  },
+                  {
+                    icon: <Brain className="h-5 w-5" />,
+                    title: "Mental Health Tools",
+                    description: "Track mood, stress, and access support resources"
+                  }
+                ].map((feature, index) => (
+                  <div key={index} className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="rounded-full bg-emerald-100 p-2 text-emerald-600">
+                        {feature.icon}
+                      </div>
+                      <h4 className="font-semibold">{feature.title}</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Admin Portal Advanced Features */}
+            <div className="mt-16">
+              <h3 className="text-2xl font-bold text-navy-800 mb-8 text-center">
+                <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                  Intelligent Administration
+                </span>
+              </h3>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    icon: <LineChart className="h-5 w-5" />,
+                    title: "Practice Analytics",
+                    description: "AI-driven insights for operational efficiency"
+                  },
+                  {
+                    icon: <Users className="h-5 w-5" />,
+                    title: "Staff Management",
+                    description: "Smart scheduling and performance tracking"
+                  },
+                  {
+                    icon: <FileText className="h-5 w-5" />,
+                    title: "Billing Optimization",
+                    description: "Automated billing with ML-powered error detection"
+                  },
+                  {
+                    icon: <Settings className="h-5 w-5" />,
+                    title: "Clinic Settings",
+                    description: "Customizable workflows and automation tools"
+                  }
+                ].map((feature, index) => (
+                  <div key={index} className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="rounded-full bg-purple-100 p-2 text-purple-600">
+                        {feature.icon}
+                      </div>
+                      <h4 className="font-semibold">{feature.title}</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* AI Technology Showcase */}
+        <section className="bg-gradient-to-b from-navy-50/30 to-white py-20">
+          <div className="container">
+            <h2 className="text-center text-3xl font-bold tracking-tight text-navy-800 sm:text-4xl">
+              Powered by Advanced AI
+            </h2>
+            <div className="mx-auto mt-2 h-1 w-24 rounded-full bg-lightblue-500"></div>
+            <p className="mx-auto mt-6 max-w-2xl text-center text-lg text-muted-foreground">
+              Our platform leverages cutting-edge artificial intelligence to enhance every aspect of healthcare delivery
+            </p>
+            
+            <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                {
+                  icon: <Brain className="h-6 w-6 text-lightblue-600" />,
+                  title: "Clinical AI Assistant",
+                  description: "Natural language processing for medical documentation and clinical decision support"
+                },
+                {
+                  icon: <LineChart className="h-6 w-6 text-purple-600" />,
+                  title: "Predictive Analytics",
+                  description: "Machine learning algorithms for patient outcome prediction and risk assessment"
+                },
+                {
+                  icon: <MessageSquare className="h-6 w-6 text-emerald-600" />,
+                  title: "Conversational AI",
+                  description: "Intelligent chatbots for patient engagement and automated support"
+                },
+                {
+                  icon: <Microscope className="h-6 w-6 text-blue-600" />,
+                  title: "Medical Imaging AI",
+                  description: "Advanced image analysis for radiology, pathology, and diagnostics"
+                },
+                {
+                  icon: <Activity className="h-6 w-6 text-red-600" />,
+                  title: "Real-time Monitoring",
+                  description: "Continuous patient monitoring with smart alerts and trend analysis"
+                },
+                {
+                  icon: <Shield className="h-6 w-6 text-indigo-600" />,
+                  title: "Smart Security",
+                  description: "AI-powered security measures ensuring data protection and compliance"
+                }
+              ].map((feature, index) => (
+                <div key={index} className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="mb-4">{feature.icon}</div>
+                  <h3 className="text-lg font-semibold">{feature.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
