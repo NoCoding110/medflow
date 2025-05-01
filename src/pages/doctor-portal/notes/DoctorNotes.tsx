@@ -1,10 +1,13 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, FileText, Plus, FilePlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import QuickNoteDialog from "./QuickNoteDialog";
+import NewNoteDialog from "./NewNoteDialog";
+import { toast } from "sonner";
 
 // Sample note templates
 const noteTemplates = [
@@ -15,36 +18,145 @@ const noteTemplates = [
   { id: "5", name: "Mental Health Session", specialty: "Psychiatry", fields: ["Mood", "Sleep", "Medication Response", "Therapy Notes", "Plan"] },
 ];
 
-// Sample recent notes
-const recentNotes = [
-  { id: "1", patientName: "John Smith", patientId: "12345", date: "2025-04-26", type: "Progress Note", title: "Follow-up Appointment" },
-  { id: "2", patientName: "Emily Johnson", patientId: "23456", date: "2025-04-26", type: "Initial Assessment", title: "New Patient Visit" },
-  { id: "3", patientName: "Michael Brown", patientId: "34567", date: "2025-04-25", type: "Progress Note", title: "Medication Review" },
-  { id: "4", patientName: "Sarah Davis", patientId: "45678", date: "2025-04-25", type: "Lab Review", title: "Blood Work Results" },
-  { id: "5", patientName: "Robert Wilson", patientId: "56789", date: "2025-04-24", type: "Progress Note", title: "Chronic Condition Management" },
+// Sample patients data
+const patients = [
+  { id: "P1001", name: "John Smith" },
+  { id: "P1002", name: "Emily Johnson" },
+  { id: "P1003", name: "Michael Brown" },
+  { id: "P1004", name: "Sarah Davis" },
+  { id: "P1005", name: "Robert Wilson" },
+];
+
+// Sample recent notes with more details
+const initialNotes = [
+  { 
+    id: "1", 
+    patientName: "John Smith", 
+    patientId: "P1001", 
+    date: "2025-04-26", 
+    type: "Progress Note", 
+    title: "Follow-up Appointment",
+    content: "Patient reports improved symptoms. Blood pressure: 120/80. Continue current medications.",
+    doctorName: "Dr. Sarah Johnson"
+  },
+  { 
+    id: "2", 
+    patientName: "Emily Johnson", 
+    patientId: "P1002", 
+    date: "2025-04-26", 
+    type: "Initial Assessment", 
+    title: "New Patient Visit",
+    content: "Initial consultation for chronic headaches. Ordered MRI scan.",
+    doctorName: "Dr. Sarah Johnson"
+  },
+  { 
+    id: "3", 
+    patientName: "Michael Brown", 
+    patientId: "P1003", 
+    date: "2025-04-25", 
+    type: "Progress Note", 
+    title: "Medication Review",
+    content: "Medication adjustment for hypertension. Added lifestyle recommendations.",
+    doctorName: "Dr. Sarah Johnson"
+  },
+  { 
+    id: "4", 
+    patientName: "Sarah Davis", 
+    patientId: "P1004", 
+    date: "2025-04-25", 
+    type: "Lab Review", 
+    title: "Blood Work Results",
+    content: "Review of comprehensive metabolic panel. All values within normal range.",
+    doctorName: "Dr. Sarah Johnson"
+  },
+  { 
+    id: "5", 
+    patientName: "Robert Wilson", 
+    patientId: "P1005", 
+    date: "2025-04-24", 
+    type: "Progress Note", 
+    title: "Chronic Condition Management",
+    content: "Quarterly review of diabetes management. A1C improved to 6.8.",
+    doctorName: "Dr. Sarah Johnson"
+  },
 ];
 
 const DoctorNotes = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
+  const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
+  const [notes, setNotes] = useState(initialNotes);
   
-  const filteredNotes = recentNotes.filter(note => 
+  const filteredNotes = notes.filter(note => 
     note.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.type.toLowerCase().includes(searchTerm.toLowerCase())
+    note.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    note.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const selectedTemplate = noteTemplates.find(template => template.id === selectedTemplateId);
 
+  const handleQuickNoteSubmit = async (data: any) => {
+    const newNote = {
+      id: (notes.length + 1).toString(),
+      patientName: "Quick Note",
+      patientId: "N/A",
+      date: new Date().toISOString().split('T')[0],
+      type: data.type,
+      title: data.title,
+      content: data.content,
+      doctorName: "Dr. Sarah Johnson"
+    };
+
+    setNotes(prev => [newNote, ...prev]);
+  };
+
+  const handleNewNoteSubmit = async (data: any) => {
+    const newNote = {
+      id: (notes.length + 1).toString(),
+      patientName: data.patientName,
+      patientId: data.patientId,
+      date: new Date().toISOString().split('T')[0],
+      type: data.type,
+      title: data.title,
+      content: `SUBJECTIVE:\n${data.subjective}\n\nOBJECTIVE:\n${data.objective}\n\nASSESSMENT:\n${data.assessment}\n\nPLAN:\n${data.plan}`,
+      doctorName: "Dr. Sarah Johnson"
+    };
+
+    setNotes(prev => [newNote, ...prev]);
+  };
+
+  const handleViewNote = (noteId: string) => {
+    // In a real app, this would navigate to a detailed note view
+    toast.info("Viewing note details - This would open the full note view");
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!selectedTemplate) return;
+    toast.success("Template saved successfully");
+    setSelectedTemplateId(null);
+  };
+
   return (
     <div className="container py-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Clinical Documentation</h1>
-        <div className="flex space-x-2">
-          <Button className="bg-purple-600 hover:bg-purple-700">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-1 text-navy-800">Clinical Documentation</h1>
+          <div className="w-16 h-1 bg-lightblue-400 rounded-full"></div>
+        </div>
+        <div className="flex space-x-2 mt-4 sm:mt-0">
+          <Button 
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => setIsQuickNoteOpen(true)}
+          >
             <FilePlus className="mr-2 h-4 w-4" /> Quick Note
           </Button>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button 
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => setIsNewNoteOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" /> New Note
           </Button>
         </div>
@@ -86,7 +198,11 @@ const DoctorNotes = () => {
                 </div>
                 
                 {filteredNotes.map((note) => (
-                  <div key={note.id} className="p-3 grid grid-cols-12 gap-3 items-center border-t">
+                  <div 
+                    key={note.id} 
+                    className="p-3 grid grid-cols-12 gap-3 items-center border-t hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => handleViewNote(note.id)}
+                  >
                     <div className="col-span-3">
                       <div className="font-medium">{note.patientName}</div>
                       <div className="text-xs text-muted-foreground">ID: {note.patientId}</div>
@@ -103,7 +219,15 @@ const DoctorNotes = () => {
                     </div>
                     <div className="col-span-4">{note.title}</div>
                     <div className="col-span-1">
-                      <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewNote(note.id);
+                        }}
+                      >
                         <FileText className="h-4 w-4" />
                       </Button>
                     </div>
@@ -132,7 +256,7 @@ const DoctorNotes = () => {
                     {noteTemplates.map((template) => (
                       <div 
                         key={template.id} 
-                        className={`p-3 rounded-md cursor-pointer ${
+                        className={`p-3 rounded-md cursor-pointer transition-colors ${
                           selectedTemplateId === template.id ? 'bg-purple-100 border border-purple-300' : 'hover:bg-muted'
                         }`}
                         onClick={() => setSelectedTemplateId(template.id)}
@@ -166,8 +290,18 @@ const DoctorNotes = () => {
                         </div>
                       ))}
                       <div className="pt-4">
-                        <Button className="bg-purple-600 hover:bg-purple-700 mr-2">Save Template</Button>
-                        <Button variant="outline">Cancel</Button>
+                        <Button 
+                          className="bg-purple-600 hover:bg-purple-700 text-white mr-2"
+                          onClick={handleSaveTemplate}
+                        >
+                          Save Template
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => setSelectedTemplateId(null)}
+                        >
+                          Cancel
+                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -195,6 +329,19 @@ const DoctorNotes = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <QuickNoteDialog
+        open={isQuickNoteOpen}
+        onClose={() => setIsQuickNoteOpen(false)}
+        onSubmit={handleQuickNoteSubmit}
+      />
+
+      <NewNoteDialog
+        open={isNewNoteOpen}
+        onClose={() => setIsNewNoteOpen(false)}
+        onSubmit={handleNewNoteSubmit}
+        patients={patients}
+      />
     </div>
   );
 };
