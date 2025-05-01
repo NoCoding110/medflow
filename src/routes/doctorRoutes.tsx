@@ -139,5 +139,6 @@ export const doctorRoutes = {
     { path: "wellness-dashboard", element: <WellnessDashboard /> },
     { path: "vitals", element: <VitalsTracker /> },
     { path: "fitness", element: <FitnessTracking /> },
+    { path: "symptoms", element: <SymptomTracker /> },
   ],
 };
