@@ -296,7 +296,7 @@ const DoctorAIAssistant = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
-        <div className="space-y-4">
+                <div className="space-y-4">
           <Card className="h-[600px] flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -348,7 +348,7 @@ const DoctorAIAssistant = () => {
                                 {message.analysis.medicalTerms.map((term, i) => (
                                   <Badge key={i} variant="secondary">{term}</Badge>
                                 ))}
-                              </div>
+                    </div>
                             )}
                             
                             {message.analysis.possibleConditions && (
@@ -358,9 +358,9 @@ const DoctorAIAssistant = () => {
                                   <div key={i} className="flex items-center gap-2">
                                     <Progress value={condition.probability} className="h-2" />
                                     <span className="text-sm">{condition.condition}</span>
-                                  </div>
-                                ))}
-                              </div>
+                  </div>
+                ))}
+              </div>
                             )}
                           </div>
                         )}
@@ -392,10 +392,10 @@ const DoctorAIAssistant = () => {
                           </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                  </div>
+                ))}
                   <div ref={messagesEndRef} />
-                </div>
+              </div>
               </ScrollArea>
             </CardContent>
 
@@ -415,7 +415,7 @@ const DoctorAIAssistant = () => {
                   onClick={() => document.getElementById('image-upload')?.click()}
                 >
                   <Camera className="h-4 w-4" />
-                </Button>
+              </Button>
                 <input
                   id="image-upload"
                   type="file"
@@ -440,7 +440,7 @@ const DoctorAIAssistant = () => {
                   ) : (
                     <MessageSquare className="h-4 w-4" />
                   )}
-                </Button>
+              </Button>
               </div>
             </CardFooter>
           </Card>
@@ -471,7 +471,7 @@ const DoctorAIAssistant = () => {
                     </Badge>
                   ))}
                 </div>
-
+                
                 <div className="grid grid-cols-2 gap-2">
                   <div className="border rounded-md p-2">
                     <div className="flex items-center gap-2 mb-1">
@@ -509,7 +509,7 @@ const DoctorAIAssistant = () => {
                 <div className="flex items-center gap-2">
                   <LineChart className="h-4 w-4" />
                   <span className="text-sm font-medium">Clinical Guidelines</span>
-                </div>
+              </div>
                 <div className="flex items-center gap-2">
                   <Database className="h-4 w-4" />
                   <span className="text-sm font-medium">Case Studies</span>
