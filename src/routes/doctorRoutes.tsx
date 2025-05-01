@@ -134,5 +134,10 @@ export const doctorRoutes = {
     { path: "messages", element: <DoctorMessages /> },
     { path: "settings", element: <DoctorSettings /> },
     { path: "lab-integration", element: <LabIntegration /> },
+    // Add direct routes for wellness features
+    { path: "nutrition", element: <NutritionTracker /> },
+    { path: "wellness-dashboard", element: <WellnessDashboard /> },
+    { path: "vitals", element: <VitalsTracker /> },
+    { path: "fitness", element: <FitnessTracking /> },
   ],
 };
