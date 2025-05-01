@@ -1,71 +1,74 @@
-
 import React from "react";
-import { 
-  Home, 
-  Users, 
-  FileText, 
-  Calendar, 
-  Pill, 
-  Database, 
-  Video 
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Home, Users, Calendar, FileText, Flask } from "lucide-react";
 import { NavItem } from "./NavItem";
 
 interface MainMenuSectionProps {
   closeMenu: () => void;
+  searchQuery?: string;
 }
 
-export const MainMenuSection = ({ closeMenu }: MainMenuSectionProps) => {
+export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSectionProps) => {
+  const navigate = useNavigate();
+
+  const menuItems = [
+    {
+      icon: <Home className="h-5 w-5" />,
+      label: "Dashboard",
+      onClick: () => {
+        navigate("/doctor");
+        closeMenu();
+      },
+    },
+    {
+      icon: <Users className="h-5 w-5" />,
+      label: "Patients",
+      onClick: () => {
+        navigate("/doctor/patients");
+        closeMenu();
+      },
+    },
+    {
+      icon: <Calendar className="h-5 w-5" />,
+      label: "Appointments",
+      onClick: () => {
+        navigate("/doctor/appointments");
+        closeMenu();
+      },
+    },
+    {
+      icon: <FileText className="h-5 w-5" />,
+      label: "Medical Records",
+      onClick: () => {
+        navigate("/doctor/records");
+        closeMenu();
+      },
+    },
+    {
+      icon: <Flask className="h-5 w-5" />,
+      label: "Laboratory",
+      onClick: () => {
+        navigate("/doctor/lab");
+        closeMenu();
+      },
+    },
+  ];
+
+  const filteredItems = menuItems.filter(item =>
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-1">
-      <NavItem 
-        to="/doctor" 
-        icon={<Home className="h-5 w-5" />} 
-        label="Dashboard" 
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/patients"
-        icon={<Users className="h-5 w-5" />}
-        label="Patient Management"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/notes"
-        icon={<FileText className="h-5 w-5" />}
-        label="Clinical Documentation"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/appointments"
-        icon={<Calendar className="h-5 w-5" />}
-        label="Appointments"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/prescriptions"
-        icon={<Pill className="h-5 w-5" />}
-        label="E-Prescriptions"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/billing"
-        icon={<FileText className="h-5 w-5" />}
-        label="Billing & Invoicing"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/lab"
-        icon={<Database className="h-5 w-5" />}
-        label="Lab Integration"
-        onClick={closeMenu}
-      />
-      <NavItem
-        to="/doctor/telehealth"
-        icon={<Video className="h-5 w-5" />}
-        label="Telehealth"
-        onClick={closeMenu}
-      />
+      {filteredItems.map((item, index) => (
+        <NavItem
+          key={index}
+          icon={item.icon}
+          onClick={item.onClick}
+        >
+          {item.label}
+        </NavItem>
+      ))}
     </div>
   );
 };

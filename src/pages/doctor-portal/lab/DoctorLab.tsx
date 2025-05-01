@@ -52,14 +52,14 @@ import * as XLSX from 'xlsx';
 import { PDFDocument, rgb } from 'pdf-lib';
 
 // Sample data for lab tests
-const labTests = [
-  {
-    id: "LT001",
-    patientName: "Sarah Connor",
+  const labTests = [
+    {
+      id: "LT001",
+      patientName: "Sarah Connor",
     patientId: "P12345",
-    testType: "Complete Blood Count",
-    status: "Completed",
-    date: "2025-04-25",
+      testType: "Complete Blood Count",
+      status: "Completed",
+      date: "2025-04-25",
     results: {
       status: "Normal",
       components: [
@@ -73,25 +73,25 @@ const labTests = [
       lab: "Central Lab",
     },
     priority: "routine",
-  },
-  {
-    id: "LT002",
-    patientName: "John Doe",
+    },
+    {
+      id: "LT002",
+      patientName: "John Doe",
     patientId: "P12346",
-    testType: "Lipid Panel",
-    status: "Pending",
-    date: "2025-04-26",
-    results: "Awaiting",
+      testType: "Lipid Panel",
+      status: "Pending",
+      date: "2025-04-26",
+      results: "Awaiting",
     priority: "urgent",
-  },
-  {
-    id: "LT003",
-    patientName: "Jane Smith",
+    },
+    {
+      id: "LT003",
+      patientName: "Jane Smith",
     patientId: "P12347",
-    testType: "Thyroid Function",
-    status: "In Progress",
-    date: "2025-04-26",
-    results: "Processing",
+      testType: "Thyroid Function",
+      status: "In Progress",
+      date: "2025-04-26",
+      results: "Processing",
     priority: "high",
   },
   {
@@ -593,14 +593,14 @@ const DoctorLab = () => {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          <Card>
-            <CardHeader>
+        <Card>
+          <CardHeader>
               <CardTitle>Lab Tests</CardTitle>
               <CardDescription>View and manage all laboratory tests</CardDescription>
-            </CardHeader>
-            <CardContent>
+          </CardHeader>
+          <CardContent>
               <ScrollArea className="h-[400px]">
-                <div className="space-y-4">
+            <div className="space-y-4">
                   {filteredTests.map((test) => (
                     <div
                       key={test.id}
@@ -619,7 +619,7 @@ const DoctorLab = () => {
                             className="h-4 w-4"
                           />
                         )}
-                        <div className="space-y-1">
+                  <div className="space-y-1">
                           <div className="font-medium flex items-center gap-2">
                             {test.patientName}
                             <Badge variant="outline" className={getPriorityColor(test.priority)}>
@@ -630,16 +630,16 @@ const DoctorLab = () => {
                             {test.testType} - {test.id}
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right space-y-1">
+                  </div>
+                  <div className="text-right space-y-1">
                         <div className={`text-sm font-medium ${getStatusColor(test.status)}`}>
-                          {test.status}
-                        </div>
-                        <div className="text-sm text-muted-foreground">{test.date}</div>
-                      </div>
+                      {test.status}
                     </div>
-                  ))}
+                    <div className="text-sm text-muted-foreground">{test.date}</div>
+                  </div>
                 </div>
+              ))}
+            </div>
               </ScrollArea>
             </CardContent>
           </Card>
@@ -674,15 +674,15 @@ const DoctorLab = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
+          <Card>
+            <CardHeader>
                 <CardTitle>Test Trends</CardTitle>
                 <CardDescription>Monthly test volumes and abnormal results</CardDescription>
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={analyticsData.trendsData}>
@@ -711,7 +711,7 @@ const DoctorLab = () => {
                       />
                     </LineChart>
                   </ResponsiveContainer>
-                </div>
+                      </div>
               </CardContent>
             </Card>
 
@@ -735,16 +735,16 @@ const DoctorLab = () => {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader>
+          <Card>
+            <CardHeader>
                 <CardTitle>Abnormality by Category</CardTitle>
                 <CardDescription>Test results distribution by department</CardDescription>
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -779,7 +779,7 @@ const DoctorLab = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedTest && (
-            <div className="space-y-4">
+              <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Patient Name</Label>
@@ -808,7 +808,7 @@ const DoctorLab = () => {
                     <div className="space-y-2">
                       {selectedTest.results.components?.map((component: any, index: number) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-accent rounded">
-                          <div>
+                    <div>
                             <span className="font-medium">{component.name}</span>
                             <span className="text-sm text-muted-foreground ml-2">
                               ({component.range} {component.unit})
@@ -893,11 +893,11 @@ const DoctorLab = () => {
                       ))}
                     </div>
                   )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
       )}
     </div>
   );
