@@ -9,7 +9,6 @@ import {
   Receipt, 
   Pill, 
   Stethoscope,
-  Brain,
   ClipboardList
 } from "lucide-react";
 import { NavItem } from "./NavItem";
@@ -94,16 +93,7 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
         navigate("/doctor/prescriptions");
         closeMenu();
       },
-    },
-    {
-      icon: <Brain className="h-5 w-5" />,
-      label: "AI Assistant",
-      to: "/doctor/ai-assistant",
-      onClick: () => {
-        navigate("/doctor/ai-assistant");
-        closeMenu();
-      },
-    },
+    }
   ];
 
   const filteredItems = menuItems.filter(item =>
