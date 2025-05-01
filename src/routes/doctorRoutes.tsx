@@ -25,6 +25,8 @@ import VitalsTracker from "@/pages/doctor-portal/smart-features/VitalsTracker";
 import FitnessTracking from "@/pages/doctor-portal/smart-features/FitnessTracking";
 import NutritionTracker from "@/pages/doctor-portal/smart-features/NutritionTracker";
 import SymptomTracker from "@/pages/doctor-portal/smart-features/SymptomTracker";
+import PatientProfile from "@/pages/doctor-portal/patients/PatientProfile";
+import PatientNotes from "@/pages/doctor-portal/patients/PatientNotes";
 import MedicationAdherence from "@/pages/doctor-portal/smart-features/MedicationAdherence";
 import MentalHealthTracker from "@/pages/doctor-portal/smart-features/MentalHealthTracker";
 import PreventiveCare from "@/pages/doctor-portal/smart-features/PreventiveCare";
@@ -81,28 +83,31 @@ export const doctorRoutes = {
   children: [
     { path: "", element: <DoctorDashboard /> },
     { path: "patients", element: <DoctorPatients /> },
+    { path: "patients/:id/profile", element: <PatientProfile /> },
+    { path: "patients/:id/notes", element: <PatientNotes /> },
     { path: "notes", element: <DoctorNotes /> },
     { path: "appointments", element: <DoctorAppointments /> },
+    { path: "appointments/new", element: <DoctorAppointments /> },
     { path: "prescriptions", element: <DoctorPrescriptions /> },
     { path: "billing", element: <DoctorBilling /> },
     { path: "lab", element: <DoctorLab /> },
     { path: "telehealth", element: <DoctorTelehealth /> },
-    { path: "visit-prep", element: <SmartVisitPrep /> },
-    { path: "differential", element: <SmartDifferential /> },
-    { path: "lifestyle", element: <LifestyleAssistant /> },
-    { path: "wellness-alerts", element: <WellnessAlerts /> },
-    { path: "visit-compare", element: <VisitComparison /> },
-    { path: "messages", element: <SecureMessaging /> },
-    { path: "patient-messages", element: <PatientMessaging /> },
-    { path: "tasks", element: <TaskManagement /> },
-    { path: "access-control", element: <AccessControl /> },
-    { path: "audit", element: <AuditLogs /> },
-    { path: "security", element: <SecuritySettings /> },
-    { path: "wellness-dashboard", element: <WellnessDashboard /> },
-    { path: "vitals", element: <VitalsTracker /> },
-    { path: "fitness", element: <FitnessTracking /> },
-    { path: "nutrition", element: <NutritionTracker /> },
-    { path: "symptoms", element: <SymptomTracker /> },
+    { path: "smart/visit-prep", element: <SmartVisitPrep /> },
+    { path: "smart/differential", element: <SmartDifferential /> },
+    { path: "smart/lifestyle", element: <LifestyleAssistant /> },
+    { path: "smart/wellness-alerts", element: <WellnessAlerts /> },
+    { path: "smart/visit-comparison", element: <VisitComparison /> },
+    { path: "collaboration/secure-messaging", element: <SecureMessaging /> },
+    { path: "collaboration/patient-messaging", element: <PatientMessaging /> },
+    { path: "admin/task-management", element: <TaskManagement /> },
+    { path: "admin/access-control", element: <AccessControl /> },
+    { path: "admin/audit-logs", element: <AuditLogs /> },
+    { path: "admin/security", element: <SecuritySettings /> },
+    { path: "wellness/dashboard", element: <WellnessDashboard /> },
+    { path: "wellness/vitals", element: <VitalsTracker /> },
+    { path: "wellness/fitness", element: <FitnessTracking /> },
+    { path: "wellness/nutrition", element: <NutritionTracker /> },
+    { path: "wellness/symptoms", element: <SymptomTracker /> },
     { path: "medication-adherence", element: <MedicationAdherence /> },
     { path: "mental-health", element: <MentalHealthTracker /> },
     { path: "preventive-care", element: <PreventiveCare /> },

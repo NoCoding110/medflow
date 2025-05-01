@@ -139,7 +139,19 @@ const DoctorPatients = () => {
 
   // Navigate to patient profile
   const handlePatientClick = (patientId: string) => {
-    navigate(`/doctor/patients/${patientId}`);
+    navigate(`/doctor/patients/${patientId}/profile`);
+  };
+
+  // Handle view patient notes
+  const handleViewNotes = (event: React.MouseEvent, patientId: string) => {
+    event.stopPropagation();
+    navigate(`/doctor/patients/${patientId}/notes`);
+  };
+
+  // Handle schedule appointment
+  const handleScheduleAppointment = (event: React.MouseEvent, patientId: string) => {
+    event.stopPropagation();
+    navigate(`/doctor/appointments/new?patientId=${patientId}`);
   };
 
   return (
@@ -230,18 +242,19 @@ const DoctorPatients = () => {
             </div>
             
             {filteredAndSortedPatients.map((patient) => (
-              <div key={patient.id} className="p-3 grid grid-cols-12 gap-3 items-center border-t border-navy-100 hover:bg-navy-50/30 transition-colors">
+              <div 
+                key={patient.id} 
+                className="p-3 grid grid-cols-12 gap-3 items-center border-t border-navy-100 hover:bg-navy-50/30 transition-colors cursor-pointer"
+                onClick={() => handlePatientClick(patient.id)}
+              >
                 <div className="col-span-4 flex items-center space-x-3">
                   <div className="flex h-10 w-10 rounded-full bg-lightblue-100 items-center justify-center">
                     <User className="h-5 w-5 text-lightblue-700" />
                   </div>
                   <div>
-                    <button
-                      onClick={() => handlePatientClick(patient.id)}
-                      className="font-medium text-navy-800 hover:text-lightblue-600 transition-colors"
-                    >
+                    <div className="font-medium text-navy-800 hover:text-lightblue-600 transition-colors">
                       {patient.name}
-                    </button>
+                    </div>
                     <div className="text-sm text-navy-500">ID: {patient.id}</div>
                   </div>
                 </div>
@@ -260,19 +273,20 @@ const DoctorPatients = () => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300"
-                    onClick={() => handlePatientClick(patient.id)}
+                    onClick={(e) => handleViewNotes(e, patient.id)}
+                    title="View Patient Notes"
                   >
                     <FileText className="h-4 w-4 text-navy-700" />
                   </Button>
-                  <Link to={`/doctor/appointments/new?patientId=${patient.id}`}>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300"
-                    >
-                      <Calendar className="h-4 w-4 text-navy-700" />
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300"
+                    onClick={(e) => handleScheduleAppointment(e, patient.id)}
+                    title="Schedule Appointment"
+                  >
+                    <Calendar className="h-4 w-4 text-navy-700" />
+                  </Button>
                 </div>
               </div>
             ))}
