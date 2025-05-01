@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import LandingPage from "./LandingPage";
 
 const Index = () => {
   const { isAuthenticated, user } = useAuth();
@@ -21,11 +22,15 @@ const Index = () => {
         default:
           navigate('/dashboard');
       }
-    } else {
-      navigate('/login');
     }
   }, [navigate, isAuthenticated, user]);
 
+  // Show landing page for unauthenticated users
+  if (!isAuthenticated) {
+    return <LandingPage />;
+  }
+
+  // Show loading state while redirecting authenticated users
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
