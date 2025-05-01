@@ -391,7 +391,7 @@ const DoctorAIAssistant = () => {
                             ))}
                           </div>
                         )}
-                      </div>
+                    </div>
                   </div>
                 ))}
                   <div ref={messagesEndRef} />

@@ -34,6 +34,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Mock data for active cases
 const activeCases = [
@@ -218,6 +238,88 @@ const treatmentData = {
   ]
 };
 
+// Add mock data for medications
+const medicationDatabase = {
+  neurologicalMeds: [
+    {
+      id: "MED001",
+      name: "Levetiracetam",
+      category: "Anti-Epileptic",
+      commonDoses: ["500mg BID", "1000mg BID"],
+      interactions: ["Moderate interaction with CNS depressants"],
+      monitoring: ["Liver function", "CBC"]
+    },
+    {
+      id: "MED002",
+      name: "Ocrelizumab",
+      category: "Multiple Sclerosis",
+      commonDoses: ["300mg IV initial", "600mg IV q6months"],
+      interactions: ["Live vaccines contraindicated"],
+      monitoring: ["Hepatitis B screening", "Immunoglobulins"]
+    },
+    {
+      id: "MED003",
+      name: "Carbidopa/Levodopa",
+      category: "Parkinson's Disease",
+      commonDoses: ["25/100mg TID", "50/200mg TID"],
+      interactions: ["MAO inhibitors", "Iron supplements"],
+      monitoring: ["Blood pressure", "Motor function"]
+    }
+  ],
+  recentPrescriptions: [
+    {
+      id: "PRE001",
+      patientId: "1",
+      medication: "Ocrelizumab",
+      dose: "600mg IV",
+      frequency: "Every 6 months",
+      startDate: "2024-03-01",
+      duration: "Ongoing",
+      status: "Active"
+    },
+    {
+      id: "PRE002",
+      patientId: "2",
+      medication: "Levetiracetam",
+      dose: "1000mg",
+      frequency: "Twice daily",
+      startDate: "2024-02-15",
+      duration: "3 months",
+      status: "Active"
+    }
+  ]
+};
+
+// Add EMR integration mock data
+const emrData = {
+  patients: [
+    {
+      id: "1",
+      name: "John Smith",
+      dob: "1975-06-15",
+      mrn: "MRN123456",
+      allergies: ["Penicillin"],
+      activeMedications: ["Ocrelizumab"],
+      recentLabs: {
+        date: "2024-03-01",
+        results: ["CBC: Normal", "CMP: Normal"]
+      }
+    },
+    {
+      id: "2",
+      name: "Emma Wilson",
+      dob: "1982-09-23",
+      mrn: "MRN789012",
+      allergies: ["None"],
+      activeMedications: ["Levetiracetam"],
+      recentLabs: {
+        date: "2024-03-05",
+        results: ["CBC: Normal", "AED levels: Therapeutic"]
+      }
+    }
+  ]
+};
+
 const NeurologyModule = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -227,6 +329,10 @@ const NeurologyModule = () => {
   const [showImagingDialog, setShowImagingDialog] = useState(false);
   const [showCognitiveDialog, setShowCognitiveDialog] = useState(false);
   const [showTreatmentDialog, setShowTreatmentDialog] = useState(false);
+  const [showPatientSearchDialog, setShowPatientSearchDialog] = useState(false);
+  const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false);
+  const [selectedPatientForRx, setSelectedPatientForRx] = useState(null);
+  const [selectedMedication, setSelectedMedication] = useState(null);
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -237,18 +343,35 @@ const NeurologyModule = () => {
     (statusFilter === "all" || caseItem.status.toLowerCase().includes(statusFilter.toLowerCase()))
   );
 
+  // Add new function to handle prescription
+  const handlePrescribe = (patientId) => {
+    const patient = emrData.patients.find(p => p.id === patientId);
+    setSelectedPatientForRx(patient);
+    setShowPrescriptionDialog(true);
+  };
+
   return (
     <div className="container py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Neurology AI Module</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Neurology AI Module</h1>
           <p className="text-muted-foreground">
             Advanced neurological care with AI-powered diagnostics and monitoring
           </p>
         </div>
-        <Button onClick={() => setShowImagingDialog(true)}>
-          New Analysis
-        </Button>
+        <div className="flex gap-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowPatientSearchDialog(true)}
+            className="flex items-center gap-2"
+          >
+            <Search className="h-4 w-4" />
+            Find Patient
+          </Button>
+          <Button onClick={() => setShowImagingDialog(true)}>
+            New Analysis
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -279,13 +402,13 @@ const NeurologyModule = () => {
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Cognitive Assessments</CardTitle>
                 <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
                 <div className="text-2xl font-bold">{cognitiveData.assessments.length}</div>
                 <p className="text-xs text-muted-foreground">Recent assessments</p>
-              </CardContent>
-            </Card>
-            
+            </CardContent>
+          </Card>
+          
             <Card className="cursor-pointer hover:bg-accent/50 transition-colors"
                   onClick={() => setShowTreatmentDialog(true)}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -309,7 +432,7 @@ const NeurologyModule = () => {
               </CardContent>
             </Card>
           </div>
-
+        
           {/* Active Cases */}
           <Card>
             <CardHeader>
@@ -377,7 +500,7 @@ const NeurologyModule = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
+        
         <TabsContent value="imaging" className="space-y-4">
           <Dialog open={showImagingDialog} onOpenChange={setShowImagingDialog}>
             <DialogContent className="max-w-4xl">
@@ -601,6 +724,225 @@ const NeurologyModule = () => {
           </Dialog>
         </TabsContent>
       </Tabs>
+
+      {/* Patient Search Dialog */}
+      <Dialog open={showPatientSearchDialog} onOpenChange={setShowPatientSearchDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Patient Search</DialogTitle>
+            <DialogDescription>
+              Search for patients in the EMR system
+            </DialogDescription>
+          </DialogHeader>
+          <Command>
+            <CommandInput placeholder="Search patients by name or MRN..." />
+            <CommandList>
+              <CommandEmpty>No patients found.</CommandEmpty>
+              <CommandGroup heading="Patients">
+                {emrData.patients.map((patient) => (
+                  <CommandItem
+                    key={patient.id}
+                    className="cursor-pointer p-4 hover:bg-accent"
+                    onSelect={() => {
+                      setShowPatientSearchDialog(false);
+                      handlePrescribe(patient.id);
+                    }}
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div>
+                        <p className="font-medium">{patient.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          DOB: {patient.dob} | MRN: {patient.mrn}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        Select
+                      </Button>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </DialogContent>
+      </Dialog>
+
+      {/* Prescription Dialog */}
+      <Dialog open={showPrescriptionDialog} onOpenChange={setShowPrescriptionDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>EMR Prescription</DialogTitle>
+            <DialogDescription>
+              {selectedPatientForRx ? `Prescribing for ${selectedPatientForRx.name}` : 'Select a patient'}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPatientForRx && (
+            <div className="grid gap-6">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Patient Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="font-medium">MRN:</span> {selectedPatientForRx.mrn}
+                      </div>
+                      <div>
+                        <span className="font-medium">DOB:</span> {selectedPatientForRx.dob}
+                      </div>
+                      <div>
+                        <span className="font-medium">Allergies:</span>
+                        <div className="flex gap-2 mt-1">
+                          {selectedPatientForRx.allergies.map((allergy, index) => (
+                            <Badge key={index} variant="destructive">
+                              {allergy}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-medium">Active Medications:</span>
+                        <div className="flex gap-2 mt-1">
+                          {selectedPatientForRx.activeMedications.map((med, index) => (
+                            <Badge key={index} variant="outline">
+                              {med}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Recent Labs</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Date: {selectedPatientForRx.recentLabs.date}
+                      </p>
+                      {selectedPatientForRx.recentLabs.results.map((result, index) => (
+                        <p key={index} className="text-sm">
+                          {result}
+                        </p>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Select Medication</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {medicationDatabase.neurologicalMeds.map((med) => (
+                    <div
+                      key={med.id}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                        selectedMedication?.id === med.id ? 'bg-accent' : 'hover:bg-accent/50'
+                      }`}
+                      onClick={() => setSelectedMedication(med)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h5 className="font-medium">{med.name}</h5>
+                          <p className="text-sm text-muted-foreground">
+                            Category: {med.category}
+                          </p>
+                        </div>
+                        <Badge variant="outline">{med.commonDoses[0]}</Badge>
+                      </div>
+                      {selectedMedication?.id === med.id && (
+                        <div className="mt-4 space-y-2">
+                          <div>
+                            <p className="text-sm font-medium">Common Doses:</p>
+                            <div className="flex gap-2 mt-1">
+                              {med.commonDoses.map((dose, index) => (
+                                <Badge key={index} variant="secondary">
+                                  {dose}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Interactions:</p>
+                            <ul className="list-disc list-inside text-sm text-muted-foreground">
+                              {med.interactions.map((interaction, index) => (
+                                <li key={index}>{interaction}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Monitoring Required:</p>
+                            <ul className="list-disc list-inside text-sm text-muted-foreground">
+                              {med.monitoring.map((item, index) => (
+                                <li key={index}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {selectedMedication && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <FormLabel>Dose</FormLabel>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select dose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedMedication.commonDoses.map((dose, index) => (
+                            <SelectItem key={index} value={dose}>
+                              {dose}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <FormLabel>Duration</FormLabel>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1-month">1 Month</SelectItem>
+                          <SelectItem value="3-months">3 Months</SelectItem>
+                          <SelectItem value="6-months">6 Months</SelectItem>
+                          <SelectItem value="ongoing">Ongoing</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <FormLabel>Special Instructions</FormLabel>
+                    <Textarea placeholder="Enter any special instructions or notes..." />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setShowPrescriptionDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={() => {
+                      // Handle prescription submission
+                      setShowPrescriptionDialog(false);
+                    }}>
+                      Submit Prescription
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

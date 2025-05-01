@@ -1,10 +1,11 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Pill, AlertTriangle, CheckCircle, Send, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "react-hot-toast";
 
 // Sample prescriptions data
 const prescriptions = [
@@ -124,10 +125,36 @@ const commonMedications = [
   { name: "Gabapentin", category: "Anticonvulsant" },
 ];
 
+// Add pharmacy data
+const pharmacies = [
+  { id: "1", name: "CVS Pharmacy", address: "123 Main St", phone: "555-0123" },
+  { id: "2", name: "Walgreens", address: "456 Oak Ave", phone: "555-0124" },
+  { id: "3", name: "Rite Aid", address: "789 Pine Rd", phone: "555-0125" }
+];
+
+// Add drug interaction database
+const drugInteractions = {
+  "Lisinopril": ["Potassium supplements", "NSAIDs", "Lithium"],
+  "Atorvastatin": ["Grapefruit juice", "Clarithromycin", "Cyclosporine"],
+  "Metformin": ["Contrast media", "Alcohol", "Cimetidine"],
+  "Levothyroxine": ["Iron supplements", "Calcium supplements", "Soy products"],
+  "Omeprazole": ["Iron supplements", "Vitamin B12", "Clopidogrel"]
+};
+
 const DoctorPrescriptions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showNewPrescription, setShowNewPrescription] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState("");
+  const [selectedPharmacy, setSelectedPharmacy] = useState("");
+  const [showInteractions, setShowInteractions] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState("");
+  const [prescriptionDetails, setPrescriptionDetails] = useState({
+    dosage: "",
+    frequency: "",
+    duration: "",
+    instructions: "",
+    refills: "0"
+  });
   
   const filteredPrescriptions = prescriptions.filter(prescription => 
     prescription.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,6 +165,38 @@ const DoctorPrescriptions = () => {
   const filteredMedications = commonMedications.filter(medication =>
     medication.name.toLowerCase().includes(selectedMedication.toLowerCase())
   );
+
+  const handlePrescriptionSubmit = () => {
+    // Check for drug interactions
+    const interactions = drugInteractions[selectedMedication] || [];
+    if (interactions.length > 0) {
+      setShowInteractions(true);
+      return;
+    }
+
+    // Submit prescription
+    const newPrescription = {
+      id: (prescriptions.length + 1).toString(),
+      patientName: prescriptions.find(p => p.patientId === selectedPatient)?.patientName || "",
+      patientId: selectedPatient,
+      medication: selectedMedication,
+      dosage: prescriptionDetails.dosage,
+      frequency: prescriptionDetails.frequency,
+      duration: prescriptionDetails.duration,
+      date: new Date().toISOString().split('T')[0],
+      status: "Active",
+      pharmacy: pharmacies.find(p => p.id === selectedPharmacy)?.name || "",
+      refillsRemaining: parseInt(prescriptionDetails.refills),
+      prescriberName: "Dr. Sarah Johnson",
+      notes: prescriptionDetails.instructions,
+      interactionWarnings: []
+    };
+
+    // Add to prescriptions list
+    prescriptions.unshift(newPrescription);
+    setShowNewPrescription(false);
+    toast.success("Prescription sent successfully");
+  };
 
   return (
     <div className="container py-8">
@@ -161,7 +220,11 @@ const DoctorPrescriptions = () => {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium block mb-1">Patient</label>
-                  <select className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={selectedPatient}
+                    onChange={(e) => setSelectedPatient(e.target.value)}
+                  >
                     <option value="">Select a patient</option>
                     {prescriptions.map(p => (
                       <option key={p.patientId} value={p.patientId}>{p.patientName}</option>
@@ -197,95 +260,90 @@ const DoctorPrescriptions = () => {
                     </div>
                   )}
                 </div>
-                
+
+                <div>
+                  <label className="text-sm font-medium block mb-1">Pharmacy</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={selectedPharmacy}
+                    onChange={(e) => setSelectedPharmacy(e.target.value)}
+                  >
+                    <option value="">Select a pharmacy</option>
+                    {pharmacies.map(pharmacy => (
+                      <option key={pharmacy.id} value={pharmacy.id}>
+                        {pharmacy.name} - {pharmacy.address}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium block mb-1">Dosage</label>
-                    <Input type="text" placeholder="e.g., 10mg" />
+                    <Input 
+                      type="text" 
+                      placeholder="e.g., 10mg"
+                      value={prescriptionDetails.dosage}
+                      onChange={(e) => setPrescriptionDetails(prev => ({...prev, dosage: e.target.value}))}
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium block mb-1">Frequency</label>
-                    <select className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                    <select 
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                      value={prescriptionDetails.frequency}
+                      onChange={(e) => setPrescriptionDetails(prev => ({...prev, frequency: e.target.value}))}
+                    >
                       <option value="">Select frequency</option>
                       <option value="once">Once daily</option>
                       <option value="twice">Twice daily</option>
                       <option value="three">Three times daily</option>
                       <option value="four">Four times daily</option>
                       <option value="as_needed">As needed</option>
-                      <option value="custom">Custom</option>
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium block mb-1">Duration</label>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" placeholder="30" className="flex-1" />
-                      <select className="h-10 px-3 rounded-md border border-input bg-background w-24">
-                        <option value="days">Days</option>
-                        <option value="weeks">Weeks</option>
-                        <option value="months">Months</option>
-                      </select>
-                    </div>
+                    <Input 
+                      type="text" 
+                      placeholder="e.g., 30 days"
+                      value={prescriptionDetails.duration}
+                      onChange={(e) => setPrescriptionDetails(prev => ({...prev, duration: e.target.value}))}
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium block mb-1">Refills</label>
-                    <Input type="number" placeholder="0" />
+                    <Input 
+                      type="number" 
+                      min="0"
+                      max="11"
+                      value={prescriptionDetails.refills}
+                      onChange={(e) => setPrescriptionDetails(prev => ({...prev, refills: e.target.value}))}
+                    />
                   </div>
                 </div>
-                
-                <div>
-                  <label className="text-sm font-medium block mb-1">Pharmacy</label>
-                  <select className="w-full h-10 px-3 rounded-md border border-input bg-background">
-                    <option value="">Select pharmacy</option>
-                    <option value="cvs">CVS Pharmacy</option>
-                    <option value="walgreens">Walgreens</option>
-                    <option value="riteaid">Rite Aid</option>
-                    <option value="walmart">Walmart Pharmacy</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
+
                 <div>
                   <label className="text-sm font-medium block mb-1">Special Instructions</label>
                   <textarea 
                     className="w-full min-h-[100px] p-2 rounded-md border border-input bg-background" 
                     placeholder="Enter any special instructions or notes..."
+                    value={prescriptionDetails.instructions}
+                    onChange={(e) => setPrescriptionDetails(prev => ({...prev, instructions: e.target.value}))}
                   ></textarea>
                 </div>
-                
-                <div className="border rounded-md p-4 bg-yellow-50">
-                  <div className="flex items-center mb-2 text-yellow-700">
-                    <AlertTriangle className="h-5 w-5 mr-2" />
-                    <h3 className="font-semibold">Interaction Check</h3>
-                  </div>
-                  
-                  <div className="text-sm">
-                    {selectedMedication ? (
-                      <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        No significant interactions found for {selectedMedication}
-                      </div>
-                    ) : (
-                      <p className="text-gray-500">Select a medication to check for interactions.</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="border rounded-md p-4">
-                  <h3 className="font-semibold mb-2">Patient Allergies & Conditions</h3>
-                  <p className="text-sm text-gray-600">Select a patient to view their allergies and conditions.</p>
-                </div>
-                
-                <div className="flex justify-end gap-2 pt-4">
+
+                <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setShowNewPrescription(false)}>
                     Cancel
                   </Button>
-                  <Button className="bg-purple-600 hover:bg-purple-700">
-                    <Send className="mr-2 h-4 w-4" /> Send to Pharmacy
+                  <Button onClick={handlePrescriptionSubmit}>
+                    Send Prescription
                   </Button>
                 </div>
               </div>
@@ -293,6 +351,39 @@ const DoctorPrescriptions = () => {
           </CardContent>
         </Card>
       )}
+      
+      {/* Drug Interactions Dialog */}
+      <Dialog open={showInteractions} onOpenChange={setShowInteractions}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Drug Interaction Warning</DialogTitle>
+            <DialogDescription>
+              The following potential interactions were found for {selectedMedication}:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ul className="list-disc list-inside">
+              {drugInteractions[selectedMedication]?.map((interaction, index) => (
+                <li key={index} className="text-red-600">{interaction}</li>
+              ))}
+            </ul>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowInteractions(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  setShowInteractions(false);
+                  handlePrescriptionSubmit();
+                }}
+              >
+                Proceed Anyway
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <Tabs defaultValue="active" className="space-y-4">
         <TabsList>

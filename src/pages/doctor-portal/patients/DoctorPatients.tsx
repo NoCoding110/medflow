@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, User, Calendar, FileText } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -68,6 +68,7 @@ const patients = [
 const DoctorPatients = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchField, setSearchField] = useState('name');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'lastVisit', direction: 'desc' });
   const [isNewPatientDialogOpen, setIsNewPatientDialogOpen] = useState(false);
@@ -77,12 +78,24 @@ const DoctorPatients = () => {
   const filteredAndSortedPatients = useMemo(() => {
     let filtered = [...patients];
     
-    // Apply search filter
+    // Apply search filter based on selected field
     if (searchTerm) {
-      filtered = filtered.filter(patient => 
-        patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.id.includes(searchTerm)
-      );
+      filtered = filtered.filter(patient => {
+        switch (searchField) {
+          case 'name':
+            return patient.name.toLowerCase().includes(searchTerm.toLowerCase());
+          case 'mrn':
+            return patient.id.includes(searchTerm);
+          case 'dob':
+            return patient.dob?.includes(searchTerm);
+          case 'phone':
+            return patient.phone?.includes(searchTerm);
+          case 'email':
+            return patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
+          default:
+            return patient.name.toLowerCase().includes(searchTerm.toLowerCase());
+        }
+      });
     }
     
     // Apply status filter
@@ -121,7 +134,7 @@ const DoctorPatients = () => {
         return aValue < bValue ? 1 : -1;
       }
     });
-  }, [patients, searchTerm, statusFilter, sortConfig, activeTab]);
+  }, [patients, searchTerm, searchField, statusFilter, sortConfig, activeTab]);
 
   // Handle sort change
   const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -156,35 +169,43 @@ const DoctorPatients = () => {
 
   return (
     <div className="container py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1 text-navy-800">Patient Management</h1>
-          <div className="w-16 h-1 bg-lightblue-400 rounded-full"></div>
-        </div>
-        <Button 
-          className="bg-lightblue-600 hover:bg-lightblue-700 text-white mt-4 sm:mt-0 btn-hover-glow"
-          onClick={() => setIsNewPatientDialogOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add New Patient
-        </Button>
-      </div>
-      
-      <Card className="mb-8 border-navy-100 shadow-sm">
-        <CardHeader className="pb-3 bg-navy-50/50">
-          <CardTitle className="text-navy-700 font-display">Patient Search</CardTitle>
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Patient Management</CardTitle>
+              <CardDescription>Search and manage your patients</CardDescription>
+            </div>
+            <Button onClick={() => setIsNewPatientDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Patient
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid gap-6 md:grid-cols-4">
             <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-3 h-4 w-4 text-navy-400" />
-                <Input
-                  type="search"
-                  placeholder="Search by name, ID, or condition..."
-                  className="pl-8 py-6 border-navy-100 focus:border-lightblue-300 focus:ring-lightblue-200"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="flex gap-2">
+                <select 
+                  className="h-12 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200"
+                  value={searchField}
+                  onChange={(e) => setSearchField(e.target.value)}
+                >
+                  <option value="name">Name</option>
+                  <option value="mrn">MRN</option>
+                  <option value="dob">Date of Birth</option>
+                  <option value="phone">Phone</option>
+                  <option value="email">Email</option>
+                </select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-3 h-4 w-4 text-navy-400" />
+                  <Input
+                    type="search"
+                    placeholder={`Search by ${searchField}...`}
+                    className="pl-8 py-6 border-navy-100 focus:border-lightblue-300 focus:ring-lightblue-200"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
             <div>
