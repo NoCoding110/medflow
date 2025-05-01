@@ -1,11 +1,11 @@
-
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, User, Calendar, FileText } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NewPatientDialog from "./NewPatientDialog";
 
 // Sample patient data
 const patients = [
@@ -66,12 +66,81 @@ const patients = [
 ];
 
 const DoctorPatients = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: 'lastVisit', direction: 'desc' });
+  const [isNewPatientDialogOpen, setIsNewPatientDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
   
-  const filteredPatients = patients.filter(patient => 
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.id.includes(searchTerm)
-  );
+  // Filter and sort patients
+  const filteredAndSortedPatients = useMemo(() => {
+    let filtered = [...patients];
+    
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(patient => 
+        patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.id.includes(searchTerm)
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(patient => 
+        patient.status.toLowerCase() === statusFilter.toLowerCase()
+      );
+    }
+    
+    // Apply tab filters
+    switch (activeTab) {
+      case 'active':
+        filtered = filtered.filter(patient => patient.status === 'Active');
+        break;
+      case 'recent':
+        filtered = filtered.filter(patient => {
+          const lastVisitDate = new Date(patient.lastVisit);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return lastVisitDate >= thirtyDaysAgo;
+        });
+        break;
+      case 'upcoming':
+        filtered = filtered.filter(patient => patient.upcomingAppointment !== null);
+        break;
+    }
+    
+    // Sort patients
+    return filtered.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      
+      if (sortConfig.direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }, [patients, searchTerm, statusFilter, sortConfig, activeTab]);
+
+  // Handle sort change
+  const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    if (value === 'name') {
+      setSortConfig({ key: 'name', direction: 'asc' });
+    } else if (value === 'nameDesc') {
+      setSortConfig({ key: 'name', direction: 'desc' });
+    } else if (value === 'recent') {
+      setSortConfig({ key: 'lastVisit', direction: 'desc' });
+    } else if (value === 'oldest') {
+      setSortConfig({ key: 'lastVisit', direction: 'asc' });
+    }
+  };
+
+  // Navigate to patient profile
+  const handlePatientClick = (patientId: string) => {
+    navigate(`/doctor/patients/${patientId}`);
+  };
 
   return (
     <div className="container py-8">
@@ -80,7 +149,10 @@ const DoctorPatients = () => {
           <h1 className="text-3xl font-bold tracking-tight mb-1 text-navy-800">Patient Management</h1>
           <div className="w-16 h-1 bg-lightblue-400 rounded-full"></div>
         </div>
-        <Button className="bg-lightblue-600 hover:bg-lightblue-700 text-white mt-4 sm:mt-0 btn-hover-glow">
+        <Button 
+          className="bg-lightblue-600 hover:bg-lightblue-700 text-white mt-4 sm:mt-0 btn-hover-glow"
+          onClick={() => setIsNewPatientDialogOpen(true)}
+        >
           <Plus className="mr-2 h-4 w-4" /> Add New Patient
         </Button>
       </div>
@@ -104,15 +176,22 @@ const DoctorPatients = () => {
               </div>
             </div>
             <div>
-              <select className="w-full h-12 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200">
-                <option value="">Filter by status</option>
+              <select 
+                className="w-full h-12 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
             <div>
-              <select className="w-full h-12 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200">
-                <option value="">Sort by</option>
+              <select 
+                className="w-full h-12 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200"
+                onChange={handleSortChange}
+                defaultValue="recent"
+              >
                 <option value="name">Name (A-Z)</option>
                 <option value="nameDesc">Name (Z-A)</option>
                 <option value="recent">Recent visit</option>
@@ -123,15 +202,23 @@ const DoctorPatients = () => {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="all" className="space-y-4">
+      <Tabs defaultValue="all" className="space-y-4" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-navy-50 p-1">
-          <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">All Patients</TabsTrigger>
-          <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">Active</TabsTrigger>
-          <TabsTrigger value="recent" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">Recently Seen</TabsTrigger>
-          <TabsTrigger value="upcoming" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">Upcoming Appointments</TabsTrigger>
+          <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">
+            All Patients
+          </TabsTrigger>
+          <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">
+            Active
+          </TabsTrigger>
+          <TabsTrigger value="recent" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">
+            Recently Seen
+          </TabsTrigger>
+          <TabsTrigger value="upcoming" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">
+            Upcoming Appointments
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="all" className="space-y-4">
+        <TabsContent value={activeTab} className="space-y-4">
           <div className="rounded-md border border-navy-100 overflow-hidden shadow-sm">
             <div className="bg-navy-50/80 p-3 grid grid-cols-12 gap-3 font-medium text-navy-700">
               <div className="col-span-4">Patient</div>
@@ -142,14 +229,19 @@ const DoctorPatients = () => {
               <div className="col-span-1">Actions</div>
             </div>
             
-            {filteredPatients.map((patient) => (
+            {filteredAndSortedPatients.map((patient) => (
               <div key={patient.id} className="p-3 grid grid-cols-12 gap-3 items-center border-t border-navy-100 hover:bg-navy-50/30 transition-colors">
                 <div className="col-span-4 flex items-center space-x-3">
                   <div className="flex h-10 w-10 rounded-full bg-lightblue-100 items-center justify-center">
                     <User className="h-5 w-5 text-lightblue-700" />
                   </div>
                   <div>
-                    <div className="font-medium text-navy-800">{patient.name}</div>
+                    <button
+                      onClick={() => handlePatientClick(patient.id)}
+                      className="font-medium text-navy-800 hover:text-lightblue-600 transition-colors"
+                    >
+                      {patient.name}
+                    </button>
                     <div className="text-sm text-navy-500">ID: {patient.id}</div>
                   </div>
                 </div>
@@ -164,13 +256,20 @@ const DoctorPatients = () => {
                   </span>
                 </div>
                 <div className="col-span-1 flex space-x-2">
-                  <Link to={`/doctor/patients/${patient.id}`}>
-                    <Button variant="outline" size="icon" className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300">
-                      <FileText className="h-4 w-4 text-navy-700" />
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300"
+                    onClick={() => handlePatientClick(patient.id)}
+                  >
+                    <FileText className="h-4 w-4 text-navy-700" />
+                  </Button>
                   <Link to={`/doctor/appointments/new?patientId=${patient.id}`}>
-                    <Button variant="outline" size="icon" className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300"
+                    >
                       <Calendar className="h-4 w-4 text-navy-700" />
                     </Button>
                   </Link>
@@ -178,41 +277,19 @@ const DoctorPatients = () => {
               </div>
             ))}
             
-            {filteredPatients.length === 0 && (
+            {filteredAndSortedPatients.length === 0 && (
               <div className="p-8 text-center">
                 <p className="text-navy-500">No patients found matching your search criteria.</p>
               </div>
             )}
           </div>
         </TabsContent>
-        
-        <TabsContent value="active" className="space-y-4">
-          <div className="rounded-md border border-navy-100 overflow-hidden">
-            {/* Similar content as "all" tab but filtered for active patients */}
-            <div className="p-8 text-center">
-              <p className="text-navy-500">Active patients list would display here.</p>
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="recent" className="space-y-4">
-          <div className="rounded-md border border-navy-100 overflow-hidden">
-            {/* Similar content as "all" tab but filtered for recently seen patients */}
-            <div className="p-8 text-center">
-              <p className="text-navy-500">Recently seen patients list would display here.</p>
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="upcoming" className="space-y-4">
-          <div className="rounded-md border border-navy-100 overflow-hidden">
-            {/* Similar content as "all" tab but filtered for patients with upcoming appointments */}
-            <div className="p-8 text-center">
-              <p className="text-navy-500">Patients with upcoming appointments would display here.</p>
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
+
+      <NewPatientDialog
+        open={isNewPatientDialogOpen}
+        onClose={() => setIsNewPatientDialogOpen(false)}
+      />
     </div>
   );
 };
