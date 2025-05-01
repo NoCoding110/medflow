@@ -1,10 +1,20 @@
-
 import React, { useEffect } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { DoctorPortalSidebar } from "@/components/doctor-portal/DoctorPortalSidebar";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { LayoutDashboard, Calendar, Users, Video, TestTube2, MessageSquare, Settings } from "lucide-react";
+
+const navigation = [
+  { name: "Dashboard", href: "/doctor", icon: LayoutDashboard },
+  { name: "Appointments", href: "/doctor/appointments", icon: Calendar },
+  { name: "Patients", href: "/doctor/patients", icon: Users },
+  { name: "Telehealth", href: "/doctor/telehealth", icon: Video },
+  { name: "Lab Integration", href: "/doctor/lab-integration", icon: TestTube2 },
+  { name: "Messages", href: "/doctor/messages", icon: MessageSquare },
+  { name: "Settings", href: "/doctor/settings", icon: Settings },
+];
 
 const DoctorPortal = () => {
   const { user, isAuthenticated } = useAuth();

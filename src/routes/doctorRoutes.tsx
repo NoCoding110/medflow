@@ -43,6 +43,9 @@ import RealWorldDataPlatform from "@/pages/doctor-portal/ai-features/RealWorldDa
 import { GenerativeAI } from "@/pages/doctor-portal/ai-features/GenerativeAI";
 import { PredictiveAnalysis } from "@/pages/doctor-portal/ai-features/PredictiveAnalysis";
 import { ConversationalAI } from "@/pages/doctor-portal/ai-features/ConversationalAI";
+import DoctorMessages from "@/pages/doctor-portal/DoctorMessages";
+import DoctorSettings from "@/pages/doctor-portal/DoctorSettings";
+import LabIntegration from "@/pages/doctor-portal/lab-integration/LabIntegration";
 
 interface DoctorRouteProps {
   children: React.ReactNode;
@@ -128,5 +131,8 @@ export const doctorRoutes = {
     { path: "generative-ai", element: <GenerativeAI /> },
     { path: "predictive-analysis", element: <PredictiveAnalysis /> },
     { path: "conversational-ai", element: <ConversationalAI /> },
+    { path: "messages", element: <DoctorMessages /> },
+    { path: "settings", element: <DoctorSettings /> },
+    { path: "lab-integration", element: <LabIntegration /> },
   ],
 };
