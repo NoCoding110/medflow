@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,22 +25,25 @@ import {
 import { Patient } from "@/lib/types/patient";
 import { useToast } from "@/components/ui/use-toast";
 
+type SortConfig = {
+  key: keyof Patient;
+  direction: 'asc' | 'desc';
+};
+
 const Patients = () => {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState<keyof Patient>("lastName");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'lastName', direction: 'asc' });
   const [showNewPatientDialog, setShowNewPatientDialog] = useState(false);
   const { toast } = useToast();
 
-  const handleSort = (field: keyof Patient) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
+  const handleSort = (key: keyof Patient) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
   };
 
   const handleStatusChange = (patientId: string, newStatus: 'active' | 'inactive') => {
@@ -51,6 +54,10 @@ const Patients = () => {
           : patient
       )
     );
+    toast({
+      title: "Status Updated",
+      description: `Patient status has been updated to ${newStatus}`,
+    });
   };
 
   const handleNewPatient = (patient: Patient) => {
@@ -62,35 +69,36 @@ const Patients = () => {
     });
   };
 
-  const filteredPatients = useMemo(() => {
-    return patients
-      .filter((patient) => {
-        // Apply search filter
-        const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
-        const searchLower = searchTerm.toLowerCase();
-        const matchesSearch = fullName.includes(searchLower) ||
-          patient.email?.toLowerCase().includes(searchLower) ||
-          patient.phone?.includes(searchTerm);
+  const handlePatientClick = (patientId: string) => {
+    navigate(`/patients/${patientId}`);
+  };
 
-        // Apply status filter
-        if (statusFilter === "all") return matchesSearch;
-        const isActive = !patient.status || patient.status === "active";
-        return matchesSearch && (
-          (statusFilter === "active" && isActive) ||
-          (statusFilter === "inactive" && !isActive)
+  const filteredAndSortedPatients = useMemo(() => {
+    return patients
+      .filter(patient => {
+        const matchesSearch = (
+          patient.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          patient.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          patient.id.toString().includes(searchTerm) ||
+          patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          patient.phone?.includes(searchTerm)
         );
+
+        const matchesStatus = statusFilter === 'all' || patient.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
-        const aValue = a[sortField]?.toString().toLowerCase() || "";
-        const bValue = b[sortField]?.toString().toLowerCase() || "";
+        const aValue = String(a[sortConfig.key]).toLowerCase();
+        const bValue = String(b[sortConfig.key]).toLowerCase();
         
-        if (sortDirection === "asc") {
+        if (sortConfig.direction === 'asc') {
           return aValue.localeCompare(bValue);
         } else {
           return bValue.localeCompare(aValue);
         }
       });
-  }, [patients, searchTerm, statusFilter, sortField, sortDirection]);
+  }, [patients, searchTerm, statusFilter, sortConfig]);
 
   return (
     <Layout>
@@ -120,7 +128,7 @@ const Patients = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -138,13 +146,13 @@ const Patients = () => {
               <TableRow>
                 <TableHead 
                   className="w-[250px] cursor-pointer" 
-                  onClick={() => handleSort("lastName")}
+                  onClick={() => handleSort('lastName')}
                 >
                   <div className="flex items-center gap-1">
                     Name
-                    {sortField === "lastName" && (
+                    {sortConfig.key === 'lastName' && (
                       <ArrowUpDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
-                        sortDirection === "desc" ? "rotate-180" : ""
+                        sortConfig.direction === 'desc' ? 'rotate-180' : ''
                       }`} />
                     )}
                   </div>
@@ -153,13 +161,13 @@ const Patients = () => {
                 <TableHead>Age</TableHead>
                 <TableHead 
                   className="cursor-pointer"
-                  onClick={() => handleSort("gender")}
+                  onClick={() => handleSort('gender')}
                 >
                   <div className="flex items-center gap-1">
                     Gender
-                    {sortField === "gender" && (
+                    {sortConfig.key === 'gender' && (
                       <ArrowUpDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
-                        sortDirection === "desc" ? "rotate-180" : ""
+                        sortConfig.direction === 'desc' ? 'rotate-180' : ''
                       }`} />
                     )}
                   </div>
@@ -168,13 +176,13 @@ const Patients = () => {
                 <TableHead>Email</TableHead>
                 <TableHead 
                   className="cursor-pointer"
-                  onClick={() => handleSort("insuranceProvider")}
+                  onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center gap-1">
-                    Insurance
-                    {sortField === "insuranceProvider" && (
+                    Status
+                    {sortConfig.key === 'status' && (
                       <ArrowUpDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
-                        sortDirection === "desc" ? "rotate-180" : ""
+                        sortConfig.direction === 'desc' ? 'rotate-180' : ''
                       }`} />
                     )}
                   </div>
@@ -183,22 +191,21 @@ const Patients = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPatients.length === 0 ? (
+              {filteredAndSortedPatients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
                     No patients found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPatients.map((patient) => (
-                  <TableRow key={patient.id}>
+                filteredAndSortedPatients.map((patient) => (
+                  <TableRow 
+                    key={patient.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handlePatientClick(patient.id)}
+                  >
                     <TableCell className="font-medium">
-                      <Link
-                        to={`/patients/${patient.id}`}
-                        className="hover:text-primary hover:underline"
-                      >
-                        {patient.lastName}, {patient.firstName}
-                      </Link>
+                      {patient.lastName}, {patient.firstName}
                     </TableCell>
                     <TableCell>
                       {new Date(patient.dateOfBirth).toLocaleDateString()}
@@ -207,8 +214,16 @@ const Patients = () => {
                     <TableCell>{patient.gender}</TableCell>
                     <TableCell>{patient.phone || "—"}</TableCell>
                     <TableCell>{patient.email || "—"}</TableCell>
-                    <TableCell>{patient.insuranceProvider || "—"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                        patient.status === 'active' 
+                          ? 'bg-green-50 text-green-700' 
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {patient.status || 'active'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <PatientActions 
                         patientId={patient.id} 
                         onStatusChange={handleStatusChange}

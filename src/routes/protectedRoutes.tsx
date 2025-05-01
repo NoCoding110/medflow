@@ -1,9 +1,8 @@
-
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import Dashboard from "@/pages/Dashboard";
 import Patients from "@/pages/Patients";
-import PatientDetail from "@/pages/PatientDetail";
+import PatientProfile from "@/pages/PatientProfile";
 import Appointments from "@/pages/Appointments";
 import Documents from "@/pages/Documents";
 import Settings from "@/pages/Settings";
@@ -51,10 +50,10 @@ export const protectedRoutes = [
     ),
   },
   {
-    path: "/patients/:id",
+    path: "/patients/:patientId",
     element: (
       <ProtectedRoute>
-        <PatientDetail />
+        <PatientProfile />
       </ProtectedRoute>
     ),
   },
