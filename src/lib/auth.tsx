@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Types
 export interface User {
@@ -66,34 +67,78 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Just set loading to false initially
+    // Check for saved authentication state
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
     setIsLoading(false);
   }, []);
 
+  // Persist authentication state
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
+
+  // Handle route persistence
+  useEffect(() => {
+    if (!isLoading) {
+      if (!user && !location.pathname.startsWith('/login')) {
+        // Save the attempted URL
+        sessionStorage.setItem('redirectTo', location.pathname);
+        navigate('/login');
+      } else if (user && location.pathname === '/login') {
+        // Redirect to saved URL or default route based on role
+        const redirectTo = sessionStorage.getItem('redirectTo') || getDefaultRoute(user.role);
+        sessionStorage.removeItem('redirectTo');
+        navigate(redirectTo);
+      }
+    }
+  }, [user, isLoading, location.pathname, navigate]);
+
   const login = async (email: string, password: string) => {
     // Find user with matching credentials
-    const user = mockUsers.find(u => u.email === email && u.password === password);
+    const matchedUser = mockUsers.find(u => u.email === email && u.password === password);
     
-    if (!user) {
+    if (!matchedUser) {
       throw new Error('Invalid credentials');
     }
 
+    const authenticatedUser = {
+      id: matchedUser.id,
+      name: matchedUser.name,
+      email: matchedUser.email,
+      role: matchedUser.role,
+      avatar: matchedUser.avatar
+    };
+
     // Set the authenticated user
-    setUser({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar
-    });
+    setUser(authenticatedUser);
+
+    // Redirect to saved URL or default route
+    const redirectTo = sessionStorage.getItem('redirectTo') || getDefaultRoute(authenticatedUser.role);
+    sessionStorage.removeItem('redirectTo');
+    navigate(redirectTo);
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('redirectTo');
+    navigate('/login');
   };
 
   return (
@@ -109,6 +154,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+// Helper function to get default route based on user role
+const getDefaultRoute = (role: User['role']) => {
+  switch (role) {
+    case 'doctor':
+      return '/doctor';
+    case 'nurse':
+      return '/nurse';
+    case 'admin':
+      return '/admin';
+    case 'patient':
+      return '/patient';
+    default:
+      return '/';
+  }
 };
 
 // Custom hook to use auth context
