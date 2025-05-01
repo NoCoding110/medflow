@@ -673,7 +673,7 @@ const DoctorLab = () => {
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
-                </div>
+            </div>
           </CardContent>
         </Card>
 

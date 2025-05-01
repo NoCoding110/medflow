@@ -1,6 +1,17 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Users, Calendar, FileText, TestTube } from "lucide-react";
+import { 
+  Home, 
+  Users, 
+  Calendar, 
+  FileText, 
+  TestTube, 
+  Receipt, 
+  Pill, 
+  Stethoscope,
+  Brain,
+  ClipboardList
+} from "lucide-react";
 import { NavItem } from "./NavItem";
 
 interface MainMenuSectionProps {
@@ -40,6 +51,15 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
       },
     },
     {
+      icon: <ClipboardList className="h-5 w-5" />,
+      label: "Clinical Notes",
+      to: "/doctor/notes",
+      onClick: () => {
+        navigate("/doctor/notes");
+        closeMenu();
+      },
+    },
+    {
       icon: <FileText className="h-5 w-5" />,
       label: "Medical Records",
       to: "/doctor/records",
@@ -54,6 +74,33 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
       to: "/doctor/lab",
       onClick: () => {
         navigate("/doctor/lab");
+        closeMenu();
+      },
+    },
+    {
+      icon: <Receipt className="h-5 w-5" />,
+      label: "Billing & Invoicing",
+      to: "/doctor/billing",
+      onClick: () => {
+        navigate("/doctor/billing");
+        closeMenu();
+      },
+    },
+    {
+      icon: <Pill className="h-5 w-5" />,
+      label: "E-Prescriptions",
+      to: "/doctor/prescriptions",
+      onClick: () => {
+        navigate("/doctor/prescriptions");
+        closeMenu();
+      },
+    },
+    {
+      icon: <Brain className="h-5 w-5" />,
+      label: "AI Assistant",
+      to: "/doctor/ai-assistant",
+      onClick: () => {
+        navigate("/doctor/ai-assistant");
         closeMenu();
       },
     },

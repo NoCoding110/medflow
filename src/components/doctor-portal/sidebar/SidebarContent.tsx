@@ -83,8 +83,8 @@ export const SidebarContent = ({ closeMenu }: SidebarContentProps) => {
         </div>
       </div>
       
-      <ScrollArea className="flex-1">
-        <nav className="space-y-1 p-3">
+      <ScrollArea className="flex-1 overflow-y-auto">
+        <nav className="space-y-1 p-3 pb-24">
           {isSectionVisible("main menu", <MainMenuSection closeMenu={closeMenu} />) && (
             <div>
               <div 
