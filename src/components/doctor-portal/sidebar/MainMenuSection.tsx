@@ -13,91 +13,68 @@ import {
 } from "lucide-react";
 import { NavItem } from "./NavItem";
 
+interface SubmenuItem {
+  to: string;
+  label: string;
+  badge?: string;
+  aiFeature?: string;
+  notificationCount?: number;
+  tooltip?: string;
+  onClick?: () => void;
+}
+
+interface MenuItem {
+  icon: React.ReactNode;
+  label: string;
+  to: string;
+  badge?: string;
+  aiFeature?: string;
+  notificationCount?: number;
+  tooltip?: string;
+  submenu?: SubmenuItem[];
+  onClick?: () => void;
+}
+
 interface MainMenuSectionProps {
   closeMenu: () => void;
   searchQuery?: string;
+  notifications: { [key: string]: number };
 }
 
-export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSectionProps) => {
+export const MainMenuSection = ({ closeMenu, searchQuery = "", notifications = {} }: MainMenuSectionProps) => {
   const navigate = useNavigate();
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     {
-      icon: <Home className="h-5 w-5" />,
-      label: "Dashboard",
-      to: "/doctor",
-      onClick: () => {
-        navigate("/doctor");
-        closeMenu();
-      },
+      icon: <Home className="h-5 w-5" />, label: "Dashboard", to: "/doctor", notificationCount: notifications.dashboard, aiFeature: "AI dashboard insights", badge: "AI", tooltip: "AI-powered dashboard analytics", onClick: () => { navigate("/doctor"); closeMenu(); }
     },
     {
-      icon: <Users className="h-5 w-5" />,
-      label: "Patients",
-      to: "/doctor/patients",
-      onClick: () => {
-        navigate("/doctor/patients");
-        closeMenu();
-      },
+      icon: <Users className="h-5 w-5" />, label: "Patients", to: "/doctor/patients", notificationCount: notifications.patients, aiFeature: "AI patient risk stratification", badge: "AI", tooltip: "AI-powered patient management", onClick: () => { navigate("/doctor/patients"); closeMenu(); }
     },
     {
-      icon: <Calendar className="h-5 w-5" />,
-      label: "Appointments",
-      to: "/doctor/appointments",
-      onClick: () => {
-        navigate("/doctor/appointments");
-        closeMenu();
-      },
+      icon: <Calendar className="h-5 w-5" />, label: "Appointments", to: "/doctor/appointments", notificationCount: notifications.appointments, aiFeature: "AI appointment optimization", badge: "AI", tooltip: "AI-powered appointment scheduling", onClick: () => { navigate("/doctor/appointments"); closeMenu(); }
     },
     {
-      icon: <ClipboardList className="h-5 w-5" />,
-      label: "Clinical Notes",
-      to: "/doctor/notes",
-      onClick: () => {
-        navigate("/doctor/notes");
-        closeMenu();
-      },
+      icon: <ClipboardList className="h-5 w-5" />, label: "Clinical Notes", to: "/doctor/notes", notificationCount: notifications.notes, aiFeature: "AI note summarization", badge: "AI", tooltip: "AI-powered clinical note summaries", onClick: () => { navigate("/doctor/notes"); closeMenu(); }
     },
     {
-      icon: <FileText className="h-5 w-5" />,
-      label: "Medical Records",
-      to: "/doctor/records",
-      onClick: () => {
-        navigate("/doctor/records");
-        closeMenu();
-      },
+      icon: <FileText className="h-5 w-5" />, label: "Medical Records", to: "/doctor/records", notificationCount: notifications.records, aiFeature: "AI record search", badge: "AI", tooltip: "AI-powered medical record search", onClick: () => { navigate("/doctor/records"); closeMenu(); }
     },
     {
-      icon: <TestTube className="h-5 w-5" />,
-      label: "Laboratory",
-      to: "/doctor/lab",
-      onClick: () => {
-        navigate("/doctor/lab");
-        closeMenu();
-      },
+      icon: <TestTube className="h-5 w-5" />, label: "Laboratory", to: "/doctor/lab", notificationCount: notifications.lab, aiFeature: "AI lab result analysis", badge: "AI", tooltip: "AI-powered lab result analysis", onClick: () => { navigate("/doctor/lab"); closeMenu(); }
     },
     {
-      icon: <Receipt className="h-5 w-5" />,
-      label: "Billing & Invoicing",
-      to: "/doctor/billing",
-      onClick: () => {
-        navigate("/doctor/billing");
-        closeMenu();
-      },
+      icon: <Receipt className="h-5 w-5" />, label: "Billing & Invoicing", to: "/doctor/billing", notificationCount: notifications.billing, aiFeature: "AI billing insights", badge: "AI", tooltip: "AI-powered billing analytics", onClick: () => { navigate("/doctor/billing"); closeMenu(); }
     },
     {
-      icon: <Pill className="h-5 w-5" />,
-      label: "E-Prescriptions",
-      to: "/doctor/prescriptions",
-      onClick: () => {
-        navigate("/doctor/prescriptions");
-        closeMenu();
-      },
+      icon: <Pill className="h-5 w-5" />, label: "E-Prescriptions", to: "/doctor/prescriptions", notificationCount: notifications.prescriptions, aiFeature: "AI prescription safety", badge: "AI", tooltip: "AI-powered prescription safety checks", onClick: () => { navigate("/doctor/prescriptions"); closeMenu(); }
     }
   ];
 
   const filteredItems = menuItems.filter(item =>
-    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.aiFeature && item.aiFeature.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (item.submenu && item.submenu.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
   return (
@@ -108,6 +85,11 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "" }: MainMenuSection
           icon={item.icon}
           label={item.label}
           to={item.to}
+          badge={item.badge}
+          aiFeature={item.aiFeature}
+          notificationCount={item.notificationCount}
+          tooltip={item.tooltip}
+          submenu={item.submenu}
           onClick={item.onClick}
         />
       ))}
