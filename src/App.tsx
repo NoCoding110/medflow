@@ -4,14 +4,17 @@ import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "sonner";
 import AppRoutes from "./AppRoutes";
 import { useVersionCheck } from './hooks/useVersionCheck';
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 function App() {
   useVersionCheck();
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
-        <Toaster position="top-right" />
+        <TooltipProvider>
+          <AppRoutes />
+          <Toaster position="top-right" />
+        </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>
   );
