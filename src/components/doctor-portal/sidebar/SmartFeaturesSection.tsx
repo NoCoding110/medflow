@@ -22,11 +22,7 @@ export const SmartFeaturesSection = ({ closeMenu, searchQuery = "" }: SmartFeatu
       icon: <Heart className="h-5 w-5" />, label: "Wellness Dashboard", to: "/doctor/wellness-dashboard", notificationCount: 2, aiFeature: "Predictive wellness analytics", tooltip: "AI-powered wellness analytics and predictions", onClick: closeMenu
     },
     {
-      icon: <Activity className="h-5 w-5" />, label: "Vital Signs Trends", to: "/doctor/vitals", notificationCount: 1, aiFeature: "AI trend detection & anomaly alerts", tooltip: "AI analysis of vital signs trends", onClick: closeMenu,
-      submenu: [
-        { label: "Trends", to: "/doctor/vitals/trends", aiFeature: "Predictive trend analysis", onClick: closeMenu },
-        { label: "Alerts", to: "/doctor/vitals/alerts", aiFeature: "AI-generated alerts", notificationCount: 1, onClick: closeMenu }
-      ]
+      icon: <Activity className="h-5 w-5" />, label: "Vital Signs Trends", to: "/doctor/vitals", notificationCount: 1, aiFeature: "AI trend detection & anomaly alerts", tooltip: "AI analysis of vital signs trends", onClick: closeMenu
     },
     {
       icon: <Activity className="h-5 w-5" />, label: "Fitness Tracking", to: "/doctor/fitness", aiFeature: "AI fitness recommendations", tooltip: "Monitor patient fitness activity with AI", onClick: closeMenu
@@ -53,8 +49,7 @@ export const SmartFeaturesSection = ({ closeMenu, searchQuery = "" }: SmartFeatu
 
   const filteredItems = menuItems.filter(item =>
     item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.aiFeature && item.aiFeature.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (item.submenu && item.submenu.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase())))
+    (item.aiFeature && item.aiFeature.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -68,7 +63,6 @@ export const SmartFeaturesSection = ({ closeMenu, searchQuery = "" }: SmartFeatu
           aiFeature={item.aiFeature}
           notificationCount={item.notificationCount}
           tooltip={item.tooltip}
-          submenu={item.submenu}
           onClick={item.onClick}
         />
       ))}

@@ -48,8 +48,6 @@ import DoctorSettings from "@/pages/doctor-portal/settings/DoctorSettings";
 import LabIntegration from "@/pages/doctor-portal/lab-integration/LabIntegration";
 import OncologyModule from "@/pages/doctor-portal/ai-features/OncologyModule";
 import NeurologyDashboard from "@/pages/doctor/neurology-module/NeurologyDashboard";
-import VitalsTrends from '@/pages/doctor-portal/smart-features/VitalsTrends';
-import VitalsAlerts from '@/pages/doctor-portal/smart-features/VitalsAlerts';
 
 interface DoctorRouteProps {
   children: React.ReactNode;
@@ -151,7 +149,5 @@ export const doctorRoutes = {
     { path: "fitness", element: <FitnessTracking /> },
     { path: "symptoms", element: <SymptomTracker /> },
     { path: "oncology", element: <OncologyModule /> },
-    { path: "vitals/trends", element: <VitalsTrends /> },
-    { path: "vitals/alerts", element: <VitalsAlerts /> },
   ],
 };
