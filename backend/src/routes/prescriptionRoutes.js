@@ -31,4 +31,13 @@ router.post('/:id/cancel', auth, prescriptionController.cancelPrescription);
 router.post('/check-interactions', auth, prescriptionController.checkInteractions);
 router.get('/pharmacies/search', auth, pharmacySearchValidation, prescriptionController.findPharmacies);
 
+// Analytics
+router.get('/analytics/summary', auth, prescriptionController.getPrescriptionAnalytics);
+
+// AI Insights
+router.get('/insights/ai', auth, prescriptionController.getPrescriptionInsights);
+
+// Alerts
+router.get('/alerts', auth, prescriptionController.getPrescriptionAlerts);
+
 module.exports = router; 

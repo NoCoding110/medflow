@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,80 +10,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import NewPatientDialog from "./NewPatientDialog";
 
-// Sample patient data
-const patients = [
-  {
-    id: '1',
-    name: 'John Smith',
-    age: 45,
-    gender: 'Male',
-    lastVisit: '2025-04-15',
-    status: 'Active',
-    upcomingAppointment: '2025-04-30',
-    riskLevel: 'Low',
-    lastVitals: {
-      bloodPressure: '120/80',
-      heartRate: '72',
-      temperature: '98.6'
-    },
-    alerts: ['Medication due', 'Lab results pending']
-  },
-  {
-    id: '2',
-    name: 'Emily Johnson',
-    age: 32,
-    gender: 'Female',
-    lastVisit: '2025-03-22',
-    status: 'Active',
-    upcomingAppointment: '2025-05-05',
-    riskLevel: 'Medium',
-    lastVitals: {
-      bloodPressure: '118/75',
-      heartRate: '68',
-      temperature: '98.4'
-    },
-    alerts: ['Follow-up required']
-  },
-  {
-    id: '3',
-    name: 'Michael Brown',
-    age: 58,
-    gender: 'Male',
-    lastVisit: '2025-04-10',
-    status: 'Active',
-    upcomingAppointment: null
-  },
-  {
-    id: '4',
-    name: 'Sarah Davis',
-    age: 27,
-    gender: 'Female',
-    lastVisit: '2025-01-15',
-    status: 'Inactive',
-    upcomingAppointment: null
-  },
-  {
-    id: '5',
-    name: 'Robert Wilson',
-    age: 65,
-    gender: 'Male',
-    lastVisit: '2025-04-20',
-    status: 'Active',
-    upcomingAppointment: '2025-05-10'
-  },
-  {
-    id: '6',
-    name: 'Jennifer Martinez',
-    age: 41,
-    gender: 'Female',
-    lastVisit: '2025-03-30',
-    status: 'Active',
-    upcomingAppointment: '2025-05-15'
-  },
-];
-
 const DoctorPatients = () => {
   const navigate = useNavigate();
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [errorPatients, setErrorPatients] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [loadingInsights, setLoadingInsights] = useState(false);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('name');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -93,6 +30,79 @@ const DoctorPatients = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   
+  // Fetch patients from backend
+  const fetchPatients = useCallback(async () => {
+    setLoadingPatients(true);
+    setErrorPatients(null);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      // Add more filters as needed
+      const res = await fetch(`/api/patients?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch patients');
+      const data = await res.json();
+      setPatients(data.patients || data);
+    } catch (e: any) {
+      setErrorPatients(e.message || 'Failed to load patients');
+      setPatients([]);
+    } finally {
+      setLoadingPatients(false);
+    }
+  }, [statusFilter, searchTerm]);
+
+  // Fetch analytics
+  const fetchAnalytics = useCallback(async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await fetch('/api/patients/analytics', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      setAnalytics(await res.json());
+    } catch {
+      setAnalytics(null);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, []);
+
+  // Fetch AI insights (for selected patient or general)
+  const fetchAiInsights = useCallback(async (patientId?: string) => {
+    setLoadingInsights(true);
+    try {
+      const url = patientId ? `/api/patients/ai-insights?patientId=${patientId}` : '/api/patients/ai-insights';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch AI insights');
+      setAiInsights(await res.json());
+    } catch {
+      setAiInsights(null);
+    } finally {
+      setLoadingInsights(false);
+    }
+  }, []);
+
+  // Fetch alerts (for selected patient or general)
+  const fetchAlerts = useCallback(async (patientId?: string) => {
+    setLoadingAlerts(true);
+    try {
+      const url = patientId ? `/api/patients/alerts?patientId=${patientId}` : '/api/patients/alerts';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch alerts');
+      const data = await res.json();
+      setAlerts(data.alerts || []);
+    } catch {
+      setAlerts([]);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPatients();
+    fetchAnalytics();
+    fetchAiInsights();
+    fetchAlerts();
+  }, [fetchPatients, fetchAnalytics, fetchAiInsights, fetchAlerts]);
+
   // Filter and sort patients
   const filteredAndSortedPatients = useMemo(() => {
     let filtered = [...patients];
