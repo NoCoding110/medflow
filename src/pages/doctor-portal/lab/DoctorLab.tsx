@@ -51,69 +51,6 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { PDFDocument, rgb } from 'pdf-lib';
 
-// Sample data for lab tests
-const labTests = [
-  {
-    id: "LT001",
-    patientName: "Sarah Connor",
-    patientId: "P12345",
-    testType: "Complete Blood Count",
-    status: "Completed",
-    date: "2025-04-25",
-    results: {
-      status: "Normal",
-      components: [
-        { name: "WBC", value: 7.5, unit: "K/µL", range: "4.5-11.0", status: "normal" },
-        { name: "RBC", value: 4.8, unit: "M/µL", range: "4.0-5.5", status: "normal" },
-        { name: "Hemoglobin", value: 14.2, unit: "g/dL", range: "12.0-16.0", status: "normal" },
-        { name: "Platelets", value: 250, unit: "K/µL", range: "150-450", status: "normal" },
-      ],
-      notes: "All parameters within normal range",
-      doctor: "Dr. Smith",
-      lab: "Central Lab",
-    },
-    priority: "routine",
-  },
-  {
-    id: "LT002",
-    patientName: "John Doe",
-    patientId: "P12346",
-    testType: "Lipid Panel",
-    status: "Pending",
-    date: "2025-04-26",
-    results: "Awaiting",
-    priority: "urgent",
-  },
-  {
-    id: "LT003",
-    patientName: "Jane Smith",
-    patientId: "P12347",
-    testType: "Thyroid Function",
-    status: "In Progress",
-    date: "2025-04-26",
-    results: "Processing",
-    priority: "high",
-  },
-  {
-    id: "LT004",
-    patientName: "Mike Johnson",
-    patientId: "P12348",
-    testType: "Glucose Test",
-    status: "Completed",
-    date: "2025-04-24",
-    results: {
-      status: "Abnormal",
-      components: [
-        { name: "Fasting Glucose", value: 130, unit: "mg/dL", range: "70-100", status: "high" },
-      ],
-      notes: "Patient shows elevated glucose levels",
-      doctor: "Dr. Johnson",
-      lab: "Central Lab",
-    },
-    priority: "routine",
-  },
-];
-
 // Workflow statuses and their corresponding steps
 const workflowSteps = {
   "request_created": 0,
@@ -137,7 +74,9 @@ const DoctorLab = () => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const { toast } = useToast();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [tests, setTests] = useState<LabTest[]>(labTests);
+  const [tests, setTests] = useState<LabTest[]>([]);
+  const [loadingTests, setLoadingTests] = useState(false);
+  const [errorTests, setErrorTests] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [selectedTests, setSelectedTests] = useState<LabTest[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -145,16 +84,32 @@ const DoctorLab = () => {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
-  const filteredTests = tests.filter((test) => {
-    const matchesSearch = test.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      test.testType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      test.id.toLowerCase().includes(searchQuery.toLowerCase());
+  // Fetch lab tests from backend
+  const fetchTests = useCallback(async () => {
+    setLoadingTests(true);
+    setErrorTests(null);
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus !== 'all') params.append('status', filterStatus);
+      if (filterPriority !== 'all') params.append('priority', filterPriority);
+      if (searchQuery) params.append('search', searchQuery);
+      const res = await fetch(`/api/lab-tests?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch lab tests');
+      const data = await res.json();
+      setTests(data);
+    } catch (e: any) {
+      setErrorTests(e.message || 'Failed to load lab tests');
+      setTests([]);
+    } finally {
+      setLoadingTests(false);
+    }
+  }, [filterStatus, filterPriority, searchQuery]);
 
-    const matchesStatus = filterStatus === "all" || test.status === filterStatus;
-    const matchesPriority = filterPriority === "all" || test.priority === filterPriority;
+  useEffect(() => {
+    fetchTests();
+  }, [fetchTests]);
 
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+  const filteredTests = tests; // Filtering is now handled by backend
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -506,7 +461,7 @@ const DoctorLab = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Tests</p>
-                <h3 className="text-2xl font-bold">{labTests.length}</h3>
+                <h3 className="text-2xl font-bold">{tests.length}</h3>
               </div>
               <Activity className="h-8 w-8 text-blue-500" />
             </div>
@@ -518,7 +473,7 @@ const DoctorLab = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending</p>
                 <h3 className="text-2xl font-bold">
-                  {labTests.filter(t => t.status === "Pending").length}
+                  {tests.filter(t => t.status === "Pending").length}
                 </h3>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
@@ -531,7 +486,7 @@ const DoctorLab = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completed Today</p>
                 <h3 className="text-2xl font-bold">
-                  {labTests.filter(t => t.status === "Completed" && t.date === format(new Date(), "yyyy-MM-dd")).length}
+                  {tests.filter(t => t.status === "Completed" && t.date === format(new Date(), "yyyy-MM-dd")).length}
                 </h3>
               </div>
               <BarChart2 className="h-8 w-8 text-green-500" />
@@ -544,7 +499,7 @@ const DoctorLab = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Urgent</p>
                 <h3 className="text-2xl font-bold">
-                  {labTests.filter(t => t.priority === "urgent").length}
+                  {tests.filter(t => t.priority === "urgent").length}
                 </h3>
               </div>
               <AlertTriangle className="h-8 w-8 text-red-500" />
@@ -598,54 +553,64 @@ const DoctorLab = () => {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-        <Card>
-          <CardHeader>
+          <Card>
+            <CardHeader>
               <CardTitle>Lab Tests</CardTitle>
               <CardDescription>View and manage all laboratory tests</CardDescription>
-          </CardHeader>
-          <CardContent>
-              <ScrollArea className="h-[400px]">
-            <div className="space-y-4">
-                  {filteredTests.map((test) => (
-                    <div
-                      key={test.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer"
-                      onClick={() => compareMode ? toggleTestSelection(test) : (setSelectedTest(test), setShowTestDetails(true))}
-                    >
-                      <div className="flex items-center gap-4">
-                        {compareMode && (
-                          <input
-                            type="checkbox"
-                            checked={selectedTests.some(t => t.id === test.id)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleTestSelection(test);
-                            }}
-                            className="h-4 w-4"
-                          />
-                        )}
-                  <div className="space-y-1">
-                          <div className="font-medium flex items-center gap-2">
-                            {test.patientName}
-                            <Badge variant="outline" className={getPriorityColor(test.priority)}>
-                              {test.priority}
-                            </Badge>
+            </CardHeader>
+            <CardContent>
+              {loadingTests ? (
+                <div>Loading...</div>
+              ) : errorTests ? (
+                <div className="text-red-600">{errorTests}</div>
+              ) : (
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-4">
+                    {filteredTests.length === 0 ? (
+                      <div className="text-muted-foreground">No lab tests found.</div>
+                    ) : (
+                      filteredTests.map((test) => (
+                        <div
+                          key={test.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer"
+                          onClick={() => compareMode ? toggleTestSelection(test) : (setSelectedTest(test), setShowTestDetails(true))}
+                        >
+                          <div className="flex items-center gap-4">
+                            {compareMode && (
+                              <input
+                                type="checkbox"
+                                checked={selectedTests.some(t => t.id === test.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  toggleTestSelection(test);
+                                }}
+                                className="h-4 w-4"
+                              />
+                            )}
+                            <div className="space-y-1">
+                              <div className="font-medium flex items-center gap-2">
+                                {test.patientName}
+                                <Badge variant="outline" className={getPriorityColor(test.priority)}>
+                                  {test.priority}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {test.testType} - {test.id}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {test.testType} - {test.id}
+                          <div className="text-right space-y-1">
+                            <div className={`text-sm font-medium ${getStatusColor(test.status)}`}>
+                              {test.status}
+                            </div>
+                            <div className="text-sm text-muted-foreground">{test.date}</div>
                           </div>
                         </div>
+                      ))
+                    )}
                   </div>
-                  <div className="text-right space-y-1">
-                        <div className={`text-sm font-medium ${getStatusColor(test.status)}`}>
-                      {test.status}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{test.date}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-              </ScrollArea>
+                </ScrollArea>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -688,6 +688,108 @@ const patientController = {
       console.error('Error in getPatientsForGoals:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
+  },
+
+  // Advanced analytics for patients
+  getPatientAnalytics: async (req, res) => {
+    try {
+      const { status, ageRange, gender, lastVisitRange } = req.query;
+      const where = {};
+      if (status) where.status = status;
+      if (gender) where.gender = gender;
+      if (ageRange) {
+        const [minAge, maxAge] = ageRange.split('-').map(Number);
+        const minDate = new Date();
+        minDate.setFullYear(minDate.getFullYear() - maxAge);
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() - minAge);
+        where.dateOfBirth = { [Op.between]: [minDate, maxDate] };
+      }
+      if (lastVisitRange) {
+        const [startDate, endDate] = lastVisitRange.split('-');
+        where.lastVisitDate = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+      }
+      const total = await Patient.count({ where });
+      const byStatus = await Patient.findAll({
+        where,
+        attributes: ['status', [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']],
+        group: ['status']
+      });
+      const byGender = await Patient.findAll({
+        where,
+        attributes: ['gender', [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']],
+        group: ['gender']
+      });
+      const avgAge = await Patient.findAll({
+        where,
+        attributes: [[Sequelize.fn('AVG', Sequelize.literal(`EXTRACT(YEAR FROM AGE(NOW(), "dateOfBirth"))`)), 'avgAge']]
+      });
+      res.json({
+        total,
+        byStatus,
+        byGender,
+        avgAge: avgAge[0]?.dataValues?.avgAge || null
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // AI insights for patients
+  getPatientAIInsights: async (req, res) => {
+    try {
+      const { patientId } = req.query;
+      if (!patientId) return res.status(400).json({ error: 'patientId required' });
+      const patient = await Patient.findByPk(patientId);
+      if (!patient) return res.status(404).json({ error: 'Patient not found' });
+      // Example: Use recent vitals, wellness, prescriptions, etc. for insights
+      const vitals = await Vital.findAll({ where: { patientId }, order: [['recordedAt', 'DESC']], limit: 5 });
+      const prescriptions = await Prescription.findAll({ where: { patientId }, order: [['createdAt', 'DESC']], limit: 5 });
+      // Simple AI logic (replace with real AI as needed)
+      const tips = [];
+      if (vitals.some(v => v.value > 140 && v.type === 'systolicBP')) {
+        tips.push({ type: 'bp', message: 'Elevated blood pressure detected. Consider lifestyle changes.' });
+      }
+      if (prescriptions.some(p => p.status === 'due')) {
+        tips.push({ type: 'medication', message: 'Medication refill is due soon.' });
+      }
+      res.json({
+        patterns: {
+          recentVitals: vitals,
+          recentPrescriptions: prescriptions
+        },
+        tips
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // Alerts for patients
+  getPatientAlerts: async (req, res) => {
+    try {
+      const { patientId } = req.query;
+      if (!patientId) return res.status(400).json({ error: 'patientId required' });
+      const alerts = [];
+      // Example: Due invoices
+      const dueInvoices = await require('../models').Billing.findAll({ where: { patientId, status: 'overdue' } });
+      if (dueInvoices.length > 0) {
+        alerts.push({ type: 'billing', message: `${dueInvoices.length} overdue invoice(s).`, severity: 'critical' });
+      }
+      // Example: Medication refills
+      const duePrescriptions = await Prescription.findAll({ where: { patientId, status: 'due' } });
+      if (duePrescriptions.length > 0) {
+        alerts.push({ type: 'prescription', message: `${duePrescriptions.length} medication refill(s) due.`, severity: 'warning' });
+      }
+      // Example: Critical vitals
+      const recentVitals = await Vital.findAll({ where: { patientId }, order: [['recordedAt', 'DESC']], limit: 5 });
+      if (recentVitals.some(v => v.value > 180 && v.type === 'systolicBP')) {
+        alerts.push({ type: 'vital', message: 'Critical blood pressure reading detected.', severity: 'critical' });
+      }
+      res.json({ alerts });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   }
 };
 

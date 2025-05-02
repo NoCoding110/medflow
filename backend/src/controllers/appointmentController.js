@@ -184,6 +184,49 @@ const appointmentController = {
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
+  },
+
+  // Alerts for appointments
+  async getAppointmentAlerts(req, res) {
+    try {
+      const { patientId, doctorId } = req.query;
+      const where = {};
+      if (patientId) where.patientId = patientId;
+      if (doctorId) where.doctorId = doctorId;
+      // Upcoming appointments in next 24h
+      const now = new Date();
+      const soon = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const upcoming = await Appointment.findAll({
+        where: {
+          ...where,
+          startTime: { [Op.between]: [now, soon] },
+          status: { [Op.in]: ['scheduled', 'confirmed'] }
+        }
+      });
+      // Overdue appointments (scheduled but startTime in the past)
+      const overdue = await Appointment.findAll({
+        where: {
+          ...where,
+          startTime: { [Op.lt]: now },
+          status: { [Op.in]: ['scheduled', 'confirmed'] }
+        }
+      });
+      // Critical: emergency appointments
+      const critical = await Appointment.findAll({
+        where: {
+          ...where,
+          type: 'emergency',
+          status: { [Op.in]: ['scheduled', 'confirmed', 'in-progress'] }
+        }
+      });
+      const alerts = [];
+      if (upcoming.length > 0) alerts.push({ type: 'upcoming', message: `${upcoming.length} appointment(s) in next 24h.`, severity: 'info' });
+      if (overdue.length > 0) alerts.push({ type: 'overdue', message: `${overdue.length} overdue appointment(s).`, severity: 'warning' });
+      if (critical.length > 0) alerts.push({ type: 'critical', message: `${critical.length} emergency appointment(s).`, severity: 'critical' });
+      res.json({ alerts });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   }
 };
 

@@ -192,6 +192,50 @@ const medicalNoteController = {
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
+  },
+
+  // Alerts for notes
+  async getNoteAlerts(req, res) {
+    try {
+      const { patientId, doctorId } = req.query;
+      const where = {};
+      if (patientId) where.patientId = patientId;
+      if (doctorId) where.doctorId = doctorId;
+      // Overdue follow-ups
+      const now = new Date();
+      const overdueFollowUps = await MedicalNote.findAll({
+        where: {
+          ...where,
+          followUpRequired: true,
+          followUpDate: { [Op.lt]: now },
+          status: { [Op.ne]: 'archived' }
+        }
+      });
+      // Critical notes (e.g., flagged as critical)
+      const criticalNotes = await MedicalNote.findAll({
+        where: {
+          ...where,
+          status: 'final',
+          content: { [Op.iLike]: '%critical%' }
+        }
+      });
+      // Unresolved issues (drafts older than 7 days)
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const oldDrafts = await MedicalNote.findAll({
+        where: {
+          ...where,
+          status: 'draft',
+          recordedAt: { [Op.lt]: weekAgo }
+        }
+      });
+      const alerts = [];
+      if (overdueFollowUps.length > 0) alerts.push({ type: 'followup', message: `${overdueFollowUps.length} overdue follow-up(s).`, severity: 'warning' });
+      if (criticalNotes.length > 0) alerts.push({ type: 'critical', message: `${criticalNotes.length} note(s) flagged as critical.`, severity: 'critical' });
+      if (oldDrafts.length > 0) alerts.push({ type: 'draft', message: `${oldDrafts.length} draft note(s) unresolved for over a week.`, severity: 'info' });
+      res.json({ alerts });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   }
 };
 

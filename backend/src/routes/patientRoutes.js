@@ -26,4 +26,9 @@ router.get('/doctor/mental-health', auth, patientController.getPatientsForMental
 router.get('/doctor/preventive-care', auth, patientController.getPatientsForPreventiveCare);
 router.get('/doctor/goals', auth, patientController.getPatientsForGoals);
 
+// Analytics, AI, Alerts
+router.get('/analytics', auth, patientController.getPatientAnalytics);
+router.get('/ai-insights', auth, patientController.getPatientAIInsights);
+router.get('/alerts', auth, patientController.getPatientAlerts);
+
 module.exports = router; 

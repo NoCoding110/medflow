@@ -221,6 +221,49 @@ const medicalRecordController = {
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
+  },
+
+  // Alerts for records
+  async getRecordAlerts(req, res) {
+    try {
+      const { patientId } = req.query;
+      const where = {};
+      if (patientId) where.patientId = patientId;
+      // Overdue updates (not updated in >1 year)
+      const yearAgo = new Date();
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+      const overdue = await MedicalRecord.findAll({
+        where: {
+          ...where,
+          lastUpdated: { [Op.lt]: yearAgo },
+          status: { [Op.ne]: 'archived' }
+        }
+      });
+      // Critical conditions (e.g., flagged as critical)
+      const critical = await MedicalRecord.findAll({
+        where: {
+          ...where,
+          conditions: { [Op.contains]: [{ severity: 'critical' }] }
+        }
+      });
+      // Missing data (no vitals or allergies)
+      const missing = await MedicalRecord.findAll({
+        where: {
+          ...where,
+          [Op.or]: [
+            { vitalSigns: { [Op.eq]: null } },
+            { allergies: { [Op.eq]: null } }
+          ]
+        }
+      });
+      const alerts = [];
+      if (overdue.length > 0) alerts.push({ type: 'overdue', message: `${overdue.length} record(s) not updated in over a year.`, severity: 'warning' });
+      if (critical.length > 0) alerts.push({ type: 'critical', message: `${critical.length} record(s) with critical condition(s).`, severity: 'critical' });
+      if (missing.length > 0) alerts.push({ type: 'missing', message: `${missing.length} record(s) missing vitals or allergies.`, severity: 'info' });
+      res.json({ alerts });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   }
 };
 
