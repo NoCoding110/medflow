@@ -13,6 +13,14 @@ import {
   AlertCircle,
   Loader2,
   ChevronDown,
+  BarChart2,
+  LineChart,
+  PieChart,
+  TrendingUp,
+  Bell,
+  Settings,
+  Download,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,13 +30,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { LineChart, BarChart } from "@/components/ui/charts";
+import { LineChart as RechartsLineChart, BarChart as RechartsBarChart, PieChart as RechartsPieChart } from "recharts";
 import { useToast } from "@/components/ui/use-toast";
 import { DateRange } from "react-day-picker";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface VisitData {
   id: string;
@@ -51,6 +66,20 @@ interface AnalyticsData {
   alerts: number;
 }
 
+interface AISuggestion {
+  type: 'preparation' | 'documentation' | 'followup';
+  content: string;
+  priority: 'high' | 'medium' | 'low';
+  category: string;
+}
+
+interface AnalyticsFilter {
+  dateRange: DateRange;
+  visitTypes: string[];
+  status: string[];
+  doctors: string[];
+}
+
 export const SmartVisitPrep = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -64,23 +93,46 @@ export const SmartVisitPrep = () => {
   const [visits, setVisits] = useState<VisitData[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [analyticsFilter, setAnalyticsFilter] = useState<AnalyticsFilter>({
+    dateRange: undefined,
+    visitTypes: [],
+    status: [],
+    doctors: [],
+  });
+  const [viewPreferences, setViewPreferences] = useLocalStorage('visitPrepPreferences', {
+    showAI: true,
+    showAnalytics: true,
+    showNotifications: true,
+    autoRefresh: true,
+  });
 
-  // Memoized filter function
+  // WebSocket connection for real-time updates
+  const { lastMessage, sendMessage } = useWebSocket('visit-prep');
+
+  // Debounced search
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Enhanced filter function with more options
   const filteredVisits = useMemo(() => {
     return visits.filter(visit => {
       const matchesSearch = 
-        visit.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        visit.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        visit.status.toLowerCase().includes(searchQuery.toLowerCase());
+        visit.patientName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        visit.type.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        visit.status.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        visit.notes.toLowerCase().includes(debouncedSearch.toLowerCase());
 
       const matchesStatus = selectedStatus === "all" || visit.preparationStatus === selectedStatus;
       const matchesType = selectedType === "all" || visit.type === selectedType;
+      const matchesDateRange = !dateRange?.from || !dateRange?.to || 
+        (new Date(visit.dateTime) >= dateRange.from && new Date(visit.dateTime) <= dateRange.to);
 
-      return matchesSearch && matchesStatus && matchesType;
+      return matchesSearch && matchesStatus && matchesType && matchesDateRange;
     });
-  }, [visits, searchQuery, selectedStatus, selectedType]);
+  }, [visits, debouncedSearch, selectedStatus, selectedType, dateRange]);
 
-  // Memoized analytics calculations
+  // Enhanced analytics calculations
   const calculatedAnalytics = useMemo(() => {
     if (!analytics) return null;
     
@@ -89,10 +141,33 @@ export const SmartVisitPrep = () => {
       completionRate: analytics.completedPrep / (analytics.completedPrep + analytics.pendingPrep) * 100,
       averagePrepTime: calculateAveragePrepTime(visits),
       riskScore: calculateRiskScore(visits),
+      visitTypeDistribution: calculateVisitTypeDistribution(visits),
+      preparationTrends: calculatePreparationTrends(visits),
+      doctorPerformance: calculateDoctorPerformance(visits),
     };
   }, [analytics, visits]);
 
-  // Optimized data fetch with retry logic
+  // Real-time updates handler
+  useEffect(() => {
+    if (lastMessage) {
+      const update = JSON.parse(lastMessage.data);
+      if (update.type === 'visit_update') {
+        setVisits(prev => prev.map(v => v.id === update.visit.id ? update.visit : v));
+      } else if (update.type === 'ai_suggestion') {
+        setAiSuggestions(prev => [...prev, update.suggestion]);
+      }
+    }
+  }, [lastMessage]);
+
+  // Auto-refresh if enabled
+  useEffect(() => {
+    if (viewPreferences.autoRefresh) {
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [viewPreferences.autoRefresh]);
+
+  // Enhanced data fetch with AI suggestions
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -101,6 +176,11 @@ export const SmartVisitPrep = () => {
       const data = await simulateDataFetch();
       setVisits(data.visits);
       setAnalytics(data.analytics);
+      
+      // Fetch AI suggestions
+      const suggestions = await fetchAISuggestions(data.visits);
+      setAiSuggestions(suggestions);
+      
       setRetryCount(0);
       
       toast({
@@ -111,7 +191,7 @@ export const SmartVisitPrep = () => {
       setError("Failed to fetch visit data");
       if (retryCount < 3) {
         setRetryCount(prev => prev + 1);
-        setTimeout(fetchData, 1000 * Math.pow(2, retryCount)); // Exponential backoff
+        setTimeout(fetchData, 1000 * Math.pow(2, retryCount));
       } else {
         toast({
           title: "Error",
@@ -124,41 +204,30 @@ export const SmartVisitPrep = () => {
     }
   }, [retryCount, toast]);
 
-  // Initial load and periodic refresh with cleanup
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => {
-      clearInterval(interval);
+  // Export data function
+  const handleExportData = () => {
+    const data = {
+      visits,
+      analytics,
+      aiSuggestions,
+      timestamp: new Date().toISOString(),
     };
-  }, [fetchData]);
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `visit-prep-data-${new Date().toISOString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-  // Error boundary fallback
-  if (error && retryCount >= 3) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-4">
-        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Error Loading Data</h2>
-        <p className="text-muted-foreground mb-4">{error}</p>
-        <Button onClick={fetchData} variant="outline">
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  // Loading state
-  if (isLoading && !visits.length) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" data-testid="loading-spinner" />
-      </div>
-    );
-  }
-
+  // Enhanced render with new features
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Header with enhanced controls */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -187,20 +256,28 @@ export const SmartVisitPrep = () => {
                 <Button 
                   variant="outline" 
                   size="icon" 
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Advanced Filters</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
                   onClick={fetchData} 
                   disabled={isLoading}
                   className="relative"
                   data-testid="refresh-button"
                 >
                   <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                  {isLoading && (
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-primary"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.5, repeat: Infinity }}
-                    />
-                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -208,63 +285,86 @@ export const SmartVisitPrep = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          <Button variant="outline" onClick={handleExportData}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
         </div>
       </motion.div>
 
-      {/* Filters */}
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-4 border-b bg-gray-50"
-      >
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[300px]">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patients, visit types..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
+      {/* Advanced Filters Panel */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-b"
+          >
+            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Date Range</Label>
+                <DateRangePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                />
+              </div>
+              <div>
+                <Label>Visit Type</Label>
+                <Select value={selectedType} onValueChange={setSelectedType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="initial">Initial Visit</SelectItem>
+                    <SelectItem value="followup">Follow-up</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          <div className="grid gap-2">
-            <button
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              data-testid="status-select"
-              onClick={() => {}}
-            >
-              <span>{selectedStatus === 'all' ? 'All Status' : selectedStatus}</span>
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </button>
-          </div>
-          <div className="grid gap-2">
-            <button
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              data-testid="type-select"
-              onClick={() => {}}
-            >
-              <span>{selectedType === 'all' ? 'All Types' : selectedType}</span>
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </button>
-          </div>
-          <div className="grid gap-2">
-            <DateRangePicker
-              value={dateRange}
-              onChange={setDateRange}
-            />
-          </div>
-        </div>
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Content */}
+      {/* Search Bar */}
+      <div className="p-4 border-b">
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search patients, visit types, notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+      </div>
+
+      {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
           <TabsList className="px-4 py-2 border-b">
             <TabsTrigger value="upcoming">Upcoming Visits</TabsTrigger>
-            <TabsTrigger value="analytics" data-testid="analytics-tab">Analytics</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
           </TabsList>
+
+          {/* Upcoming Visits Tab */}
           <TabsContent value="upcoming" className="p-4 h-full">
             <ScrollArea className="h-full">
               <div className="grid gap-4">
@@ -318,64 +418,86 @@ export const SmartVisitPrep = () => {
               </div>
             </ScrollArea>
           </TabsContent>
+
+          {/* Analytics Tab */}
           <TabsContent value="analytics" className="p-4 h-full">
             <ScrollArea className="h-full">
               <div className="grid gap-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle data-testid="preparation-trends">Preparation Trends</CardTitle>
+                    <CardTitle>Visit Preparation Trends</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <LineChart data={analytics?.preparationTrends || []} />
+                    <RechartsLineChart
+                      width={800}
+                      height={300}
+                      data={calculatedAnalytics?.preparationTrends}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      {/* Add chart components */}
+                    </RechartsLineChart>
                   </CardContent>
                 </Card>
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <Card>
                     <CardHeader>
                       <CardTitle>Visit Type Distribution</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <BarChart data={analytics?.visitTypeDistribution || []} />
+                      <RechartsPieChart
+                        width={400}
+                        height={300}
+                        data={calculatedAnalytics?.visitTypeDistribution}
+                      >
+                        {/* Add chart components */}
+                      </RechartsPieChart>
                     </CardContent>
                   </Card>
+
                   <Card>
                     <CardHeader>
-                      <CardTitle>Quick Stats</CardTitle>
+                      <CardTitle>Doctor Performance</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <div className="tracking-tight text-sm font-medium">Upcoming Visits</div>
-                          </div>
-                          <div className="text-lg font-semibold">{analytics?.upcomingVisits}</div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <div className="tracking-tight text-sm font-medium">Completed Prep</div>
-                          </div>
-                          <div className="text-lg font-semibold">{analytics?.completedPrep}</div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <div className="tracking-tight text-sm font-medium">Pending Prep</div>
-                          </div>
-                          <div className="text-lg font-semibold">{analytics?.pendingPrep}</div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                            <div className="tracking-tight text-sm font-medium">Alerts</div>
-                          </div>
-                          <div className="text-lg font-semibold">{analytics?.alerts}</div>
-                        </div>
-                      </div>
+                      <RechartsBarChart
+                        width={400}
+                        height={300}
+                        data={calculatedAnalytics?.doctorPerformance}
+                      >
+                        {/* Add chart components */}
+                      </RechartsBarChart>
                     </CardContent>
                   </Card>
                 </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* AI Insights Tab */}
+          <TabsContent value="ai-insights" className="p-4 h-full">
+            <ScrollArea className="h-full">
+              <div className="grid gap-4">
+                {aiSuggestions.map((suggestion, index) => (
+                  <Card key={index}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg font-semibold">
+                          {suggestion.type}
+                        </CardTitle>
+                        <Badge variant={suggestion.priority === 'high' ? 'destructive' : 'default'}>
+                          {suggestion.priority}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{suggestion.content}</p>
+                      <div className="mt-2">
+                        <Badge variant="outline">{suggestion.category}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </ScrollArea>
           </TabsContent>
@@ -383,6 +505,34 @@ export const SmartVisitPrep = () => {
       </div>
     </div>
   );
+};
+
+// Helper functions
+const calculateVisitTypeDistribution = (visits: VisitData[]) => {
+  const distribution = visits.reduce((acc, visit) => {
+    acc[visit.type] = (acc[visit.type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return Object.entries(distribution).map(([type, count]) => ({
+    name: type,
+    value: count,
+  }));
+};
+
+const calculatePreparationTrends = (visits: VisitData[]) => {
+  // Implementation for preparation trends calculation
+  return [];
+};
+
+const calculateDoctorPerformance = (visits: VisitData[]) => {
+  // Implementation for doctor performance calculation
+  return [];
+};
+
+const fetchAISuggestions = async (visits: VisitData[]): Promise<AISuggestion[]> => {
+  // Implementation for fetching AI suggestions
+  return [];
 };
 
 // Helper function to simulate data fetching
