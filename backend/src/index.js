@@ -8,6 +8,7 @@ const sequelize = require('./config/database');
 
 // Import routes
 const prescriptionRoutes = require('./routes/prescriptionRoutes');
+const patientRoutes = require('./routes/patientRoutes');
 
 // Create Express app
 const app = express();
@@ -29,6 +30,7 @@ app.use(limiter);
 
 // Routes
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api', patientRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
