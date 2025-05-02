@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -52,14 +52,14 @@ import * as XLSX from 'xlsx';
 import { PDFDocument, rgb } from 'pdf-lib';
 
 // Sample data for lab tests
-  const labTests = [
-    {
-      id: "LT001",
-      patientName: "Sarah Connor",
+const labTests = [
+  {
+    id: "LT001",
+    patientName: "Sarah Connor",
     patientId: "P12345",
-      testType: "Complete Blood Count",
-      status: "Completed",
-      date: "2025-04-25",
+    testType: "Complete Blood Count",
+    status: "Completed",
+    date: "2025-04-25",
     results: {
       status: "Normal",
       components: [
@@ -73,25 +73,25 @@ import { PDFDocument, rgb } from 'pdf-lib';
       lab: "Central Lab",
     },
     priority: "routine",
-    },
-    {
-      id: "LT002",
-      patientName: "John Doe",
+  },
+  {
+    id: "LT002",
+    patientName: "John Doe",
     patientId: "P12346",
-      testType: "Lipid Panel",
-      status: "Pending",
-      date: "2025-04-26",
-      results: "Awaiting",
+    testType: "Lipid Panel",
+    status: "Pending",
+    date: "2025-04-26",
+    results: "Awaiting",
     priority: "urgent",
-    },
-    {
-      id: "LT003",
-      patientName: "Jane Smith",
+  },
+  {
+    id: "LT003",
+    patientName: "Jane Smith",
     patientId: "P12347",
-      testType: "Thyroid Function",
-      status: "In Progress",
-      date: "2025-04-26",
-      results: "Processing",
+    testType: "Thyroid Function",
+    status: "In Progress",
+    date: "2025-04-26",
+    results: "Processing",
     priority: "high",
   },
   {
@@ -113,42 +113,6 @@ import { PDFDocument, rgb } from 'pdf-lib';
     priority: "routine",
   },
 ];
-
-// Analytics data
-const analyticsData = {
-  testsByType: [
-    { name: "Blood Tests", value: 45, color: "#0088FE" },
-    { name: "Urine Analysis", value: 25, color: "#00C49F" },
-    { name: "Imaging", value: 20, color: "#FFBB28" },
-    { name: "Other", value: 10, color: "#FF8042" },
-  ],
-  trendsData: [
-    { month: "Jan", tests: 65, abnormal: 8, avgTurnaround: 24 },
-    { month: "Feb", tests: 72, abnormal: 10, avgTurnaround: 22 },
-    { month: "Mar", tests: 58, abnormal: 6, avgTurnaround: 20 },
-    { month: "Apr", tests: 80, abnormal: 12, avgTurnaround: 18 },
-    { month: "May", tests: 74, abnormal: 9, avgTurnaround: 19 },
-    { month: "Jun", tests: 85, abnormal: 11, avgTurnaround: 16 },
-  ],
-  testTurnaround: [
-    { range: "0-12h", count: 25 },
-    { range: "12-24h", count: 45 },
-    { range: "24-48h", count: 20 },
-    { range: ">48h", count: 10 },
-  ],
-  abnormalityByCategory: [
-    { category: "Hematology", normal: 85, abnormal: 15 },
-    { category: "Chemistry", normal: 78, abnormal: 22 },
-    { category: "Microbiology", normal: 90, abnormal: 10 },
-    { category: "Immunology", normal: 88, abnormal: 12 },
-  ],
-  recentTrends: {
-    labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
-    urgent: [12, 15, 10, 18],
-    routine: [45, 42, 50, 48],
-    completed: [52, 50, 55, 58],
-  }
-};
 
 // Workflow statuses and their corresponding steps
 const workflowSteps = {
@@ -176,6 +140,10 @@ const DoctorLab = () => {
   const [tests, setTests] = useState<LabTest[]>(labTests);
   const [compareMode, setCompareMode] = useState(false);
   const [selectedTests, setSelectedTests] = useState<LabTest[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [insights, setInsights] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   const filteredTests = tests.filter((test) => {
     const matchesSearch = test.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -461,6 +429,43 @@ const DoctorLab = () => {
     }
   };
 
+  // Fetch analytics from backend
+  const fetchAnalytics = useCallback(async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await fetch('/api/lab-tests/analytics/summary', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      const data = await res.json();
+      setAnalytics(data);
+    } catch (e) {
+      setAnalytics(null);
+      toast({ title: 'Error', description: 'Failed to load analytics', variant: 'destructive' });
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, [toast]);
+
+  // Fetch AI insights from backend
+  const fetchInsights = useCallback(async () => {
+    setLoadingInsights(true);
+    try {
+      const res = await fetch('/api/lab-tests/insights/ai', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch insights');
+      const data = await res.json();
+      setInsights(data);
+    } catch (e) {
+      setInsights(null);
+      toast({ title: 'Error', description: 'Failed to load AI insights', variant: 'destructive' });
+    } finally {
+      setLoadingInsights(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchAnalytics();
+    fetchInsights();
+  }, [fetchAnalytics, fetchInsights]);
+
   return (
     <div className="container py-8">
       <div className="flex items-center justify-between mb-6">
@@ -650,14 +655,16 @@ const DoctorLab = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Test Distribution</CardTitle>
-                <CardDescription>Distribution of tests by type</CardDescription>
+                <CardDescription>Distribution of tests by category</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                {loadingAnalytics ? (
+                  <div>Loading...</div>
+                ) : analytics && analytics.byCategory ? (
+                  <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={analyticsData.testsByType}
+                        data={Object.entries(analytics.byCategory).map(([name, value]) => ({ name, value }))}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -666,52 +673,28 @@ const DoctorLab = () => {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {analyticsData.testsByType.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        {Object.entries(analytics.byCategory).map(([name], index) => (
+                          <Cell key={`cell-${index}`} fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042"][index % 4]} />
                         ))}
                       </Pie>
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+                ) : (
+                  <div>No data</div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
                 <CardTitle>Test Trends</CardTitle>
                 <CardDescription>Monthly test volumes and abnormal results</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={analyticsData.trendsData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="tests"
-                        stroke="#0088FE"
-                        name="Total Tests"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="abnormal"
-                        stroke="#FF8042"
-                        name="Abnormal Results"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="avgTurnaround"
-                        stroke="#82ca9d"
-                        name="Avg Turnaround (hrs)"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                      </div>
+                  <div className="flex items-center justify-center h-full text-muted-foreground">No data</div>
+                </div>
               </CardContent>
             </Card>
 
@@ -722,47 +705,51 @@ const DoctorLab = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analyticsData.testTurnaround}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="range" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#8884d8">
-                        {analyticsData.testTurnaround.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042'][index]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex items-center justify-center h-full text-muted-foreground">No data</div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
                 <CardTitle>Abnormality by Category</CardTitle>
                 <CardDescription>Test results distribution by department</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={analyticsData.abnormalityByCategory}
-                      layout="vertical"
-                      stackOffset="expand"
-                      barSize={30}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" unit="%" />
-                      <YAxis type="category" dataKey="category" />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="normal" stackId="a" fill="#0088FE" name="Normal" />
-                      <Bar dataKey="abnormal" stackId="a" fill="#FF8042" name="Abnormal" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="flex items-center justify-center h-full text-muted-foreground">No data</div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>AI Insights</CardTitle>
+                <CardDescription>Automated analysis and recommendations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingInsights ? (
+                  <div>Loading...</div>
+                ) : insights ? (
+                  <div>
+                    <h4 className="font-medium mb-2">Patterns</h4>
+                    <pre className="bg-muted p-2 rounded text-xs mb-2">{JSON.stringify(insights.patterns, null, 2)}</pre>
+                    <h4 className="font-medium mb-2">Recommendations</h4>
+                    {insights.recommendations && insights.recommendations.length > 0 ? (
+                      <ul className="list-disc pl-6">
+                        {insights.recommendations.map((rec: any, idx: number) => (
+                          <li key={idx} className={rec.priority === 'high' ? 'text-red-600' : 'text-yellow-700'}>
+                            <b>{rec.type}:</b> {rec.message}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div>No recommendations</div>
+                    )}
+                  </div>
+                ) : (
+                  <div>No insights</div>
+                )}
               </CardContent>
             </Card>
           </div>
