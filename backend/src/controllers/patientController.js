@@ -1,253 +1,693 @@
-const { Patient, User, Prescription } = require('../models');
+const { Patient, User, Prescription, Vital, Wellness, Fitness, Nutrition, Symptom, MentalHealth, PreventiveCare, Goal } = require('../models');
 const { Op } = require('sequelize');
+const { Sequelize } = require('sequelize');
 
 const patientController = {
-  // Common function to get filtered and sorted patients
-  async getFilteredPatients(req, res, additionalFilters = {}) {
-    try {
-      const {
-        search,
-        status,
-        ageRange,
-        lastVisitRange,
-        sortBy = 'lastName',
-        sortOrder = 'ASC',
-        page = 1,
-        limit = 10
-      } = req.query;
+  // Common filtering function
+  getFilteredPatients: async (req, filters = {}) => {
+    const {
+      search,
+      status,
+      ageRange,
+      lastVisitRange,
+      sortBy = 'lastName',
+      sortOrder = 'ASC',
+      page = 1,
+      limit = 10
+    } = filters;
 
-      const doctorId = req.user.id;
-      const whereClause = {
-        primaryCarePhysician: doctorId,
-        ...additionalFilters
+    const whereClause = {
+      primaryCarePhysician: req.user.id
+    };
+
+    if (search) {
+      whereClause[Op.or] = [
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
+        { mrn: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (ageRange) {
+      const [minAge, maxAge] = ageRange.split('-').map(Number);
+      const minDate = new Date();
+      minDate.setFullYear(minDate.getFullYear() - maxAge);
+      const maxDate = new Date();
+      maxDate.setFullYear(maxDate.getFullYear() - minAge);
+      whereClause.dateOfBirth = {
+        [Op.between]: [minDate, maxDate]
+      };
+    }
+
+    if (lastVisitRange) {
+      const [startDate, endDate] = lastVisitRange.split('-');
+      whereClause.lastVisitDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows: patients } = await Patient.findAndCountAll({
+      where: whereClause,
+      order: [[sortBy, sortOrder]],
+      limit,
+      offset,
+      include: [
+        {
+          model: User,
+          as: 'primaryCareProvider',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
+    });
+
+    return {
+      patients,
+      pagination: {
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit)
+      }
+    };
+  },
+
+  // Wellness Dashboard
+  getPatientsForWellnessDashboard: async (req, res) => {
+    try {
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
+
+      // Get wellness analytics
+      const wellnessAnalytics = await Wellness.findAll({
+        where: {
+          patientId: {
+            [Op.in]: patients.map(p => p.id)
+          }
+        },
+        attributes: [
+          'patientId',
+          [sequelize.fn('AVG', sequelize.col('sleepQuality')), 'avgSleepQuality'],
+          [sequelize.fn('AVG', sequelize.col('stressLevel')), 'avgStressLevel'],
+          [sequelize.fn('AVG', sequelize.col('energyLevel')), 'avgEnergyLevel']
+        ],
+        group: ['patientId']
+      });
+
+      // Get vital signs analytics
+      const vitalAnalytics = await Vital.findAll({
+        where: {
+          patientId: {
+            [Op.in]: patients.map(p => p.id)
+          }
+        },
+        attributes: [
+          'patientId',
+          [sequelize.fn('AVG', sequelize.col('heartRate')), 'avgHeartRate'],
+          [sequelize.fn('AVG', sequelize.col('bloodPressure')), 'avgBloodPressure'],
+          [sequelize.fn('AVG', sequelize.col('temperature')), 'avgTemperature']
+        ],
+        group: ['patientId']
+      });
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => {
+        const wellness = wellnessAnalytics.find(w => w.patientId === patient.id);
+        const vitals = vitalAnalytics.find(v => v.patientId === patient.id);
+        return {
+          ...patient.toJSON(),
+          wellness: wellness ? wellness.toJSON() : null,
+          vitals: vitals ? vitals.toJSON() : null
+        };
+      });
+
+      res.json({
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalPatients: pagination.total,
+          averageSleepQuality: wellnessAnalytics.reduce((acc, curr) => acc + curr.avgSleepQuality, 0) / wellnessAnalytics.length,
+          averageStressLevel: wellnessAnalytics.reduce((acc, curr) => acc + curr.avgStressLevel, 0) / wellnessAnalytics.length,
+          averageHeartRate: vitalAnalytics.reduce((acc, curr) => acc + curr.avgHeartRate, 0) / vitalAnalytics.length
+        }
+      });
+    } catch (error) {
+      console.error('Error in getPatientsForWellnessDashboard:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  // Vitals
+  getPatientsForVitals: async (req, res) => {
+    try {
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
+
+      // Get vital signs with advanced filtering
+      const vitalFilters = {
+        patientId: {
+          [Op.in]: patients.map(p => p.id)
+        }
       };
 
-      // Search filter
-      if (search) {
-        whereClause[Op.or] = [
-          { firstName: { [Op.iLike]: `%${search}%` } },
-          { lastName: { [Op.iLike]: `%${search}%` } },
-          { mrn: { [Op.iLike]: `%${search}%` } }
-        ];
+      if (req.query.vitalType) {
+        vitalFilters.type = req.query.vitalType;
       }
 
-      // Status filter
-      if (status) {
-        whereClause.status = status;
-      }
-
-      // Age range filter
-      if (ageRange) {
-        const [minAge, maxAge] = ageRange.split('-').map(Number);
-        const currentDate = new Date();
-        const minBirthDate = new Date(currentDate.getFullYear() - maxAge, currentDate.getMonth(), currentDate.getDate());
-        const maxBirthDate = new Date(currentDate.getFullYear() - minAge, currentDate.getMonth(), currentDate.getDate());
-        whereClause.dateOfBirth = {
-          [Op.between]: [minBirthDate, maxBirthDate]
+      if (req.query.vitalRange) {
+        const [min, max] = req.query.vitalRange.split('-').map(Number);
+        vitalFilters.value = {
+          [Op.between]: [min, max]
         };
       }
 
-      // Last visit range filter
-      if (lastVisitRange) {
-        const [startDate, endDate] = lastVisitRange.split(',');
-        whereClause.lastVisit = {
+      if (req.query.timeRange) {
+        const [startDate, endDate] = req.query.timeRange.split('-');
+        vitalFilters.recordedAt = {
           [Op.between]: [new Date(startDate), new Date(endDate)]
         };
       }
 
-      // Get total count for pagination
-      const total = await Patient.count({ where: whereClause });
-
-      // Get paginated and sorted patients
-      const patients = await Patient.findAll({
-        where: whereClause,
-        order: [[sortBy, sortOrder]],
-        limit: parseInt(limit),
-        offset: (parseInt(page) - 1) * parseInt(limit),
-        include: [
-          {
-            model: Prescription,
-            attributes: ['id', 'medication', 'status', 'createdAt'],
-            where: { status: 'Active' },
-            required: false
-          }
-        ]
+      const vitals = await Vital.findAll({
+        where: vitalFilters,
+        order: [['recordedAt', 'DESC']]
       });
 
-      return {
-        patients,
-        pagination: {
-          total,
-          page: parseInt(page),
-          pages: Math.ceil(total / parseInt(limit))
+      // Calculate vital statistics
+      const vitalStats = vitals.reduce((acc, vital) => {
+        if (!acc[vital.patientId]) {
+          acc[vital.patientId] = {
+            lastReading: vital.value,
+            min: vital.value,
+            max: vital.value,
+            sum: vital.value,
+            count: 1,
+            readings: [vital.value]
+          };
+        } else {
+          acc[vital.patientId].lastReading = vital.value;
+          acc[vital.patientId].min = Math.min(acc[vital.patientId].min, vital.value);
+          acc[vital.patientId].max = Math.max(acc[vital.patientId].max, vital.value);
+          acc[vital.patientId].sum += vital.value;
+          acc[vital.patientId].count++;
+          acc[vital.patientId].readings.push(vital.value);
+        }
+        return acc;
+      }, {});
+
+      // Calculate trends
+      Object.keys(vitalStats).forEach(patientId => {
+        const stats = vitalStats[patientId];
+        stats.average = stats.sum / stats.count;
+        stats.trend = stats.readings.length > 1 ? 
+          (stats.readings[stats.readings.length - 1] - stats.readings[0]) / (stats.readings.length - 1) : 0;
+      });
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => ({
+        ...patient.toJSON(),
+        vitalStats: vitalStats[patient.id] || null
+      }));
+
+      res.json({
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalReadings: vitals.length,
+          averageValue: vitals.reduce((acc, curr) => acc + curr.value, 0) / vitals.length,
+          abnormalReadings: vitals.filter(v => v.status === 'warning' || v.status === 'critical').length,
+          vitalTypes: [...new Set(vitals.map(v => v.type))]
+        }
+      });
+    } catch (error) {
+      console.error('Error in getPatientsForVitals:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  // Fitness
+  getPatientsForFitness: async (req, res) => {
+    try {
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
+
+      // Get fitness data with advanced filtering
+      const fitnessFilters = {
+        patientId: {
+          [Op.in]: patients.map(p => p.id)
         }
       };
+
+      if (req.query.exerciseType) {
+        fitnessFilters.exerciseType = req.query.exerciseType;
+      }
+
+      if (req.query.intensity) {
+        fitnessFilters.intensity = req.query.intensity;
+      }
+
+      if (req.query.timeRange) {
+        const [startDate, endDate] = req.query.timeRange.split('-');
+        fitnessFilters.recordedAt = {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        };
+      }
+
+      const fitnessData = await Fitness.findAll({
+        where: fitnessFilters,
+        order: [['recordedAt', 'DESC']]
+      });
+
+      // Calculate fitness statistics
+      const fitnessStats = fitnessData.reduce((acc, record) => {
+        if (!acc[record.patientId]) {
+          acc[record.patientId] = {
+            totalDuration: record.duration,
+            totalCalories: record.caloriesBurned,
+            exerciseTypes: new Set([record.exerciseType]),
+            lastActivity: record
+          };
+        } else {
+          acc[record.patientId].totalDuration += record.duration;
+          acc[record.patientId].totalCalories += record.caloriesBurned;
+          acc[record.patientId].exerciseTypes.add(record.exerciseType);
+          acc[record.patientId].lastActivity = record;
+        }
+        return acc;
+      }, {});
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => ({
+        ...patient.toJSON(),
+        fitnessStats: fitnessStats[patient.id] ? {
+          ...fitnessStats[patient.id],
+          exerciseTypes: Array.from(fitnessStats[patient.id].exerciseTypes)
+        } : null
+      }));
+
+      res.json({
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalActivities: fitnessData.length,
+          averageDuration: fitnessData.reduce((acc, curr) => acc + curr.duration, 0) / fitnessData.length,
+          totalCaloriesBurned: fitnessData.reduce((acc, curr) => acc + curr.caloriesBurned, 0),
+          exerciseTypes: [...new Set(fitnessData.map(f => f.exerciseType))]
+        }
+      });
     } catch (error) {
-      throw error;
+      console.error('Error in getPatientsForFitness:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   },
 
-  // Get patients for visit preparation with analytics
-  async getPatientsForVisitPrep(req, res) {
+  // Nutrition
+  getPatientsForNutrition: async (req, res) => {
     try {
-      const result = await this.getFilteredPatients(req, res);
-      
-      // Add visit preparation analytics
-      const analytics = {
-        totalPatients: result.pagination.total,
-        activePatients: await Patient.count({
-          where: {
-            primaryCarePhysician: req.user.id,
-            status: 'Active'
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
+
+      // Get nutrition data with advanced filtering
+      const nutritionFilters = {
+        patientId: {
+          [Op.in]: patients.map(p => p.id)
+        }
+      };
+
+      if (req.query.mealType) {
+        nutritionFilters.mealType = req.query.mealType;
+      }
+
+      if (req.query.timeRange) {
+        const [startDate, endDate] = req.query.timeRange.split('-');
+        nutritionFilters.recordedAt = {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        };
+      }
+
+      const nutritionData = await Nutrition.findAll({
+        where: nutritionFilters,
+        order: [['recordedAt', 'DESC']]
+      });
+
+      // Calculate nutrition statistics
+      const nutritionStats = nutritionData.reduce((acc, record) => {
+        if (!acc[record.patientId]) {
+          acc[record.patientId] = {
+            totalCalories: record.calories,
+            totalProtein: record.protein,
+            totalCarbs: record.carbohydrates,
+            totalFat: record.fat,
+            mealTypes: new Set([record.mealType]),
+            lastMeal: record
+          };
+        } else {
+          acc[record.patientId].totalCalories += record.calories;
+          acc[record.patientId].totalProtein += record.protein;
+          acc[record.patientId].totalCarbs += record.carbohydrates;
+          acc[record.patientId].totalFat += record.fat;
+          acc[record.patientId].mealTypes.add(record.mealType);
+          acc[record.patientId].lastMeal = record;
+        }
+        return acc;
+      }, {});
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => ({
+        ...patient.toJSON(),
+        nutritionStats: nutritionStats[patient.id] ? {
+          ...nutritionStats[patient.id],
+          mealTypes: Array.from(nutritionStats[patient.id].mealTypes)
+        } : null
+      }));
+
+      res.json({
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalMeals: nutritionData.length,
+          averageCalories: nutritionData.reduce((acc, curr) => acc + curr.calories, 0) / nutritionData.length,
+          averageProtein: nutritionData.reduce((acc, curr) => acc + curr.protein, 0) / nutritionData.length,
+          averageCarbs: nutritionData.reduce((acc, curr) => acc + curr.carbohydrates, 0) / nutritionData.length,
+          averageFat: nutritionData.reduce((acc, curr) => acc + curr.fat, 0) / nutritionData.length
+        }
+      });
+    } catch (error) {
+      console.error('Error in getPatientsForNutrition:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  // Symptoms
+  getPatientsForSymptoms: async (req, res) => {
+    try {
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
+
+      // Get symptom data with advanced filtering
+      const symptomFilters = {
+        patientId: {
+          [Op.in]: patients.map(p => p.id)
+        }
+      };
+
+      if (req.query.symptomName) {
+        symptomFilters.symptomName = req.query.symptomName;
+      }
+
+      if (req.query.severity) {
+        symptomFilters.severity = req.query.severity;
+      }
+
+      if (req.query.status) {
+        symptomFilters.status = req.query.status;
+      }
+
+      if (req.query.timeRange) {
+        const [startDate, endDate] = req.query.timeRange.split('-');
+        symptomFilters.onset = {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        };
+      }
+
+      const symptoms = await Symptom.findAll({
+        where: symptomFilters,
+        order: [['onset', 'DESC']]
+      });
+
+      // Calculate symptom statistics
+      const symptomStats = symptoms.reduce((acc, symptom) => {
+        if (!acc[symptom.patientId]) {
+          acc[symptom.patientId] = {
+            totalSymptoms: 1,
+            activeSymptoms: symptom.status !== 'resolved' ? 1 : 0,
+            averageSeverity: symptom.severity,
+            symptoms: [symptom]
+          };
+        } else {
+          acc[symptom.patientId].totalSymptoms++;
+          if (symptom.status !== 'resolved') {
+            acc[symptom.patientId].activeSymptoms++;
           }
-        }),
-        upcomingVisits: await Patient.count({
-          where: {
-            primaryCarePhysician: req.user.id,
-            nextAppointment: {
-              [Op.gte]: new Date()
-            }
-          }
-        })
-      };
+          acc[symptom.patientId].averageSeverity = 
+            (acc[symptom.patientId].averageSeverity * (acc[symptom.patientId].totalSymptoms - 1) + symptom.severity) / 
+            acc[symptom.patientId].totalSymptoms;
+          acc[symptom.patientId].symptoms.push(symptom);
+        }
+        return acc;
+      }, {});
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => ({
+        ...patient.toJSON(),
+        symptomStats: symptomStats[patient.id] || null
+      }));
 
       res.json({
-        ...result,
-        analytics
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalSymptoms: symptoms.length,
+          activeSymptoms: symptoms.filter(s => s.status !== 'resolved').length,
+          averageSeverity: symptoms.reduce((acc, curr) => acc + curr.severity, 0) / symptoms.length,
+          symptomTypes: [...new Set(symptoms.map(s => s.symptomName))]
+        }
       });
     } catch (error) {
-      console.error('Error getting patients for visit prep:', error);
-      res.status(500).json({ message: 'Error getting patients for visit prep' });
+      console.error('Error in getPatientsForSymptoms:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   },
 
-  // Get patients for differential diagnosis with medical history
-  async getPatientsForDifferential(req, res) {
+  // Mental Health
+  getPatientsForMentalHealth: async (req, res) => {
     try {
-      const result = await this.getFilteredPatients(req, res, {
-        status: 'Active'
-      });
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
 
-      // Add medical history analytics
-      const analytics = {
-        commonConditions: await this.getCommonConditions(req.user.id),
-        recentDiagnoses: await this.getRecentDiagnoses(req.user.id)
+      // Get mental health data with advanced filtering
+      const mentalHealthFilters = {
+        patientId: {
+          [Op.in]: patients.map(p => p.id)
+        }
       };
 
+      if (req.query.timeRange) {
+        const [startDate, endDate] = req.query.timeRange.split('-');
+        mentalHealthFilters.recordedAt = {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        };
+      }
+
+      const mentalHealthData = await MentalHealth.findAll({
+        where: mentalHealthFilters,
+        order: [['recordedAt', 'DESC']]
+      });
+
+      // Calculate mental health statistics
+      const mentalHealthStats = mentalHealthData.reduce((acc, record) => {
+        if (!acc[record.patientId]) {
+          acc[record.patientId] = {
+            averageMood: this.calculateMoodScore(record.mood),
+            averageAnxiety: record.anxietyLevel,
+            averageDepression: record.depressionLevel,
+            averageStress: record.stressLevel,
+            sleepQuality: record.sleepQuality,
+            records: [record]
+          };
+        } else {
+          acc[record.patientId].averageMood = 
+            (acc[record.patientId].averageMood * acc[record.patientId].records.length + this.calculateMoodScore(record.mood)) / 
+            (acc[record.patientId].records.length + 1);
+          acc[record.patientId].averageAnxiety = 
+            (acc[record.patientId].averageAnxiety * acc[record.patientId].records.length + record.anxietyLevel) / 
+            (acc[record.patientId].records.length + 1);
+          acc[record.patientId].averageDepression = 
+            (acc[record.patientId].averageDepression * acc[record.patientId].records.length + record.depressionLevel) / 
+            (acc[record.patientId].records.length + 1);
+          acc[record.patientId].averageStress = 
+            (acc[record.patientId].averageStress * acc[record.patientId].records.length + record.stressLevel) / 
+            (acc[record.patientId].records.length + 1);
+          acc[record.patientId].sleepQuality = record.sleepQuality;
+          acc[record.patientId].records.push(record);
+        }
+        return acc;
+      }, {});
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => ({
+        ...patient.toJSON(),
+        mentalHealthStats: mentalHealthStats[patient.id] || null
+      }));
+
       res.json({
-        ...result,
-        analytics
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalRecords: mentalHealthData.length,
+          averageMood: mentalHealthData.reduce((acc, curr) => acc + this.calculateMoodScore(curr.mood), 0) / mentalHealthData.length,
+          averageAnxiety: mentalHealthData.reduce((acc, curr) => acc + curr.anxietyLevel, 0) / mentalHealthData.length,
+          averageDepression: mentalHealthData.reduce((acc, curr) => acc + curr.depressionLevel, 0) / mentalHealthData.length,
+          averageStress: mentalHealthData.reduce((acc, curr) => acc + curr.stressLevel, 0) / mentalHealthData.length
+        }
       });
     } catch (error) {
-      console.error('Error getting patients for differential:', error);
-      res.status(500).json({ message: 'Error getting patients for differential' });
+      console.error('Error in getPatientsForMentalHealth:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   },
 
-  // Get patients for lifestyle management with lifestyle data
-  async getPatientsForLifestyle(req, res) {
+  // Helper method to calculate mood score
+  calculateMoodScore: (mood) => {
+    const moodScores = {
+      very_happy: 5,
+      happy: 4,
+      neutral: 3,
+      sad: 2,
+      very_sad: 1
+    };
+    return moodScores[mood] || 3;
+  },
+
+  // Preventive Care
+  getPatientsForPreventiveCare: async (req, res) => {
     try {
-      const result = await this.getFilteredPatients(req, res);
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
 
-      // Add lifestyle analytics
-      const analytics = {
-        lifestyleMetrics: await this.getLifestyleMetrics(req.user.id),
-        wellnessScores: await this.getWellnessScores(req.user.id)
+      // Get preventive care data with advanced filtering
+      const preventiveCareFilters = {
+        patientId: {
+          [Op.in]: patients.map(p => p.id)
+        }
       };
 
+      if (req.query.screeningType) {
+        preventiveCareFilters.screeningType = req.query.screeningType;
+      }
+
+      if (req.query.status) {
+        preventiveCareFilters.status = req.query.status;
+      }
+
+      const preventiveCareData = await PreventiveCare.findAll({
+        where: preventiveCareFilters,
+        order: [['screeningDate', 'DESC']]
+      });
+
+      // Calculate preventive care statistics
+      const preventiveCareStats = preventiveCareData.reduce((acc, record) => {
+        if (!acc[record.patientId]) {
+          acc[record.patientId] = {
+            totalScreenings: 1,
+            upToDateScreenings: record.status === 'up_to_date' ? 1 : 0,
+            dueScreenings: record.status === 'due' ? 1 : 0,
+            overdueScreenings: record.status === 'overdue' ? 1 : 0,
+            screenings: [record]
+          };
+        } else {
+          acc[record.patientId].totalScreenings++;
+          if (record.status === 'up_to_date') acc[record.patientId].upToDateScreenings++;
+          if (record.status === 'due') acc[record.patientId].dueScreenings++;
+          if (record.status === 'overdue') acc[record.patientId].overdueScreenings++;
+          acc[record.patientId].screenings.push(record);
+        }
+        return acc;
+      }, {});
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => ({
+        ...patient.toJSON(),
+        preventiveCareStats: preventiveCareStats[patient.id] || null
+      }));
+
       res.json({
-        ...result,
-        analytics
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalScreenings: preventiveCareData.length,
+          upToDateScreenings: preventiveCareData.filter(s => s.status === 'up_to_date').length,
+          dueScreenings: preventiveCareData.filter(s => s.status === 'due').length,
+          overdueScreenings: preventiveCareData.filter(s => s.status === 'overdue').length,
+          screeningTypes: [...new Set(preventiveCareData.map(s => s.screeningType))]
+        }
       });
     } catch (error) {
-      console.error('Error getting patients for lifestyle:', error);
-      res.status(500).json({ message: 'Error getting patients for lifestyle' });
+      console.error('Error in getPatientsForPreventiveCare:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   },
 
-  // Get patients for wellness alerts with alert data
-  async getPatientsForWellnessAlerts(req, res) {
+  // Goals
+  getPatientsForGoals: async (req, res) => {
     try {
-      const result = await this.getFilteredPatients(req, res, {
-        status: 'Active'
-      });
+      const { patients, pagination } = await patientController.getFilteredPatients(req, req.query);
 
-      // Add wellness alert analytics
-      const analytics = {
-        activeAlerts: await this.getActiveAlerts(req.user.id),
-        alertTrends: await this.getAlertTrends(req.user.id)
+      // Get goals data with advanced filtering
+      const goalFilters = {
+        patientId: {
+          [Op.in]: patients.map(p => p.id)
+        }
       };
 
+      if (req.query.category) {
+        goalFilters.category = req.query.category;
+      }
+
+      if (req.query.status) {
+        goalFilters.status = req.query.status;
+      }
+
+      if (req.query.priority) {
+        goalFilters.priority = req.query.priority;
+      }
+
+      const goals = await Goal.findAll({
+        where: goalFilters,
+        order: [['targetDate', 'ASC']]
+      });
+
+      // Calculate goal statistics
+      const goalStats = goals.reduce((acc, goal) => {
+        if (!acc[goal.patientId]) {
+          acc[goal.patientId] = {
+            totalGoals: 1,
+            completedGoals: goal.status === 'completed' ? 1 : 0,
+            inProgressGoals: goal.status === 'in_progress' ? 1 : 0,
+            averageProgress: goal.progress,
+            goals: [goal]
+          };
+        } else {
+          acc[goal.patientId].totalGoals++;
+          if (goal.status === 'completed') acc[goal.patientId].completedGoals++;
+          if (goal.status === 'in_progress') acc[goal.patientId].inProgressGoals++;
+          acc[goal.patientId].averageProgress = 
+            (acc[goal.patientId].averageProgress * (acc[goal.patientId].totalGoals - 1) + goal.progress) / 
+            acc[goal.patientId].totalGoals;
+          acc[goal.patientId].goals.push(goal);
+        }
+        return acc;
+      }, {});
+
+      // Combine data
+      const enrichedPatients = patients.map(patient => ({
+        ...patient.toJSON(),
+        goalStats: goalStats[patient.id] || null
+      }));
+
       res.json({
-        ...result,
-        analytics
+        patients: enrichedPatients,
+        pagination,
+        analytics: {
+          totalGoals: goals.length,
+          completedGoals: goals.filter(g => g.status === 'completed').length,
+          inProgressGoals: goals.filter(g => g.status === 'in_progress').length,
+          averageProgress: goals.reduce((acc, curr) => acc + curr.progress, 0) / goals.length,
+          goalCategories: [...new Set(goals.map(g => g.category))]
+        }
       });
     } catch (error) {
-      console.error('Error getting patients for wellness alerts:', error);
-      res.status(500).json({ message: 'Error getting patients for wellness alerts' });
+      console.error('Error in getPatientsForGoals:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-  },
-
-  // Get patients for visit comparison with visit history
-  async getPatientsForVisitCompare(req, res) {
-    try {
-      const result = await this.getFilteredPatients(req, res);
-
-      // Add visit comparison analytics
-      const analytics = {
-        visitTrends: await this.getVisitTrends(req.user.id),
-        patientProgress: await this.getPatientProgress(req.user.id)
-      };
-
-      res.json({
-        ...result,
-        analytics
-      });
-    } catch (error) {
-      console.error('Error getting patients for visit compare:', error);
-      res.status(500).json({ message: 'Error getting patients for visit compare' });
-    }
-  },
-
-  // Helper methods for analytics
-  async getCommonConditions(doctorId) {
-    // Implementation for getting common conditions
-    return [];
-  },
-
-  async getRecentDiagnoses(doctorId) {
-    // Implementation for getting recent diagnoses
-    return [];
-  },
-
-  async getLifestyleMetrics(doctorId) {
-    // Implementation for getting lifestyle metrics
-    return [];
-  },
-
-  async getWellnessScores(doctorId) {
-    // Implementation for getting wellness scores
-    return [];
-  },
-
-  async getActiveAlerts(doctorId) {
-    // Implementation for getting active alerts
-    return [];
-  },
-
-  async getAlertTrends(doctorId) {
-    // Implementation for getting alert trends
-    return [];
-  },
-
-  async getVisitTrends(doctorId) {
-    // Implementation for getting visit trends
-    return [];
-  },
-
-  async getPatientProgress(doctorId) {
-    // Implementation for getting patient progress
-    return [];
   }
 };
 
