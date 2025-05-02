@@ -43,9 +43,8 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <Brain className="h-5 w-5" />,
       label: "Specialized Modules",
       to: "/doctor/specialized-modules",
-      badge: "NEW",
-      aiFeature: "AI-powered specialty modules",
       notificationCount: 1,
+      aiFeature: "AI-powered specialty modules",
       tooltip: "Explore new AI-powered modules",
       onClick: closeMenu
     },
@@ -53,7 +52,6 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <Microscope className="h-5 w-5" />,
       label: "AI Pathology Analysis",
       to: "/doctor/pathology-analysis",
-      badge: "AI",
       aiFeature: "AI-driven pathology insights",
       tooltip: "AI-driven pathology insights",
       onClick: closeMenu
@@ -62,7 +60,6 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <Activity className="h-5 w-5" />,
       label: "Care Pathway Monitor",
       to: "/doctor/care-pathway-monitor",
-      badge: "NEW",
       aiFeature: "AI care pathway monitoring",
       tooltip: "Monitor patient care pathways with AI",
       onClick: closeMenu
@@ -71,7 +68,6 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <BookOpen className="h-5 w-5" />,
       label: "Smart Visit Prep",
       to: "/doctor/visit-prep",
-      badge: "AI",
       aiFeature: "AI-powered visit preparation",
       tooltip: "AI-powered visit preparation",
       onClick: closeMenu
@@ -80,7 +76,6 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <Activity className="h-5 w-5" />,
       label: "Differential Suggestions",
       to: "/doctor/differential",
-      badge: "AI",
       aiFeature: "AI-generated differential diagnoses",
       tooltip: "AI-generated differential diagnoses",
       onClick: closeMenu
@@ -89,7 +84,6 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <Heart className="h-5 w-5" />,
       label: "Lifestyle Assistant",
       to: "/doctor/lifestyle",
-      badge: "AI",
       aiFeature: "AI lifestyle recommendations",
       tooltip: "AI lifestyle recommendations",
       onClick: closeMenu
@@ -98,9 +92,8 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <Bell className="h-5 w-5" />,
       label: "Wellness Alerts",
       to: "/doctor/wellness-alerts",
-      badge: "AI",
-      aiFeature: "AI-driven wellness alerts",
       notificationCount: 3,
+      aiFeature: "AI-driven wellness alerts",
       tooltip: "AI-driven wellness alerts",
       onClick: closeMenu
     },
@@ -108,7 +101,6 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
       icon: <FileBarChart className="h-5 w-5" />,
       label: "Visit Comparisons",
       to: "/doctor/visit-compare",
-      badge: "AI",
       aiFeature: "AI visit comparison analytics",
       tooltip: "Compare visits with AI insights",
       onClick: closeMenu
@@ -129,7 +121,6 @@ export const AIAutomationSection = ({ closeMenu, searchQuery = "" }: AIAutomatio
           icon={item.icon}
           label={item.label}
           to={item.to}
-          badge={item.badge}
           aiFeature={item.aiFeature}
           notificationCount={item.notificationCount}
           tooltip={item.tooltip}
