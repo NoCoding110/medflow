@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, FileText, Plus, FilePlus } from "lucide-react";
+import { Search, FileText, Plus, FilePlus, Brain, AlertCircle, BarChart2, TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QuickNoteDialog from "./QuickNoteDialog";
 import NewNoteDialog from "./NewNoteDialog";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 // Sample note templates
 const noteTemplates = [
@@ -27,59 +29,46 @@ const patients = [
   { id: "P1005", name: "Robert Wilson" },
 ];
 
-// Sample recent notes with more details
-const initialNotes = [
-  { 
-    id: "1", 
-    patientName: "John Smith", 
-    patientId: "P1001", 
-    date: "2025-04-26", 
-    type: "Progress Note", 
-    title: "Follow-up Appointment",
-    content: "Patient reports improved symptoms. Blood pressure: 120/80. Continue current medications.",
-    doctorName: "Dr. Sarah Johnson"
-  },
-  { 
-    id: "2", 
-    patientName: "Emily Johnson", 
-    patientId: "P1002", 
-    date: "2025-04-26", 
-    type: "Initial Assessment", 
-    title: "New Patient Visit",
-    content: "Initial consultation for chronic headaches. Ordered MRI scan.",
-    doctorName: "Dr. Sarah Johnson"
-  },
-  { 
-    id: "3", 
-    patientName: "Michael Brown", 
-    patientId: "P1003", 
-    date: "2025-04-25", 
-    type: "Progress Note", 
-    title: "Medication Review",
-    content: "Medication adjustment for hypertension. Added lifestyle recommendations.",
-    doctorName: "Dr. Sarah Johnson"
-  },
-  { 
-    id: "4", 
-    patientName: "Sarah Davis", 
-    patientId: "P1004", 
-    date: "2025-04-25", 
-    type: "Lab Review", 
-    title: "Blood Work Results",
-    content: "Review of comprehensive metabolic panel. All values within normal range.",
-    doctorName: "Dr. Sarah Johnson"
-  },
-  { 
-    id: "5", 
-    patientName: "Robert Wilson", 
-    patientId: "P1005", 
-    date: "2025-04-24", 
-    type: "Progress Note", 
-    title: "Chronic Condition Management",
-    content: "Quarterly review of diabetes management. A1C improved to 6.8.",
-    doctorName: "Dr. Sarah Johnson"
-  },
-];
+interface Note {
+  id: string;
+  patientName: string;
+  patientId: string;
+  date: string;
+  type: string;
+  title: string;
+  content: string;
+  doctorName: string;
+}
+
+interface Analytics {
+  total: number;
+  recent: number;
+  drafts: number;
+  trends: {
+    notes: 'up' | 'down';
+    drafts: 'up' | 'down';
+  };
+}
+
+interface AIInsight {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  timestamp: string;
+  patientName?: string;
+}
+
+interface Alert {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  timestamp: string;
+  patientName?: string;
+}
 
 const DoctorNotes = () => {
   const navigate = useNavigate();
@@ -87,18 +76,95 @@ const DoctorNotes = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
   const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
-  const [notes, setNotes] = useState(initialNotes);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState({
+    notes: false,
+    analytics: false,
+    insights: false,
+    alerts: false
+  });
   
-  const filteredNotes = notes.filter(note => 
-    note.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Fetch notes
+  const fetchNotes = useCallback(async () => {
+    setLoading(l => ({ ...l, notes: true }));
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      const res = await fetch(`/api/notes?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch notes');
+      setNotes(await res.json());
+    } catch (error) {
+      toast.error('Failed to load notes');
+    } finally {
+      setLoading(l => ({ ...l, notes: false }));
+    }
+  }, [searchTerm]);
+
+  // Fetch analytics
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(l => ({ ...l, analytics: true }));
+    try {
+      const res = await fetch('/api/notes/analytics', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      setAnalytics(await res.json());
+    } catch (error) {
+      toast.error('Failed to load analytics');
+    } finally {
+      setLoading(l => ({ ...l, analytics: false }));
+    }
+  }, []);
+
+  // Fetch AI insights
+  const fetchAiInsights = useCallback(async () => {
+    setLoading(l => ({ ...l, insights: true }));
+    try {
+      const res = await fetch('/api/notes/insights/ai', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch AI insights');
+      setAiInsights(await res.json());
+    } catch (error) {
+      toast.error('Failed to load AI insights');
+    } finally {
+      setLoading(l => ({ ...l, insights: false }));
+    }
+  }, []);
+
+  // Fetch alerts
+  const fetchAlerts = useCallback(async () => {
+    setLoading(l => ({ ...l, alerts: true }));
+    try {
+      const res = await fetch('/api/notes/alerts', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch alerts');
+      setAlerts(await res.json());
+    } catch (error) {
+      toast.error('Failed to load alerts');
+    } finally {
+      setLoading(l => ({ ...l, alerts: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotes();
+    fetchAnalytics();
+    fetchAiInsights();
+    fetchAlerts();
+  }, [fetchNotes, fetchAnalytics, fetchAiInsights, fetchAlerts]);
+
+  const filteredNotes = useMemo(() => {
+    return notes.filter(note => 
+      note.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [notes, searchTerm]);
 
   const selectedTemplate = noteTemplates.find(template => template.id === selectedTemplateId);
 
   const handleQuickNoteSubmit = async (data: any) => {
+    // In a real app, this would POST to the backend
     const newNote = {
       id: (notes.length + 1).toString(),
       patientName: "Quick Note",
@@ -109,11 +175,11 @@ const DoctorNotes = () => {
       content: data.content,
       doctorName: "Dr. Sarah Johnson"
     };
-
     setNotes(prev => [newNote, ...prev]);
   };
 
   const handleNewNoteSubmit = async (data: any) => {
+    // In a real app, this would POST to the backend
     const newNote = {
       id: (notes.length + 1).toString(),
       patientName: data.patientName,
@@ -124,12 +190,10 @@ const DoctorNotes = () => {
       content: `SUBJECTIVE:\n${data.subjective}\n\nOBJECTIVE:\n${data.objective}\n\nASSESSMENT:\n${data.assessment}\n\nPLAN:\n${data.plan}`,
       doctorName: "Dr. Sarah Johnson"
     };
-
     setNotes(prev => [newNote, ...prev]);
   };
 
   const handleViewNote = (noteId: string) => {
-    // In a real app, this would navigate to a detailed note view
     toast.info("Viewing note details - This would open the full note view");
   };
 
@@ -141,6 +205,133 @@ const DoctorNotes = () => {
 
   return (
     <div className="container py-8">
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <BarChart2 className="mr-2 h-5 w-5 text-purple-600" />
+              Total Notes
+            </CardTitle>
+            <CardDescription>Total clinical notes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.total || 0}</div>
+              <Badge variant="outline" className="text-purple-600">
+                {analytics?.trends.notes === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <FileText className="mr-2 h-5 w-5 text-purple-600" />
+              Recent
+            </CardTitle>
+            <CardDescription>Notes in the last 7 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.recent || 0}</div>
+              <Badge variant="outline">Recent</Badge>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <FileText className="mr-2 h-5 w-5 text-purple-600" />
+              Drafts
+            </CardTitle>
+            <CardDescription>Unfinished notes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.drafts || 0}</div>
+              <Badge variant={analytics?.trends.drafts === 'up' ? 'default' : 'destructive'}>
+                {analytics?.trends.drafts === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* AI Insights and Alerts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Brain className="mr-2 h-5 w-5 text-purple-600" />
+              AI Insights
+            </CardTitle>
+            <CardDescription>Smart documentation recommendations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {aiInsights.map((insight) => (
+                <div key={insight.id} className="p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-full ${
+                      insight.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    } flex items-center justify-center`}>
+                      <Brain className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{insight.title}</h4>
+                      <p className="text-sm text-muted-foreground">{insight.description}</p>
+                      {insight.patientName && (
+                        <Badge variant="outline" className="mt-2">
+                          {insight.patientName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-purple-600" />
+              Critical Alerts
+            </CardTitle>
+            <CardDescription>Items requiring immediate attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {alerts.map((alert) => (
+                <div key={alert.id} className="p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-full ${
+                      alert.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    } flex items-center justify-center`}>
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{alert.title}</h4>
+                      <p className="text-sm text-muted-foreground">{alert.description}</p>
+                      {alert.patientName && (
+                        <Badge variant="outline" className="mt-2">
+                          {alert.patientName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1 text-navy-800">Clinical Documentation</h1>

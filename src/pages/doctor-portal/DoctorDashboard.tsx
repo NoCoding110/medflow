@@ -1,18 +1,57 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
-import { Calendar, Clock, Users, MessageSquare, Bell, Activity, FileText } from "lucide-react";
+import { Calendar, Clock, Users, MessageSquare, Bell, Activity, FileText, TrendingUp, TrendingDown, AlertCircle, Brain, BarChart2, LineChart } from "lucide-react";
 import { mockAppointments, mockPatients } from "@/lib/data/mock-data";
 import MessageDialog, { Message } from "@/components/MessageDialog";
 import { toast } from "sonner";
 import PatientDialog from "@/components/PatientDialog";
 import { Patient } from "@/lib/types/patient";
 import AlertDialog, { Alert } from "@/components/AlertDialog";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Line } from "recharts";
 
 interface Task {
   id: string;
   text: string;
   completed: boolean;
+}
+
+interface Analytics {
+  totalPatients: number;
+  activePatients: number;
+  appointmentsToday: number;
+  revenue: {
+    current: number;
+    previous: number;
+    trend: 'up' | 'down';
+  };
+  patientEngagement: {
+    score: number;
+    trend: 'up' | 'down';
+  };
+  healthOutcomes: {
+    improvement: number;
+    decline: number;
+    stable: number;
+  };
+}
+
+interface AIInsight {
+  id: string;
+  type: 'health' | 'engagement' | 'revenue' | 'efficiency';
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  timestamp: string;
+  details: {
+    patientName?: string;
+    patientId?: string;
+    data: any;
+  };
 }
 
 // Mock messages data
@@ -198,6 +237,65 @@ const mockInsights: Alert[] = [
 const DoctorDashboard = () => {
   const { user } = useAuth();
   
+  // State for data fetching
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState({
+    analytics: false,
+    insights: false,
+    alerts: false
+  });
+
+  // Fetch analytics
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(prev => ({ ...prev, analytics: true }));
+    try {
+      const res = await fetch('/api/analytics/summary', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      setAnalytics(await res.json());
+    } catch (error) {
+      toast.error('Failed to load analytics');
+    } finally {
+      setLoading(prev => ({ ...prev, analytics: false }));
+    }
+  }, []);
+
+  // Fetch AI insights
+  const fetchAiInsights = useCallback(async () => {
+    setLoading(prev => ({ ...prev, insights: true }));
+    try {
+      const res = await fetch('/api/insights/ai', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch AI insights');
+      setAiInsights(await res.json());
+    } catch (error) {
+      toast.error('Failed to load AI insights');
+    } finally {
+      setLoading(prev => ({ ...prev, insights: false }));
+    }
+  }, []);
+
+  // Fetch alerts
+  const fetchAlerts = useCallback(async () => {
+    setLoading(prev => ({ ...prev, alerts: true }));
+    try {
+      const res = await fetch('/api/alerts', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch alerts');
+      setAlerts(await res.json());
+    } catch (error) {
+      toast.error('Failed to load alerts');
+    } finally {
+      setLoading(prev => ({ ...prev, alerts: false }));
+    }
+  }, []);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchAnalytics();
+    fetchAiInsights();
+    fetchAlerts();
+  }, [fetchAnalytics, fetchAiInsights, fetchAlerts]);
+
   // Add tasks state
   const [tasks, setTasks] = useState<Task[]>([
     { id: '1', text: 'Review lab results for Thomas Moore', completed: false },
@@ -345,40 +443,22 @@ const DoctorDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center">
-              <Calendar className="mr-2 h-5 w-5 text-purple-600" /> 
-              Today's Appointments
+              <Users className="mr-2 h-5 w-5 text-purple-600" />
+              Patients
             </CardTitle>
-            <CardDescription>{selectedDateAppointments.length} scheduled for today</CardDescription>
+            <CardDescription>Total active patients</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {selectedDateAppointments.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  No appointments scheduled for today
-                </div>
-              ) : (
-                selectedDateAppointments.slice(0, 3).map((appointment) => (
-                  <div key={appointment.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{appointment.patientName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {appointment.startTime} - {appointment.reason}
-                      </p>
-                    </div>
-                    <div className={`px-2 py-1 rounded text-xs ${
-                      formatTime(appointment.startTime) === 'Past'
-                        ? 'bg-gray-100 text-gray-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {formatTime(appointment.startTime)}
-                    </div>
-                  </div>
-                ))
-              )}
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.activePatients || 0}</div>
+              <Badge variant="outline" className="text-green-600">
+                {analytics?.totalPatients || 0} total
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -386,30 +466,15 @@ const DoctorDashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center">
-              <Bell className="mr-2 h-5 w-5 text-purple-600" /> 
-              Critical Alerts
+              <Calendar className="mr-2 h-5 w-5 text-purple-600" />
+              Appointments
             </CardTitle>
-            <CardDescription>3 items need your attention</CardDescription>
+            <CardDescription>Today's schedule</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {mockAlerts.map((alert) => (
-                <button
-                  key={alert.id}
-                  onClick={() => handleAlertClick(alert)}
-                  className="w-full flex items-center gap-3 hover:bg-gray-50 p-3 rounded-lg transition-colors text-left"
-                >
-                  <div className={`h-2 w-2 rounded-full ${
-                    alert.severity === 'high' ? 'bg-red-500' :
-                    alert.severity === 'medium' ? 'bg-yellow-500' :
-                    'bg-green-500'
-                  }`} />
-                  <div>
-                    <p className="font-medium">{alert.title}</p>
-                    <p className="text-sm text-muted-foreground">{alert.description}</p>
-                  </div>
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.appointmentsToday || 0}</div>
+              <Badge variant="outline">View Schedule</Badge>
             </div>
           </CardContent>
         </Card>
@@ -417,72 +482,76 @@ const DoctorDashboard = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center">
-              <Activity className="mr-2 h-5 w-5 text-purple-600" /> 
-              Patient Insights
+              <BarChart2 className="mr-2 h-5 w-5 text-purple-600" />
+              Revenue
             </CardTitle>
-            <CardDescription>AI-powered summaries</CardDescription>
+            <CardDescription>This month's performance</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {mockInsights.map((insight) => (
-                <button
-                  key={insight.id}
-                  onClick={() => handleAlertClick(insight)}
-                  className="w-full flex items-center gap-3 hover:bg-gray-50 p-3 rounded-lg transition-colors text-left"
-                >
-                  <div className={`h-8 w-8 rounded-full ${
-                    insight.severity === 'high' ? 'bg-red-100 text-red-700' :
-                    insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-green-100 text-green-700'
-                  } flex items-center justify-center`}>
-                    AI
-                  </div>
-                  <div>
-                    <p className="font-medium">{insight.title}</p>
-                    <p className="text-sm text-muted-foreground">{insight.description}</p>
-                  </div>
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">
+                ${analytics?.revenue.current.toLocaleString() || 0}
+              </div>
+              <Badge variant={analytics?.revenue.trend === 'up' ? 'default' : 'destructive'}>
+                {analytics?.revenue.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Activity className="mr-2 h-5 w-5 text-purple-600" />
+              Engagement
+            </CardTitle>
+            <CardDescription>Patient interaction score</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{analytics?.patientEngagement.score || 0}%</div>
+                <Badge variant={analytics?.patientEngagement.trend === 'up' ? 'default' : 'destructive'}>
+                  {analytics?.patientEngagement.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                </Badge>
+              </div>
+              <Progress value={analytics?.patientEngagement.score || 0} className="h-2" />
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* AI Insights and Alerts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Users className="mr-2 h-5 w-5 text-purple-600" /> 
-              Recent Patients
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Brain className="mr-2 h-5 w-5 text-purple-600" />
+              AI Insights
             </CardTitle>
-            <CardDescription>Last 5 patient interactions</CardDescription>
+            <CardDescription>Smart recommendations and patterns</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { name: "Emma Johnson", date: "Today, 9:15 AM", reason: "Annual checkup", status: "Completed" },
-                { name: "Michael Brown", date: "Today, 8:30 AM", reason: "Prescription refill", status: "Completed" },
-                { name: "Sophia Martinez", date: "Yesterday", reason: "Follow-up", status: "Completed" },
-                { name: "William Taylor", date: "Yesterday", reason: "Lab results", status: "Completed" },
-                { name: "Olivia Davis", date: "Apr 25, 2025", reason: "New patient", status: "Completed" }
-              ].map((patient, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-medium">
-                      {patient.name.charAt(0)}
+              {aiInsights.map((insight) => (
+                <div key={insight.id} className="p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-full ${
+                      insight.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    } flex items-center justify-center`}>
+                      <Brain className="h-4 w-4" />
                     </div>
-                    <div>
-                      <button
-                        onClick={() => handlePatientClick(patient.name)}
-                        className="font-medium hover:text-purple-600 transition-colors text-left"
-                      >
-                        {patient.name}
-                      </button>
-                      <p className="text-sm text-muted-foreground">{patient.reason}</p>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{insight.title}</h4>
+                      <p className="text-sm text-muted-foreground">{insight.description}</p>
+                      {insight.details.patientName && (
+                        <Badge variant="outline" className="mt-2">
+                          {insight.details.patientName}
+                        </Badge>
+                      )}
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{patient.date}</p>
                   </div>
                 </div>
               ))}
@@ -491,119 +560,66 @@ const DoctorDashboard = () => {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <MessageSquare className="mr-2 h-5 w-5 text-purple-600" /> 
-              Message Center
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-purple-600" />
+              Critical Alerts
             </CardTitle>
-            <CardDescription>Recent messages and notifications</CardDescription>
+            <CardDescription>Items requiring immediate attention</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockMessages.map((message) => (
-                <button
-                  key={message.id}
-                  className="w-full flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-left"
-                  onClick={() => handleMessageClick(message)}
-                >
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                    {message.type === 'nurse' && <MessageSquare className="h-5 w-5" />}
-                    {message.type === 'system' && <FileText className="h-5 w-5" />}
-                    {message.type === 'patient' && <Users className="h-5 w-5" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <p className="font-medium">{message.sender}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(message.timestamp).toLocaleTimeString([], { 
-                          hour: 'numeric', 
-                          minute: '2-digit'
-                        })}
-                      </p>
+              {alerts.map((alert) => (
+                <div key={alert.id} className="p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-full ${
+                      alert.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    } flex items-center justify-center`}>
+                      <Bell className="h-4 w-4" />
                     </div>
-                    <p className="text-sm">{message.content}</p>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{alert.title}</h4>
+                      <p className="text-sm text-muted-foreground">{alert.description}</p>
+                      {alert.details.patientName && (
+                        <Badge variant="outline" className="mt-2">
+                          {alert.details.patientName}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2">
+      {/* Health Outcomes and Tasks */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
           <CardHeader>
-            <CardTitle>Your Schedule This Week</CardTitle>
-            <CardDescription>Upcoming appointments and events</CardDescription>
+            <CardTitle className="flex items-center">
+              <LineChart className="mr-2 h-5 w-5 text-purple-600" />
+              Health Outcomes
+            </CardTitle>
+            <CardDescription>Patient health progress tracking</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col space-y-6">
-              <div className="grid grid-cols-7 gap-2">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                  <div key={day} className="text-center font-medium">{day}</div>
-                ))}
-                {weeklyAppointmentCounts.map(({ date, count }, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedDate(date)}
-                    className={`aspect-square border rounded-md flex flex-col items-center justify-center p-1 hover:bg-gray-50 transition-colors ${
-                      date.toDateString() === selectedDate.toDateString()
-                        ? 'bg-blue-100 border-blue-300'
-                        : date.toDateString() === today.toDateString()
-                        ? 'bg-blue-50 border-blue-200'
-                        : ''
-                    }`}
-                  >
-                    <p className="text-sm font-semibold">{date.getDate()}</p>
-                    <p className="text-xs text-muted-foreground">{count}</p>
-                  </button>
-                ))}
-              </div>
-
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-3">
-                  Appointments for {selectedDate.toLocaleDateString()}
-                </h3>
-                {selectedDateAppointments.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No appointments scheduled</p>
-                ) : (
-                  <div className="space-y-3">
-                    {selectedDateAppointments.map((apt) => (
-                      <div key={apt.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium">{apt.patientName}</p>
-                          <p className="text-sm text-muted-foreground">{apt.reason}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">
-                            {formatTime(apt.startTime)} - {formatTime(apt.endTime)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {apt.isVirtual ? 'Telehealth' : 'In-person'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-blue-500"></div>
-                  <p className="text-sm">Regular Appointments ({
-                    doctorAppointments.filter(apt => !apt.isVirtual).length
-                  })</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{analytics?.healthOutcomes.improvement || 0}%</div>
+                  <p className="text-sm text-muted-foreground">Improving</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-purple-500"></div>
-                  <p className="text-sm">Telehealth Sessions ({
-                    doctorAppointments.filter(apt => apt.isVirtual).length
-                  })</p>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600">{analytics?.healthOutcomes.stable || 0}%</div>
+                  <p className="text-sm text-muted-foreground">Stable</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                  <p className="text-sm">Staff Meetings</p>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{analytics?.healthOutcomes.decline || 0}%</div>
+                  <p className="text-sm text-muted-foreground">Declining</p>
                 </div>
               </div>
             </div>
@@ -612,8 +628,11 @@ const DoctorDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tasks & Reminders</CardTitle>
-            <CardDescription>Pending items for today</CardDescription>
+            <CardTitle className="flex items-center">
+              <FileText className="mr-2 h-5 w-5 text-purple-600" />
+              Tasks
+            </CardTitle>
+            <CardDescription>Your to-do list</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -623,11 +642,11 @@ const DoctorDashboard = () => {
                     type="checkbox"
                     checked={task.completed}
                     onChange={() => toggleTask(task.id)}
-                    className="rounded text-purple-600 focus:ring-purple-500"
+                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                   />
-                  <p className={task.completed ? 'line-through text-gray-500' : ''}>
+                  <span className={`flex-1 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                     {task.text}
-                  </p>
+                  </span>
                 </div>
               ))}
             </div>

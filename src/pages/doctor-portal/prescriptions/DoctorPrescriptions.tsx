@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Pill, AlertTriangle, CheckCircle, Send, FileText, Filter, Download, MoreVertical, Star, History, BarChart, Clock, Calendar, User, Printer, Copy, Trash2 } from "lucide-react";
+import { Search, Plus, Pill, AlertTriangle, CheckCircle, Send, FileText, Filter, Download, MoreVertical, Star, History, BarChart as LucideBarChart, Clock, Calendar, User, Printer, Copy, Trash2, Brain, AlertCircle, Activity, TrendingUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "react-hot-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Tooltip as RechartsTooltip } from "recharts";
 
 // Sample prescriptions data
 const prescriptions = [
@@ -222,6 +224,14 @@ const DoctorPrescriptions = () => {
     specialInstructions: ""
   });
 
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [aiInsights, setAiInsights] = useState([]);
+  const [criticalAlerts, setCriticalAlerts] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [advancedAnalytics, setAdvancedAnalytics] = useState(null);
+
   // Filter and sort prescriptions
   const filteredAndSortedPrescriptions = useMemo(() => {
     let filtered = [...prescriptions];
@@ -317,6 +327,82 @@ const DoctorPrescriptions = () => {
     };
   }, [prescriptions]);
 
+  // Fetch prescriptions from backend
+  useEffect(() => {
+    const fetchPrescriptions = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/prescriptions', {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch prescriptions');
+        const data = await response.json();
+        setPrescriptions(data);
+      } catch (err) {
+        setError(err.message);
+        toast.error('Failed to load prescriptions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrescriptions();
+  }, []);
+
+  // Fetch AI insights
+  useEffect(() => {
+    const fetchAiInsights = async () => {
+      try {
+        const response = await fetch('/api/prescriptions/insights/ai', {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch AI insights');
+        const data = await response.json();
+        setAiInsights(data);
+      } catch (err) {
+        toast.error('Failed to load AI insights');
+      }
+    };
+
+    fetchAiInsights();
+  }, []);
+
+  // Fetch critical alerts
+  useEffect(() => {
+    const fetchCriticalAlerts = async () => {
+      try {
+        const response = await fetch('/api/prescriptions/alerts', {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch alerts');
+        const data = await response.json();
+        setCriticalAlerts(data);
+      } catch (err) {
+        toast.error('Failed to load alerts');
+      }
+    };
+
+    fetchCriticalAlerts();
+  }, []);
+
+  // Fetch advanced analytics
+  useEffect(() => {
+    const fetchAdvancedAnalytics = async () => {
+      try {
+        const response = await fetch('/api/prescriptions/analytics/advanced', {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch advanced analytics');
+        const data = await response.json();
+        setAdvancedAnalytics(data);
+      } catch (err) {
+        toast.error('Failed to load advanced analytics');
+      }
+    };
+
+    fetchAdvancedAnalytics();
+  }, []);
+
   const handlePrescriptionSubmit = () => {
     // Check for drug interactions
     const interactions = drugInteractions[selectedMedication] || [];
@@ -385,7 +471,7 @@ const DoctorPrescriptions = () => {
         </div>
         <div className="flex space-x-2 mt-4 sm:mt-0">
           <Button variant="outline" onClick={() => setShowAnalytics(true)}>
-            <BarChart className="mr-2 h-4 w-4" /> Analytics
+            <LucideBarChart className="mr-2 h-4 w-4" /> Analytics
           </Button>
           <Button 
             className="bg-purple-600 hover:bg-purple-700"
@@ -397,53 +483,140 @@ const DoctorPrescriptions = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid gap-4 md:grid-cols-4 mb-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Prescriptions</p>
-                <h3 className="text-2xl font-bold">{prescriptionStats.total}</h3>
+                <h3 className="text-2xl font-bold">{prescriptions.length}</h3>
               </div>
-              <Pill className="h-8 w-8 text-purple-600" />
+              <Activity className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active</p>
-                <h3 className="text-2xl font-bold">{prescriptionStats.active}</h3>
+                <h3 className="text-2xl font-bold">
+                  {prescriptions.filter(p => p.status === "Active").length}
+                </h3>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Refills</p>
-                <h3 className="text-2xl font-bold">{prescriptionStats.pendingRefills}</h3>
+                <h3 className="text-2xl font-bold">
+                  {prescriptions.filter(p => p.refillsRemaining > 0).length}
+                </h3>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Adherence Rate</p>
-                <h3 className="text-2xl font-bold">{prescriptionStats.adherence.toFixed(1)}%</h3>
+                <p className="text-sm font-medium text-muted-foreground">Average Adherence</p>
+                <h3 className="text-2xl font-bold">
+                  {prescriptions.length > 0 
+                    ? Math.round(prescriptions.reduce((acc, p) => acc + p.adherence, 0) / prescriptions.length)
+                    : 0}%
+                </h3>
               </div>
-              <BarChart className="h-8 w-8 text-blue-600" />
+              <TrendingUp className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
       </div>
-      
+
+      {/* AI Insights and Alerts Section */}
+      <div className="grid gap-6 md:grid-cols-2 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-purple-500" />
+              AI Insights
+            </CardTitle>
+            <CardDescription>Smart analysis and recommendations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-4">
+                {aiInsights.map((insight) => (
+                  <div key={insight.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className={`h-8 w-8 rounded-full ${
+                        insight.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      } flex items-center justify-center`}>
+                        <Brain className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{insight.title}</h4>
+                        <p className="text-sm text-muted-foreground">{insight.description}</p>
+                        {insight.patientName && (
+                          <Badge variant="outline" className="mt-2">
+                            {insight.patientName}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Critical Alerts
+            </CardTitle>
+            <CardDescription>Items requiring immediate attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-4">
+                {criticalAlerts.map((alert) => (
+                  <div key={alert.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className={`h-8 w-8 rounded-full ${
+                        alert.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      } flex items-center justify-center`}>
+                        <AlertCircle className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{alert.title}</h4>
+                        <p className="text-sm text-muted-foreground">{alert.description}</p>
+                        {alert.patientName && (
+                          <Badge variant="outline" className="mt-2">
+                            {alert.patientName}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+
       {showNewPrescription && (
         <Card className="mb-6">
           <CardHeader>
@@ -929,7 +1102,7 @@ const DoctorPrescriptions = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Analytics Dialog */}
+      {/* Enhanced Analytics Dialog */}
       <Dialog open={showAnalytics} onOpenChange={setShowAnalytics}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
@@ -944,10 +1117,24 @@ const DoctorPrescriptions = () => {
                 <CardTitle>Prescription Trends</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Add prescription trends chart here */}
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  Prescription trends chart will be displayed here
-                </div>
+                {advancedAnalytics?.trends ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={advancedAnalytics.trends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="prescriptions" stroke="#8884d8" />
+                      <Line type="monotone" dataKey="newPrescriptions" stroke="#82ca9d" />
+                      <Line type="monotone" dataKey="refills" stroke="#ffc658" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    Loading trends...
+                  </div>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -955,10 +1142,31 @@ const DoctorPrescriptions = () => {
                 <CardTitle>Medication Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Add medication distribution chart here */}
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  Medication distribution chart will be displayed here
-                </div>
+                {advancedAnalytics?.medicationDistribution ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={advancedAnalytics.medicationDistribution}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {advancedAnalytics.medicationDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    Loading distribution...
+                  </div>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -966,21 +1174,23 @@ const DoctorPrescriptions = () => {
                 <CardTitle>Adherence Rates</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Add adherence rates chart here */}
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  Adherence rates chart will be displayed here
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Refill Patterns</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Add refill patterns chart here */}
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  Refill patterns chart will be displayed here
-                </div>
+                {advancedAnalytics?.adherenceRates ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={advancedAnalytics.adherenceRates}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="medication" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Legend />
+                      <Bar dataKey="adherent" fill="#82ca9d" name="Adherent" />
+                      <Bar dataKey="nonAdherent" fill="#ffc658" name="Non-Adherent" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    Loading adherence rates...
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

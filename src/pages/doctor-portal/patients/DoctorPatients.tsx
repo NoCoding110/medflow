@@ -2,21 +2,65 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, User, Calendar, FileText, Filter, Download, MoreVertical, Bell, AlertCircle } from "lucide-react";
+import { Search, Plus, User, Calendar, FileText, Filter, Download, MoreVertical, Bell, AlertCircle, Brain, BarChart2, LineChart, Activity, TrendingUp, TrendingDown, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
 import NewPatientDialog from "./NewPatientDialog";
+import { toast } from "sonner";
+
+interface Patient {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  lastVisit: string;
+  status: 'Active' | 'Inactive';
+  riskLevel: 'low' | 'medium' | 'high';
+  alerts?: string[];
+  upcomingAppointment?: string;
+  engagementScore?: number;
+  healthScore?: number;
+  dob?: string;
+  phone?: string;
+  email?: string;
+  aiInsights?: {
+    id: string;
+    type: 'health' | 'engagement' | 'risk';
+    title: string;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+    timestamp: string;
+  }[];
+}
+
+interface Analytics {
+  totalPatients: number;
+  activePatients: number;
+  averageEngagement: number;
+  averageHealthScore: number;
+  riskDistribution: {
+    low: number;
+    medium: number;
+    high: number;
+  };
+  trends: {
+    newPatients: number;
+    engagement: 'up' | 'down';
+    healthScores: 'up' | 'down';
+  };
+}
 
 const DoctorPatients = () => {
   const navigate = useNavigate();
-  const [patients, setPatients] = useState<any[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [errorPatients, setErrorPatients] = useState<string | null>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [aiInsights, setAiInsights] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -37,8 +81,10 @@ const DoctorPatients = () => {
     try {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (riskFilter !== 'all') params.append('risk', riskFilter);
       if (searchTerm) params.append('search', searchTerm);
-      // Add more filters as needed
+      if (searchField) params.append('field', searchField);
+      
       const res = await fetch(`/api/patients?${params.toString()}`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch patients');
       const data = await res.json();
@@ -49,7 +95,7 @@ const DoctorPatients = () => {
     } finally {
       setLoadingPatients(false);
     }
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, riskFilter, searchTerm, searchField]);
 
   // Fetch analytics
   const fetchAnalytics = useCallback(async () => {
@@ -58,39 +104,36 @@ const DoctorPatients = () => {
       const res = await fetch('/api/patients/analytics', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch analytics');
       setAnalytics(await res.json());
-    } catch {
-      setAnalytics(null);
+    } catch (error) {
+      toast.error('Failed to load analytics');
     } finally {
       setLoadingAnalytics(false);
     }
   }, []);
 
-  // Fetch AI insights (for selected patient or general)
-  const fetchAiInsights = useCallback(async (patientId?: string) => {
+  // Fetch AI insights
+  const fetchAiInsights = useCallback(async () => {
     setLoadingInsights(true);
     try {
-      const url = patientId ? `/api/patients/ai-insights?patientId=${patientId}` : '/api/patients/ai-insights';
-      const res = await fetch(url, { credentials: 'include' });
+      const res = await fetch('/api/patients/insights/ai', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch AI insights');
       setAiInsights(await res.json());
-    } catch {
-      setAiInsights(null);
+    } catch (error) {
+      toast.error('Failed to load AI insights');
     } finally {
       setLoadingInsights(false);
     }
   }, []);
 
-  // Fetch alerts (for selected patient or general)
-  const fetchAlerts = useCallback(async (patientId?: string) => {
+  // Fetch alerts
+  const fetchAlerts = useCallback(async () => {
     setLoadingAlerts(true);
     try {
-      const url = patientId ? `/api/patients/alerts?patientId=${patientId}` : '/api/patients/alerts';
-      const res = await fetch(url, { credentials: 'include' });
+      const res = await fetch('/api/patients/alerts', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch alerts');
-      const data = await res.json();
-      setAlerts(data.alerts || []);
-    } catch {
-      setAlerts([]);
+      setAlerts(await res.json());
+    } catch (error) {
+      toast.error('Failed to load alerts');
     } finally {
       setLoadingAlerts(false);
     }
@@ -175,45 +218,129 @@ const DoctorPatients = () => {
     });
   }, [patients, searchTerm, searchField, statusFilter, riskFilter, sortConfig, activeTab]);
 
-  // Handle sort change
-  const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value;
-    if (value === 'name') {
-      setSortConfig({ key: 'name', direction: 'asc' });
-    } else if (value === 'nameDesc') {
-      setSortConfig({ key: 'name', direction: 'desc' });
-    } else if (value === 'recent') {
-      setSortConfig({ key: 'lastVisit', direction: 'desc' });
-    } else if (value === 'oldest') {
-      setSortConfig({ key: 'lastVisit', direction: 'asc' });
-    }
-  };
-
-  // Navigate to patient profile
-  const handlePatientClick = (patientId: string) => {
-    navigate(`/doctor/patients/${patientId}/profile`);
-  };
-
-  // Handle view patient notes
-  const handleViewNotes = (event: React.MouseEvent, patientId: string) => {
-    event.stopPropagation();
-    navigate(`/doctor/patients/${patientId}/notes`);
-  };
-
-  // Handle schedule appointment
-  const handleScheduleAppointment = (event: React.MouseEvent, patientId: string) => {
-    event.stopPropagation();
-    navigate(`/doctor/appointments/new?patientId=${patientId}`);
-  };
-
-  // Handle export patient list
-  const handleExportList = () => {
-    // Implement export functionality
-    console.log('Exporting patient list...');
-  };
-
   return (
     <div className="container py-8">
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Users className="mr-2 h-5 w-5 text-purple-600" />
+              Patients
+            </CardTitle>
+            <CardDescription>Total active patients</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.activePatients || 0}</div>
+              <Badge variant="outline" className="text-green-600">
+                {analytics?.totalPatients || 0} total
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Activity className="mr-2 h-5 w-5 text-purple-600" />
+              Engagement
+            </CardTitle>
+            <CardDescription>Average patient engagement</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{analytics?.averageEngagement || 0}%</div>
+                <Badge variant={analytics?.trends.engagement === 'up' ? 'default' : 'destructive'}>
+                  {analytics?.trends.engagement === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                </Badge>
+              </div>
+              <Progress value={analytics?.averageEngagement || 0} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <LineChart className="mr-2 h-5 w-5 text-purple-600" />
+              Health Scores
+            </CardTitle>
+            <CardDescription>Average patient health score</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.averageHealthScore || 0}</div>
+              <Badge variant={analytics?.trends.healthScores === 'up' ? 'default' : 'destructive'}>
+                {analytics?.trends.healthScores === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-purple-600" />
+              Risk Distribution
+            </CardTitle>
+            <CardDescription>Patient risk levels</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-green-600">Low: {analytics?.riskDistribution.low || 0}</span>
+                <span className="text-yellow-600">Medium: {analytics?.riskDistribution.medium || 0}</span>
+                <span className="text-red-600">High: {analytics?.riskDistribution.high || 0}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* AI Insights */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center">
+                <Brain className="mr-2 h-5 w-5 text-purple-600" />
+                AI Insights
+              </CardTitle>
+              <CardDescription>Smart recommendations and patterns</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {aiInsights.map((insight) => (
+              <div key={insight.id} className="p-4 rounded-lg border hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className={`h-8 w-8 rounded-full ${
+                    insight.severity === 'high' ? 'bg-red-100 text-red-700' :
+                    insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-green-100 text-green-700'
+                  } flex items-center justify-center`}>
+                    <Brain className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium">{insight.title}</h4>
+                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                    {insight.patientName && (
+                      <Badge variant="outline" className="mt-2">
+                        {insight.patientName}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Patient Management */}
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -222,7 +349,7 @@ const DoctorPatients = () => {
               <CardDescription>Search and manage your patients</CardDescription>
             </div>
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={handleExportList}>
+              <Button variant="outline" onClick={() => {}}>
                 <Download className="mr-2 h-4 w-4" /> Export
               </Button>
               <Button onClick={() => setIsNewPatientDialogOpen(true)}>
@@ -307,7 +434,18 @@ const DoctorPatients = () => {
           <div className="flex items-center space-x-2">
             <select 
               className="h-10 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200"
-              onChange={handleSortChange}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === 'name') {
+                  setSortConfig({ key: 'name', direction: 'asc' });
+                } else if (value === 'nameDesc') {
+                  setSortConfig({ key: 'name', direction: 'desc' });
+                } else if (value === 'recent') {
+                  setSortConfig({ key: 'lastVisit', direction: 'desc' });
+                } else if (value === 'oldest') {
+                  setSortConfig({ key: 'lastVisit', direction: 'asc' });
+                }
+              }}
               defaultValue="recent"
             >
               <option value="name">Name (A-Z)</option>
@@ -341,7 +479,7 @@ const DoctorPatients = () => {
                 <div 
                   key={patient.id} 
                   className="p-3 grid grid-cols-12 gap-3 items-center border-t border-navy-100 hover:bg-navy-50/30 transition-colors cursor-pointer"
-                  onClick={() => handlePatientClick(patient.id)}
+                  onClick={() => navigate(`/doctor/patients/${patient.id}/profile`)}
                 >
                   <div className="col-span-4 flex items-center space-x-3">
                     <div className="flex h-10 w-10 rounded-full bg-lightblue-100 items-center justify-center">
@@ -379,7 +517,10 @@ const DoctorPatients = () => {
                       variant="outline"
                       size="icon"
                       className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300"
-                      onClick={(e) => handleViewNotes(e, patient.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/doctor/patients/${patient.id}/notes`);
+                      }}
                       title="View Patient Notes"
                     >
                       <FileText className="h-4 w-4 text-navy-700" />
@@ -388,7 +529,10 @@ const DoctorPatients = () => {
                       variant="outline"
                       size="icon"
                       className="h-8 w-8 border-navy-200 hover:bg-navy-100 hover:border-navy-300"
-                      onClick={(e) => handleScheduleAppointment(e, patient.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/doctor/appointments/new?patientId=${patient.id}`);
+                      }}
                       title="Schedule Appointment"
                     >
                       <Calendar className="h-4 w-4 text-navy-700" />
@@ -426,7 +570,7 @@ const DoctorPatients = () => {
                 <Card
                   key={patient.id}
                   className="hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => handlePatientClick(patient.id)}
+                  onClick={() => navigate(`/doctor/patients/${patient.id}/profile`)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">

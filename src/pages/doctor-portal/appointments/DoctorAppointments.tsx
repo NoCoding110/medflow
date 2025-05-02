@@ -1,9 +1,8 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Check, X, Video, MessageSquare, RefreshCw } from "lucide-react";
+import { Calendar, Clock, Check, X, Video, MessageSquare, RefreshCw, BarChart2, AlertCircle, Brain, TrendingUp, TrendingDown, Users } from "lucide-react";
 import { handleActionWithToast, formatDateTime } from "@/lib/portal-utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,57 +10,167 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+
+interface Appointment {
+  id: string;
+  patientName: string;
+  patientId: string;
+  date: string;
+  reason: string;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'in-progress' | 'overdue';
+  isVirtual: boolean;
+  notes?: string;
+}
+
+interface Analytics {
+  total: number;
+  upcoming: number;
+  completed: number;
+  cancelled: number;
+  overdue: number;
+  trends: {
+    scheduled: 'up' | 'down';
+    completed: 'up' | 'down';
+    cancelled: 'up' | 'down';
+  };
+}
+
+interface AIInsight {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  timestamp: string;
+  patientName?: string;
+}
+
+interface Alert {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  timestamp: string;
+  patientName?: string;
+}
 
 const DoctorAppointments = () => {
-  const [appointments, setAppointments] = useState([
-    {
-      id: "1",
-      patientName: "John Smith",
-      patientId: "P1001",
-      date: new Date(new Date().setHours(10, 0, 0)),
-      reason: "Annual Check-up",
-      status: "scheduled",
-      isVirtual: false,
-      notes: ""
-    },
-    {
-      id: "2",
-      patientName: "Emily Johnson",
-      patientId: "P1002",
-      date: new Date(new Date().setHours(11, 30, 0)),
-      reason: "Follow-up Consultation",
-      status: "scheduled",
-      isVirtual: true,
-      notes: ""
-    },
-    {
-      id: "3",
-      patientName: "Michael Brown",
-      patientId: "P1003",
-      date: new Date(new Date().setHours(14, 0, 0)),
-      reason: "Blood Pressure Check",
-      status: "scheduled",
-      isVirtual: false,
-      notes: ""
-    },
-    {
-      id: "4",
-      patientName: "Sarah Wilson",
-      patientId: "P1004",
-      date: new Date(new Date().setHours(15, 30, 0)),
-      reason: "Medication Review",
-      status: "scheduled",
-      isVirtual: true,
-      notes: ""
-    }
-  ]);
-  
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState({
+    appointments: false,
+    analytics: false,
+    insights: false,
+    alerts: false
+  });
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [openDialog, setOpenDialog] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [appointmentType, setAppointmentType] = useState("in-person");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
+
+  // Fetch appointments
+  const fetchAppointments = useCallback(async () => {
+    setLoading(l => ({ ...l, appointments: true }));
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      const res = await fetch(`/api/appointments?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch appointments');
+      setAppointments(await res.json());
+    } catch (error) {
+      toast.error('Failed to load appointments');
+    } finally {
+      setLoading(l => ({ ...l, appointments: false }));
+    }
+  }, [statusFilter, searchTerm]);
+
+  // Fetch analytics
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(l => ({ ...l, analytics: true }));
+    try {
+      const res = await fetch('/api/appointments/analytics', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      setAnalytics(await res.json());
+    } catch (error) {
+      toast.error('Failed to load analytics');
+    } finally {
+      setLoading(l => ({ ...l, analytics: false }));
+    }
+  }, []);
+
+  // Fetch AI insights
+  const fetchAiInsights = useCallback(async () => {
+    setLoading(l => ({ ...l, insights: true }));
+    try {
+      const res = await fetch('/api/appointments/insights/ai', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch AI insights');
+      setAiInsights(await res.json());
+    } catch (error) {
+      toast.error('Failed to load AI insights');
+    } finally {
+      setLoading(l => ({ ...l, insights: false }));
+    }
+  }, []);
+
+  // Fetch alerts
+  const fetchAlerts = useCallback(async () => {
+    setLoading(l => ({ ...l, alerts: true }));
+    try {
+      const res = await fetch('/api/appointments/alerts', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch alerts');
+      setAlerts(await res.json());
+    } catch (error) {
+      toast.error('Failed to load alerts');
+    } finally {
+      setLoading(l => ({ ...l, alerts: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAppointments();
+    fetchAnalytics();
+    fetchAiInsights();
+    fetchAlerts();
+  }, [fetchAppointments, fetchAnalytics, fetchAiInsights, fetchAlerts]);
+
+  // Filter and sort appointments
+  const filteredAndSortedAppointments = useMemo(() => {
+    let filtered = [...appointments];
+    if (searchTerm) {
+      filtered = filtered.filter(a =>
+        a.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.reason.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(a => a.status === statusFilter);
+    }
+    return filtered.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      if (sortConfig.direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }, [appointments, searchTerm, statusFilter, sortConfig]);
+
+  const upcomingAppointments = filteredAndSortedAppointments.filter(a => a.status === "scheduled");
+  const completedAppointments = filteredAndSortedAppointments.filter(a => a.status === "completed");
+  const cancelledAppointments = filteredAndSortedAppointments.filter(a => a.status === "cancelled");
+  const overdueAppointments = filteredAndSortedAppointments.filter(a => a.status === "overdue");
 
   const handleCompleteAppointment = async (appointmentId: string) => {
     await handleActionWithToast(
@@ -141,21 +250,19 @@ const DoctorAppointments = () => {
   
   const handleReschedule = async () => {
     if (!selectedAppointment || !rescheduleDate || !rescheduleTime) return;
-    
     await handleActionWithToast(
       async () => {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 800));
         const newDate = new Date(`${rescheduleDate}T${rescheduleTime}`);
-        
-        setAppointments(prev => 
-          prev.map(appointment => 
-            appointment.id === selectedAppointment.id 
-              ? { 
-                  ...appointment, 
-                  date: newDate,
+        setAppointments(prev =>
+          prev.map(appointment =>
+            appointment.id === selectedAppointment.id
+              ? {
+                  ...appointment,
+                  date: newDate.toISOString(),
                   isVirtual: appointmentType === "virtual"
-                } 
+                }
               : appointment
           )
         );
@@ -168,19 +275,198 @@ const DoctorAppointments = () => {
     );
   };
 
-  const upcomingAppointments = appointments.filter(a => a.status === "scheduled");
-  const completedAppointments = appointments.filter(a => a.status === "completed");
-  const cancelledAppointments = appointments.filter(a => a.status === "cancelled");
-
   return (
     <div className="container py-6">
       <h1 className="text-2xl font-bold tracking-tight mb-4">Appointments</h1>
       
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <BarChart2 className="mr-2 h-5 w-5 text-purple-600" />
+              Total
+            </CardTitle>
+            <CardDescription>Total appointments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.total || 0}</div>
+              <Badge variant="outline" className="text-purple-600">
+                {analytics?.trends.scheduled === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Calendar className="mr-2 h-5 w-5 text-purple-600" />
+              Upcoming
+            </CardTitle>
+            <CardDescription>Upcoming appointments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.upcoming || 0}</div>
+              <Badge variant="outline">Scheduled</Badge>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Check className="mr-2 h-5 w-5 text-green-600" />
+              Completed
+            </CardTitle>
+            <CardDescription>Completed appointments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.completed || 0}</div>
+              <Badge variant={analytics?.trends.completed === 'up' ? 'default' : 'destructive'}>
+                {analytics?.trends.completed === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <X className="mr-2 h-5 w-5 text-red-600" />
+              Cancelled
+            </CardTitle>
+            <CardDescription>Cancelled appointments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{analytics?.cancelled || 0}</div>
+              <Badge variant={analytics?.trends.cancelled === 'up' ? 'destructive' : 'default'}>
+                {analytics?.trends.cancelled === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* AI Insights and Alerts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Brain className="mr-2 h-5 w-5 text-purple-600" />
+              AI Insights
+            </CardTitle>
+            <CardDescription>Smart recommendations and patterns</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {aiInsights.map((insight) => (
+                <div key={insight.id} className="p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-full ${
+                      insight.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    } flex items-center justify-center`}>
+                      <Brain className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{insight.title}</h4>
+                      <p className="text-sm text-muted-foreground">{insight.description}</p>
+                      {insight.patientName && (
+                        <Badge variant="outline" className="mt-2">
+                          {insight.patientName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-purple-600" />
+              Critical Alerts
+            </CardTitle>
+            <CardDescription>Items requiring immediate attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {alerts.map((alert) => (
+                <div key={alert.id} className="p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-full ${
+                      alert.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    } flex items-center justify-center`}>
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{alert.title}</h4>
+                      <p className="text-sm text-muted-foreground">{alert.description}</p>
+                      {alert.patientName && (
+                        <Badge variant="outline" className="mt-2">
+                          {alert.patientName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filtering and Tabs */}
+      <div className="flex items-center gap-4 mb-4">
+        <Input
+          type="search"
+          placeholder="Search by patient or reason..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="max-w-xs"
+        />
+        <select
+          className="h-10 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="all">All Statuses</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        <select
+          className="h-10 px-3 rounded-md border border-navy-100 bg-background focus:border-lightblue-300 focus:ring-lightblue-200"
+          onChange={e => {
+            const value = e.target.value;
+            if (value === 'dateAsc') setSortConfig({ key: 'date', direction: 'asc' });
+            else if (value === 'dateDesc') setSortConfig({ key: 'date', direction: 'desc' });
+            else if (value === 'nameAsc') setSortConfig({ key: 'patientName', direction: 'asc' });
+            else if (value === 'nameDesc') setSortConfig({ key: 'patientName', direction: 'desc' });
+          }}
+          defaultValue="dateAsc"
+        >
+          <option value="dateAsc">Date (Earliest)</option>
+          <option value="dateDesc">Date (Latest)</option>
+          <option value="nameAsc">Patient (A-Z)</option>
+          <option value="nameDesc">Patient (Z-A)</option>
+        </select>
+      </div>
+
       <Tabs defaultValue="upcoming" className="space-y-4">
         <TabsList>
           <TabsTrigger value="upcoming">Upcoming ({upcomingAppointments.length})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({completedAppointments.length})</TabsTrigger>
           <TabsTrigger value="cancelled">Cancelled ({cancelledAppointments.length})</TabsTrigger>
+          <TabsTrigger value="overdue">Overdue ({overdueAppointments.length})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="upcoming" className="space-y-4">
@@ -369,6 +655,44 @@ const DoctorAppointments = () => {
               <X className="h-10 w-10 mx-auto text-gray-400 mb-2" />
               <p className="text-lg font-medium text-gray-500">No cancelled appointments</p>
               <p className="text-gray-400">Cancelled appointments will appear here.</p>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="overdue" className="space-y-4">
+          {overdueAppointments.map((appointment) => (
+            <Card key={appointment.id} className="overflow-hidden">
+              <CardHeader className="bg-yellow-50 pb-2">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">{appointment.patientName}</CardTitle>
+                  <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-yellow-700">
+                    Overdue
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-yellow-500" />
+                      <span>{formatDateTime(appointment.date)}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium">Reason:</span>
+                    <span className="text-sm ml-2">{appointment.reason}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          
+          {overdueAppointments.length === 0 && (
+            <div className="text-center py-10 border rounded-lg bg-gray-50">
+              <X className="h-10 w-10 mx-auto text-gray-400 mb-2" />
+              <p className="text-lg font-medium text-gray-500">No overdue appointments</p>
+              <p className="text-gray-400">Overdue appointments will appear here.</p>
             </div>
           )}
         </TabsContent>

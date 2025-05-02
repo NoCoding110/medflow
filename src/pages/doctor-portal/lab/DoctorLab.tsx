@@ -20,6 +20,10 @@ import {
   TrendingUp,
   Activity,
   BarChart2,
+  Brain,
+  AlertCircle,
+  TestTube,
+  Microscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +48,8 @@ import {
   Cell,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
 } from "recharts";
 import { useToast } from "@/components/ui/use-toast";
 import { Workflow, LabTest } from "@/lib/types";
@@ -83,6 +89,35 @@ const DoctorLab = () => {
   const [insights, setInsights] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [loadingInsights, setLoadingInsights] = useState(false);
+
+  // Add new state for AI insights and alerts
+  const [aiInsights, setAiInsights] = useState<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+    timestamp: string;
+    patientName?: string;
+  }[]>([]);
+
+  const [criticalAlerts, setCriticalAlerts] = useState<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+    timestamp: string;
+    patientName?: string;
+  }[]>([]);
+
+  // Add new analytics state
+  const [advancedAnalytics, setAdvancedAnalytics] = useState<{
+    turnaroundTime: { category: string; average: number }[];
+    abnormalityRates: { category: string; rate: number }[];
+    testVolumeTrends: { date: string; count: number }[];
+    departmentPerformance: { department: string; efficiency: number }[];
+  } | null>(null);
 
   // Fetch lab tests from backend
   const fetchTests = useCallback(async () => {
@@ -416,10 +451,47 @@ const DoctorLab = () => {
     }
   }, [toast]);
 
+  // Add new fetch functions
+  const fetchAiInsights = useCallback(async () => {
+    try {
+      const res = await fetch('/api/lab/insights/ai', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch AI insights');
+      const data = await res.json();
+      setAiInsights(data);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load AI insights', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  const fetchCriticalAlerts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/lab/alerts', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch alerts');
+      const data = await res.json();
+      setCriticalAlerts(data);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load alerts', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  const fetchAdvancedAnalytics = useCallback(async () => {
+    try {
+      const res = await fetch('/api/lab/analytics/advanced', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch advanced analytics');
+      const data = await res.json();
+      setAdvancedAnalytics(data);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load advanced analytics', variant: 'destructive' });
+    }
+  }, [toast]);
+
   useEffect(() => {
     fetchAnalytics();
     fetchInsights();
-  }, [fetchAnalytics, fetchInsights]);
+    fetchAiInsights();
+    fetchCriticalAlerts();
+    fetchAdvancedAnalytics();
+  }, [fetchAnalytics, fetchInsights, fetchAiInsights, fetchCriticalAlerts, fetchAdvancedAnalytics]);
 
   return (
     <div className="container py-8">
@@ -504,6 +576,98 @@ const DoctorLab = () => {
               </div>
               <AlertTriangle className="h-8 w-8 text-red-500" />
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Abnormal Results</p>
+                <h3 className="text-2xl font-bold">
+                  {tests.filter(t => t.results?.components?.some(c => c.status !== "normal")).length}
+                </h3>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* AI Insights and Alerts Section */}
+      <div className="grid gap-6 md:grid-cols-2 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-purple-500" />
+              AI Insights
+            </CardTitle>
+            <CardDescription>Smart analysis and recommendations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-4">
+                {aiInsights.map((insight) => (
+                  <div key={insight.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className={`h-8 w-8 rounded-full ${
+                        insight.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      } flex items-center justify-center`}>
+                        <Brain className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{insight.title}</h4>
+                        <p className="text-sm text-muted-foreground">{insight.description}</p>
+                        {insight.patientName && (
+                          <Badge variant="outline" className="mt-2">
+                            {insight.patientName}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Critical Alerts
+            </CardTitle>
+            <CardDescription>Items requiring immediate attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-4">
+                {criticalAlerts.map((alert) => (
+                  <div key={alert.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className={`h-8 w-8 rounded-full ${
+                        alert.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      } flex items-center justify-center`}>
+                        <AlertCircle className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{alert.title}</h4>
+                        <p className="text-sm text-muted-foreground">{alert.description}</p>
+                        {alert.patientName && (
+                          <Badge variant="outline" className="mt-2">
+                            {alert.patientName}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
@@ -714,6 +878,54 @@ const DoctorLab = () => {
                   </div>
                 ) : (
                   <div>No insights</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Turnaround Time Analysis</CardTitle>
+                <CardDescription>Average processing time by test category</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {advancedAnalytics?.turnaroundTime ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={advancedAnalytics.turnaroundTime}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="category" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="average" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Test Volume Trends</CardTitle>
+                <CardDescription>Daily test volume over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {advancedAnalytics?.testVolumeTrends ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={advancedAnalytics.testVolumeTrends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="count" stroke="#8884d8" fill="#8884d8" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No data available
+                  </div>
                 )}
               </CardContent>
             </Card>
