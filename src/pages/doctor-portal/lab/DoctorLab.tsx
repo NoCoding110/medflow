@@ -56,6 +56,7 @@ import { Workflow, LabTest } from "@/lib/types";
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { PDFDocument, rgb } from 'pdf-lib';
+import { supabase } from '@/lib/supabaseClient';
 
 // Workflow statuses and their corresponding steps
 const workflowSteps = {
@@ -119,25 +120,82 @@ const DoctorLab = () => {
     departmentPerformance: { department: string; efficiency: number }[];
   } | null>(null);
 
-  // Fetch lab tests from backend
+  // Move export functions above handleExport
+  const exportToCSV = (data: LabTest[]) => {
+    const headers = ['Test ID', 'Patient Name', 'Test Type', 'Status', 'Date', 'Priority'];
+    const csvData = data.map(test => [
+      test.id,
+      test.patientName,
+      test.testType,
+      test.status,
+      test.date,
+      test.priority
+    ]);
+    const csvContent = [headers, ...csvData]
+      .map(row => row.join(','))
+      .join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    saveAs(blob, 'lab_tests.csv');
+  };
+
+  const exportToExcel = (data: LabTest[]) => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Lab Tests');
+    XLSX.writeFile(wb, 'lab_tests.xlsx');
+  };
+
+  const exportToPDF = async (data: LabTest[]) => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage();
+    const { height, width } = page.getSize();
+    let yOffset = height - 50;
+    // Add title
+    page.drawText('Lab Tests Report', {
+      x: 50,
+      y: yOffset,
+      size: 20,
+      color: rgb(0, 0, 0),
+    });
+    yOffset -= 30;
+    // Add data
+    data.forEach((test) => {
+      if (yOffset < 50) {
+        // Add new page if needed
+        const newPage = pdfDoc.addPage();
+        yOffset = newPage.getSize().height - 50;
+      }
+      page.drawText(`${test.id} - ${test.patientName} - ${test.testType}`, {
+        x: 50,
+        y: yOffset,
+        size: 12,
+        color: rgb(0, 0, 0),
+      });
+      yOffset -= 20;
+    });
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    saveAs(blob, 'lab_tests.pdf');
+  };
+
+  const exportToJSON = (data: LabTest[]) => {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    saveAs(blob, 'lab_tests.json');
+  };
+
+  // Fetch lab tests from Supabase
   const fetchTests = useCallback(async () => {
     setLoadingTests(true);
     setErrorTests(null);
     try {
-      const params = new URLSearchParams();
-      if (filterStatus !== 'all') params.append('status', filterStatus);
-      if (filterPriority !== 'all') params.append('priority', filterPriority);
-      if (searchQuery) params.append('search', searchQuery);
-      const res = await fetch(`/api/lab-tests?${params.toString()}`, { credentials: 'include' });
-
-      const contentType = res.headers.get('content-type');
-      if (!res.ok) throw new Error('Failed to fetch lab tests');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await res.text();
-        throw new Error('Server did not return JSON.\n' + text.slice(0, 200));
-      }
-      const data = await res.json();
-      setTests(data);
+      let query = supabase.from('lab_tests').select('*');
+      if (filterStatus !== 'all') query = query.eq('status', filterStatus);
+      if (filterPriority !== 'all') query = query.eq('priority', filterPriority);
+      if (searchQuery) query = query.ilike('patient_name', `%${searchQuery}%`);
+      const { data, error } = await query.order('date', { ascending: false });
+      if (error) throw error;
+      setTests(data || []);
     } catch (e: any) {
       setErrorTests(e.message || 'Failed to load lab tests');
       setTests([]);
@@ -152,205 +210,63 @@ const DoctorLab = () => {
 
   const filteredTests = tests; // Filtering is now handled by backend
 
-  // Initialize WebSocket connection
+  // Fetch AI insights from Supabase
+  const fetchInsights = useCallback(async () => {
+    setLoadingInsights(true);
+    try {
+      const { data, error } = await supabase.from('ai_insights').select('*').order('timestamp', { ascending: false });
+      if (error) throw error;
+      setInsights({ patterns: [], recommendations: data || [] });
+    } catch (e) {
+      setInsights(null);
+      toast({ title: 'Error', description: 'Failed to load AI insights', variant: 'destructive' });
+    } finally {
+      setLoadingInsights(false);
+    }
+  }, [toast]);
+
+  // Fetch AI insights and alerts from Supabase
+  const fetchAiInsights = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('ai_insights').select('*').order('timestamp', { ascending: false });
+      if (error) throw error;
+      setAiInsights(data || []);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load AI insights', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  const fetchCriticalAlerts = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('alerts').select('*').order('timestamp', { ascending: false });
+      if (error) throw error;
+      setCriticalAlerts(data || []);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load alerts', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  const fetchAdvancedAnalytics = useCallback(async () => {
+    try {
+      const res = await fetch('/api/lab/analytics/advanced', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch advanced analytics');
+      const data = await res.json();
+      setAdvancedAnalytics(data);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to load advanced analytics', variant: 'destructive' });
+    }
+  }, [toast]);
+
   useEffect(() => {
-    let ws: WebSocket | null = null;
-    let reconnectTimeout: NodeJS.Timeout;
+    fetchInsights();
+    fetchAiInsights();
+    fetchCriticalAlerts();
+    fetchAdvancedAnalytics();
+  }, [fetchInsights, fetchAiInsights, fetchCriticalAlerts, fetchAdvancedAnalytics]);
 
-    const connect = () => {
-      try {
-        ws = new WebSocket(WS_URL);
-
-        ws.onopen = () => {
-          console.log('WebSocket Connected');
-          setSocket(ws);
-          // Clear any existing reconnect timeout
-          if (reconnectTimeout) {
-            clearTimeout(reconnectTimeout);
-          }
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            handleRealtimeUpdate(data);
-          } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          toast({
-            title: "Connection Error",
-            description: "Failed to establish real-time connection. Please check your network and try again.",
-            variant: "destructive",
-          });
-        };
-
-        ws.onclose = () => {
-          console.log('WebSocket Disconnected');
-          setSocket(null);
-          // Attempt to reconnect after 5 seconds
-          reconnectTimeout = setTimeout(() => {
-            if (!socket) {
-              console.log('Attempting to reconnect...');
-              connect();
-            }
-          }, 5000);
-        };
-      } catch (error) {
-        console.error('Error creating WebSocket connection:', error);
-        toast({
-          title: "Connection Error",
-          description: "Failed to create WebSocket connection. Please try again later.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    connect();
-
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-    };
-  }, []);
-
-  // Handle real-time updates
-  const handleRealtimeUpdate = (data: any) => {
-    if (!data || typeof data !== 'object') {
-      console.error('Invalid WebSocket message format:', data);
-      return;
-    }
-
-    try {
-      switch (data.type) {
-        case 'TEST_UPDATE':
-          if (!data.testId || !data.status) {
-            console.error('Invalid TEST_UPDATE message format:', data);
-            return;
-          }
-          updateTestStatus(data.testId, data.status);
-          break;
-        case 'NEW_TEST':
-          if (!data.test || typeof data.test !== 'object') {
-            console.error('Invalid NEW_TEST message format:', data);
-            return;
-          }
-          addNewTest(data.test);
-          break;
-        case 'WORKFLOW_UPDATE':
-          if (!data.workflowId || !data.status) {
-            console.error('Invalid WORKFLOW_UPDATE message format:', data);
-            return;
-          }
-          updateWorkflow(data.workflowId, data.status);
-          break;
-        default:
-          console.warn('Unknown update type:', data.type);
-      }
-    } catch (error) {
-      console.error('Error processing WebSocket message:', error);
-    }
-  };
-
-  const updateTestStatus = (testId: string, newStatus: string) => {
-    setTests(prev => 
-      prev.map(test => 
-        test.id === testId ? { ...test, status: newStatus } : test
-      )
-    );
-    
-    toast({
-      title: "Test Status Updated",
-      description: `Test ${testId} status changed to ${newStatus}`,
-    });
-  };
-
-  const addNewTest = (newTest: LabTest) => {
-    setTests(prev => [...prev, newTest]);
-    toast({
-      title: "New Test Request",
-      description: `New test request received for ${newTest.patientName}`,
-    });
-  };
-
-  const updateWorkflow = (workflowId: string, newStatus: string) => {
-    setWorkflows(prev =>
-      prev.map(workflow =>
-        workflow.id === workflowId ? { ...workflow, status: newStatus } : workflow
-      )
-    );
-  };
-
-  // Function to create a new test request with workflow
-  const createTestRequest = async (testData: any) => {
-    try {
-      const response = await fetch('/api/lab/test-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testData),
-      });
-
-      if (!response.ok) throw new Error('Failed to create test request');
-
-      const data = await response.json();
-      addNewTest(data.test);
-      setWorkflows(prev => [...prev, data.workflow]);
-
-      toast({
-        title: "Test Request Created",
-        description: "New test request has been created successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create test request",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Function to update workflow status
-  const updateWorkflowStatus = async (workflowId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/lab/workflow/${workflowId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update workflow');
-
-      const data = await response.json();
-      updateWorkflow(workflowId, newStatus);
-
-      toast({
-        title: "Workflow Updated",
-        description: `Workflow status updated to ${newStatus}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update workflow status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Enhanced export functionality
+  // Move these functions inside the component to access state
   const handleExport = async (format: string) => {
     const dataToExport = selectedTests.length > 0 ? selectedTests : tests;
-    
     switch (format) {
       case 'csv':
         exportToCSV(dataToExport);
@@ -369,95 +285,11 @@ const DoctorLab = () => {
     }
   };
 
-  const exportToCSV = (data: LabTest[]) => {
-    const headers = ['Test ID', 'Patient Name', 'Test Type', 'Status', 'Date', 'Priority'];
-    const csvData = data.map(test => [
-      test.id,
-      test.patientName,
-      test.testType,
-      test.status,
-      test.date,
-      test.priority
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
-    saveAs(blob, 'lab_tests.csv');
-  };
-
-  const exportToExcel = (data: LabTest[]) => {
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Lab Tests');
-    XLSX.writeFile(wb, 'lab_tests.xlsx');
-  };
-
-  const exportToPDF = async (data: LabTest[]) => {
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
-    const { height, width } = page.getSize();
-    
-    let yOffset = height - 50;
-    
-    // Add title
-    page.drawText('Lab Tests Report', {
-      x: 50,
-      y: yOffset,
-      size: 20,
-      color: rgb(0, 0, 0),
-    });
-    
-    yOffset -= 30;
-    
-    // Add data
-    data.forEach((test) => {
-      if (yOffset < 50) {
-        // Add new page if needed
-        const newPage = pdfDoc.addPage();
-        yOffset = newPage.getSize().height - 50;
-      }
-      
-      page.drawText(`${test.id} - ${test.patientName} - ${test.testType}`, {
-        x: 50,
-        y: yOffset,
-        size: 12,
-        color: rgb(0, 0, 0),
-      });
-      
-      yOffset -= 20;
-    });
-    
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    saveAs(blob, 'lab_tests.pdf');
-  };
-
-  const exportToJSON = (data: LabTest[]) => {
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    saveAs(blob, 'lab_tests.json');
-  };
-
-  // Test comparison functionality
   const toggleTestSelection = (test: LabTest) => {
     if (selectedTests.find(t => t.id === test.id)) {
       setSelectedTests(prev => prev.filter(t => t.id !== test.id));
     } else {
       setSelectedTests(prev => [...prev, test]);
-    }
-  };
-
-  const getTestHistory = async (patientId: string, testType: string) => {
-    try {
-      const response = await fetch(`/api/lab/test-history?patientId=${patientId}&testType=${testType}`);
-      if (!response.ok) throw new Error('Failed to fetch test history');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching test history:', error);
-      return [];
     }
   };
 
@@ -484,80 +316,6 @@ const DoctorLab = () => {
         return "text-gray-600";
     }
   };
-
-  // Fetch analytics from backend
-  const fetchAnalytics = useCallback(async () => {
-    setLoadingAnalytics(true);
-    try {
-      const res = await fetch('/api/lab-tests/analytics/summary', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch analytics');
-      const data = await res.json();
-      setAnalytics(data);
-    } catch (e) {
-      setAnalytics(null);
-      toast({ title: 'Error', description: 'Failed to load analytics', variant: 'destructive' });
-    } finally {
-      setLoadingAnalytics(false);
-    }
-  }, [toast]);
-
-  // Fetch AI insights from backend
-  const fetchInsights = useCallback(async () => {
-    setLoadingInsights(true);
-    try {
-      const res = await fetch('/api/lab-tests/insights/ai', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch insights');
-      const data = await res.json();
-      setInsights(data);
-    } catch (e) {
-      setInsights(null);
-      toast({ title: 'Error', description: 'Failed to load AI insights', variant: 'destructive' });
-    } finally {
-      setLoadingInsights(false);
-    }
-  }, [toast]);
-
-  // Add new fetch functions
-  const fetchAiInsights = useCallback(async () => {
-    try {
-      const res = await fetch('/api/lab/insights/ai', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch AI insights');
-      const data = await res.json();
-      setAiInsights(data);
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to load AI insights', variant: 'destructive' });
-    }
-  }, [toast]);
-
-  const fetchCriticalAlerts = useCallback(async () => {
-    try {
-      const res = await fetch('/api/lab/alerts', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch alerts');
-      const data = await res.json();
-      setCriticalAlerts(data);
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to load alerts', variant: 'destructive' });
-    }
-  }, [toast]);
-
-  const fetchAdvancedAnalytics = useCallback(async () => {
-    try {
-      const res = await fetch('/api/lab/analytics/advanced', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch advanced analytics');
-      const data = await res.json();
-      setAdvancedAnalytics(data);
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to load advanced analytics', variant: 'destructive' });
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchAnalytics();
-    fetchInsights();
-    fetchAiInsights();
-    fetchCriticalAlerts();
-    fetchAdvancedAnalytics();
-  }, [fetchAnalytics, fetchInsights, fetchAiInsights, fetchCriticalAlerts, fetchAdvancedAnalytics]);
 
   return (
     <div className="container py-8">
