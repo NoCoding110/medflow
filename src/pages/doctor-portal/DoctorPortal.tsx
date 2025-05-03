@@ -62,8 +62,6 @@ const DoctorPortal = () => {
       <DoctorPortalSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <main className="flex-1 overflow-auto">
-          <h1 className="text-3xl font-bold tracking-tight mb-6">Doctor Portal</h1>
-          <AIInsightsBox />
           <Outlet />
         </main>
       </div>

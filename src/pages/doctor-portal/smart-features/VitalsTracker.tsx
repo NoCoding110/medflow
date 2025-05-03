@@ -15,15 +15,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import AIInsightsBox from '@/components/AIInsightsBox';
-
-interface Patient {
-  id: string;
-  name: string;
-  age: number;
-  image?: string;
-  lastActive: string;
-}
+import { PatientSelector } from '@/components/PatientSelector';
+import AIInsightsPanel from '@/components/AIInsightsPanel';
 
 interface VitalsEntry {
   id: string;
@@ -76,8 +69,8 @@ interface Alert {
 
 const VitalsTracker = () => {
   // State
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patients, setPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [vitalsData, setVitalsData] = useState<VitalsEntry[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
@@ -210,69 +203,33 @@ const VitalsTracker = () => {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Vitals Tracker</h1>
-      <AIInsightsBox />
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
-        {/* Patient List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patients</CardTitle>
-            <CardDescription>Select a patient to view their vitals</CardDescription>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patients..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-2">
-                {patients.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((patient) => (
-                    <div
-                      key={patient.id}
-                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                        selectedPatient?.id === patient.id ? 'bg-accent' : ''
-                      }`}
-                      onClick={() => setSelectedPatient(patient)}
-                    >
-                      <Avatar>
-                        {patient.image ? (
-                          <AvatarImage src={patient.image} />
-                        ) : (
-                          <AvatarFallback>
-                            <User className="h-5 w-5" />
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">{patient.name}</p>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {patient.lastActive}
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        {/* Patient Selector */}
+        <PatientSelector
+          patients={patients.map(p => ({
+            id: p.id,
+            name: p.name,
+            status: 'stable', // You can map real status if available
+            lastActivity: p.lastActive || "",
+            image: p.image,
+          }))}
+          selectedPatientId={selectedPatient?.id || null}
+          onSelect={id => setSelectedPatient(patients.find(p => p.id === id) || null)}
+        />
 
         {/* Vitals Dashboard */}
         <div className="space-y-6">
           {selectedPatient && (
             <>
+              <AIInsightsPanel
+                patient={{ id: selectedPatient.id, name: selectedPatient.name }}
+                module="vitals"
+                data={vitalsData.filter(v => v.patientId === selectedPatient.id)}
+              />
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">{selectedPatient.name}'s Vitals</h2>
-                  <p className="text-muted-foreground">Age: {selectedPatient.age}</p>
+                  <p className="text-muted-foreground">Age: {(selectedPatient as any).age || ''}</p>
                 </div>
                 <div className="flex gap-2">
                   <Select value={typeFilter} onValueChange={setTypeFilter}>

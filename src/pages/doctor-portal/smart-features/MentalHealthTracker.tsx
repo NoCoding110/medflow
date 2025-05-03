@@ -27,9 +27,13 @@ import {
   TrendingDown,
   AlertTriangle,
   Heart,
-  SmilePlus
+  SmilePlus,
+  Calendar,
+  ChevronRight,
 } from 'lucide-react';
-import AIInsightsBox from '@/components/AIInsightsBox';
+import { PatientSelector } from '@/components/PatientSelector';
+import AIInsightsPanel from '@/components/AIInsightsPanel';
+import { Button } from '@/components/ui/button';
 
 interface Assessment {
   id: string;
@@ -174,6 +178,17 @@ const CHANGE_ICONS = {
   stable: <TrendingUp className="h-4 w-4 text-yellow-500" />
 };
 
+const getRiskLevelColor = (level: 'low' | 'moderate' | 'high') => {
+  switch (level) {
+    case 'low':
+      return 'bg-green-100 text-green-800';
+    case 'moderate':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'high':
+      return 'bg-red-100 text-red-800';
+  }
+};
+
 const MentalHealthTracker = () => {
   const [selectedPatient, setSelectedPatient] = useState<Patient>(mockPatients[0]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -185,227 +200,200 @@ const MentalHealthTracker = () => {
   return (
     <div className="container py-8">
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
-        {/* Patient List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patients</CardTitle>
-            <CardDescription>Select a patient to view mental health data</CardDescription>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patients..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="space-y-2">
-                {filteredPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                      selectedPatient.id === patient.id ? 'bg-accent' : ''
-                    }`}
-                    onClick={() => setSelectedPatient(patient)}
-                  >
-                    <Avatar>
-                      <AvatarFallback>
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium">{patient.name}</p>
-                        <Badge className={STATUS_COLORS[patient.status]}>
-                          {patient.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Last assessment: {patient.lastAssessment}
-                      </p>
-                      <div className="mt-1">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className={`h-4 w-4 ${RISK_COLORS[patient.riskLevel]}`} />
-                          <span className={`text-sm ${RISK_COLORS[patient.riskLevel]}`}>
-                            {patient.riskLevel} risk
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        {/* Patient Selector */}
+        <PatientSelector
+          patients={mockPatients.map(p => ({
+            id: p.id,
+            name: p.name,
+            status: p.status,
+            lastActivity: p.lastAssessment,
+            image: p.image,
+          }))}
+          selectedPatientId={selectedPatient?.id || null}
+          onSelect={id => setSelectedPatient(mockPatients.find(p => p.id === id) || null)}
+        />
 
         {/* Mental Health Dashboard */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Mental Health Overview - {selectedPatient.name}</h2>
-              <p className="text-muted-foreground">Last assessment: {selectedPatient.lastAssessment}</p>
-            </div>
-            <Badge className={STATUS_COLORS[selectedPatient.status]}>
-              {selectedPatient.status.toUpperCase()}
-            </Badge>
-          </div>
-
-          {/* Current Metrics */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Current Mood</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{selectedPatient.currentMetrics.mood}/10</h3>
-                    <Progress value={selectedPatient.currentMetrics.mood * 10} className="h-2 mt-2" />
+          {selectedPatient && (
+            <>
+              <AIInsightsPanel
+                patient={{ id: selectedPatient.id, name: selectedPatient.name }}
+                module="mental-health"
+                data={selectedPatient}
+              />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Mental Health Overview - {selectedPatient.name}</h2>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>Age: {selectedPatient.age}</span>
+                    <span>•</span>
+                    <span>Last assessment: {selectedPatient.lastAssessment}</span>
+                    <span>•</span>
+                    <Badge className={getRiskLevelColor(selectedPatient.riskLevel)}>
+                      {selectedPatient.riskLevel} Risk
+                    </Badge>
                   </div>
-                  <SmilePlus className="h-5 w-5 text-blue-500" />
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Anxiety Level</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{selectedPatient.currentMetrics.anxiety}/10</h3>
-                    <Progress value={selectedPatient.currentMetrics.anxiety * 10} className="h-2 mt-2" />
-                  </div>
-                  <Brain className="h-5 w-5 text-purple-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Stress Level</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{selectedPatient.currentMetrics.stress}/10</h3>
-                    <Progress value={selectedPatient.currentMetrics.stress * 10} className="h-2 mt-2" />
-                  </div>
-                  <Heart className="h-5 w-5 text-red-500" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Charts */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Mood Trends</CardTitle>
-                <CardDescription>Tracking mood, anxiety, and stress levels</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={selectedPatient.weeklyMood}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="day" />
-                      <YAxis domain={[0, 10]} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="mood"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={{ fill: '#3b82f6' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="anxiety"
-                        stroke="#8b5cf6"
-                        strokeWidth={2}
-                        dot={{ fill: '#8b5cf6' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="stress"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        dot={{ fill: '#ef4444' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Mental Health Metrics</CardTitle>
-                <CardDescription>Overall assessment of key indicators</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[selectedPatient.currentMetrics]}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="name" />
-                      <PolarRadiusAxis angle={30} domain={[0, 10]} />
-                      <Radar
-                        name="Current"
-                        dataKey="value"
-                        stroke="#3b82f6"
-                        fill="#3b82f6"
-                        fillOpacity={0.6}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Assessments */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Assessments</CardTitle>
-              <CardDescription>Latest mental health evaluations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {selectedPatient.recentAssessments.map((assessment) => (
-                  <div key={assessment.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                    <div>
-                      <h4 className="font-medium">{assessment.type}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Date: {assessment.date}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {assessment.notes}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="font-medium">Score: {assessment.score}</span>
-                        {CHANGE_ICONS[assessment.change]}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        Status: {assessment.change}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                <Button>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Schedule Assessment
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Key Metrics */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Anxiety Level</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold">{selectedPatient.currentMetrics.anxiety}/10</h3>
+                        <Progress value={selectedPatient.currentMetrics.anxiety * 10} className="h-2 mt-2" />
+                      </div>
+                      <Brain className="h-5 w-5 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Depression Level</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold">{selectedPatient.currentMetrics.depression}/10</h3>
+                        <Progress value={selectedPatient.currentMetrics.depression * 10} className="h-2 mt-2" />
+                      </div>
+                      <Heart className="h-5 w-5 text-red-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Stress Level</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold">{selectedPatient.currentMetrics.stress}/10</h3>
+                        <Progress value={selectedPatient.currentMetrics.stress * 10} className="h-2 mt-2" />
+                      </div>
+                      <Heart className="h-5 w-5 text-red-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Charts */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Weekly Mood Trends</CardTitle>
+                    <CardDescription>Tracking mood, anxiety, and stress levels</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={selectedPatient.weeklyMood}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis dataKey="day" />
+                          <YAxis domain={[0, 10]} />
+                          <Tooltip />
+                          <Line
+                            type="monotone"
+                            dataKey="mood"
+                            stroke="#3b82f6"
+                            strokeWidth={2}
+                            dot={{ fill: '#3b82f6' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="anxiety"
+                            stroke="#8b5cf6"
+                            strokeWidth={2}
+                            dot={{ fill: '#8b5cf6' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="stress"
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                            dot={{ fill: '#ef4444' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mental Health Metrics</CardTitle>
+                    <CardDescription>Overall assessment of key indicators</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[selectedPatient.currentMetrics]}>
+                          <PolarGrid />
+                          <PolarAngleAxis dataKey="name" />
+                          <PolarRadiusAxis angle={30} domain={[0, 10]} />
+                          <Radar
+                            name="Current"
+                            dataKey="value"
+                            stroke="#3b82f6"
+                            fill="#3b82f6"
+                            fillOpacity={0.6}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Assessments */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Assessments</CardTitle>
+                  <CardDescription>Latest mental health evaluations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {selectedPatient.recentAssessments.map((assessment) => (
+                      <div key={assessment.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                        <div>
+                          <h4 className="font-medium">{assessment.type}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Date: {assessment.date}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {assessment.notes}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-2 justify-end">
+                            <span className="font-medium">Score: {assessment.score}</span>
+                            {CHANGE_ICONS[assessment.change]}
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            Status: {assessment.change}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
-      <AIInsightsBox />
     </div>
   );
 };
