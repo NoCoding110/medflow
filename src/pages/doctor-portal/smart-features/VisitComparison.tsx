@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 const VisitComparison = () => {
   const compareData = {
@@ -58,6 +58,7 @@ const VisitComparison = () => {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Visit Comparison</h1>
+      <AIInsightsBox />
 
       <div className="grid gap-6">
         <Card>

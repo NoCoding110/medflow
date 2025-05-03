@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Bell, TrendingDown, TrendingUp } from 'lucide-react';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 const WellnessAlerts = () => {
   const alerts = [
@@ -34,7 +34,8 @@ const WellnessAlerts = () => {
   return (
     <div className="container py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Wellness Alerts</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-6">Wellness Alerts</h1>
+        <AIInsightsBox />
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
           <span className="text-sm text-muted-foreground">

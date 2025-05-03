@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Line } from "recharts";
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface Task {
   id: string;
@@ -442,6 +443,8 @@ const DoctorDashboard = () => {
           </div>
         </div>
       </div>
+
+      <AIInsightsBox />
 
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Activity, Brain, AlertTriangle } from 'lucide-react';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 const SmartDifferential = () => {
   // Sample data - in a real app this would come from an AI service
@@ -24,7 +24,8 @@ const SmartDifferential = () => {
   return (
     <div className="container py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Smart Differential Diagnosis</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-6">Differential Diagnosis</h1>
+        <AIInsightsBox />
         <Button className="flex items-center gap-2">
           <Brain className="h-4 w-4" />
           Generate New Analysis

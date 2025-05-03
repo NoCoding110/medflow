@@ -45,6 +45,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { toast } from "react-hot-toast";
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface VisitData {
   id: string;
@@ -276,9 +277,7 @@ export const SmartVisitPrep = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-semibold">Visit Preparation</h1>
-            <p className="text-sm text-muted-foreground">
-              Prepare for upcoming patient visits with AI assistance
-            </p>
+            <AIInsightsBox />
           </div>
         </div>
         <div className="flex items-center gap-4">

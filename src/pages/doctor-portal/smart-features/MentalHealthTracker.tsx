@@ -29,6 +29,7 @@ import {
   Heart,
   SmilePlus
 } from 'lucide-react';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface Assessment {
   id: string;
@@ -404,6 +405,7 @@ const MentalHealthTracker = () => {
           </Card>
         </div>
       </div>
+      <AIInsightsBox />
     </div>
   );
 };

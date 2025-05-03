@@ -14,6 +14,7 @@ import {
   Apple, Utensils, Clock, Search, User, ChevronRight, AlertTriangle, CheckCircle2, Scale, Leaf, Fish, Milk, Beef, Cookie, TrendingUp, TrendingDown, Minus, BarChart2, Sparkles
 } from 'lucide-react';
 import { toast } from "react-hot-toast";
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 // Types
 interface Patient {
@@ -196,7 +197,8 @@ const NutritionTracker = () => {
 
   return (
     <div className="container py-8">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Nutrition Tracker</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Nutrition Tracker</h1>
+      <AIInsightsBox />
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
         {/* Patient List */}
         <Card>

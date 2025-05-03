@@ -25,6 +25,7 @@ import {
   TrendingDown,
   Minus
 } from 'lucide-react';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface Symptom {
   id: string;
@@ -201,6 +202,8 @@ const SymptomTracker = () => {
 
         {/* Symptom Dashboard */}
         <div className="space-y-6">
+          <h1 className="text-3xl font-bold tracking-tight mb-6">Symptom Tracker</h1>
+          <AIInsightsBox />
           <h2 className="text-2xl font-bold">Symptom History - {selectedPatient.name}</h2>
           
           {/* Summary Cards */}

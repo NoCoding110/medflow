@@ -15,6 +15,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface Patient {
   id: string;
@@ -209,6 +210,7 @@ const VitalsTracker = () => {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Vitals Tracker</h1>
+      <AIInsightsBox />
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
         {/* Patient List */}
         <Card>

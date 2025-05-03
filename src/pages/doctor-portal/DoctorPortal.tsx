@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LayoutDashboard, Calendar, Users, Video, TestTube2, MessageSquare, Settings } from "lucide-react";
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 const navigation = [
   { name: "Dashboard", href: "/doctor", icon: LayoutDashboard },
@@ -61,6 +62,8 @@ const DoctorPortal = () => {
       <DoctorPortalSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <main className="flex-1 overflow-auto">
+          <h1 className="text-3xl font-bold tracking-tight mb-6">Doctor Portal</h1>
+          <AIInsightsBox />
           <Outlet />
         </main>
       </div>

@@ -32,6 +32,7 @@ import {
   Brain
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface WellnessEntry {
   id: string;
@@ -224,6 +225,8 @@ const WellnessDashboard = () => {
                   </p>
                 </div>
               </div>
+
+              <AIInsightsBox />
 
               {/* Analytics Overview */}
               <div className="grid gap-4 md:grid-cols-4 mb-6">

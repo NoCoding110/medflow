@@ -7,6 +7,7 @@ import { Search, FileText, Filter, BarChart2, Brain, AlertCircle, TrendingUp, Tr
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface Record {
   id: string;
@@ -158,6 +159,8 @@ const DoctorRecords = () => {
 
   return (
     <div className="container py-8">
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Records</h1>
+      <AIInsightsBox />
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>

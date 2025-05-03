@@ -39,6 +39,7 @@ import {
   AlertTriangle,
   Sparkles
 } from 'lucide-react';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 interface FitnessData {
   id: string;
@@ -439,6 +440,7 @@ const FitnessTracking = () => {
           </Card>
         </div>
       </div>
+      <AIInsightsBox />
     </div>
   );
 };

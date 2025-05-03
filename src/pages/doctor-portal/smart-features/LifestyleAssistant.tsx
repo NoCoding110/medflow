@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Heart, Utensils } from 'lucide-react';
+import AIInsightsBox from '@/components/AIInsightsBox';
 
 const LifestyleAssistant = () => {
   const recommendations = {
@@ -25,6 +25,7 @@ const LifestyleAssistant = () => {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Lifestyle Assistant</h1>
+      <AIInsightsBox />
       
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
