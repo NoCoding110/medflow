@@ -1,37 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell
 } from 'recharts';
 import {
-  Search,
-  User,
-  Target,
-  Trophy,
-  Clock,
-  TrendingUp,
-  CheckCircle2,
-  Timer,
-  Calendar,
-  Activity
+  Search, User, Target, Trophy, Clock, TrendingUp, CheckCircle2, Timer, Calendar, Activity, TrendingDown, Minus, BarChart2, Sparkles, AlertTriangle
 } from 'lucide-react';
+import { toast } from "react-hot-toast";
 
-interface Goal {
+// Types
+interface Patient {
   id: string;
+  name: string;
+  age: number;
+  image?: string;
+  lastUpdate: string;
+  status: 'active' | 'review-needed' | 'completed';
+}
+
+interface GoalEntry {
+  id: string;
+  patientId: string;
   title: string;
   category: 'health' | 'fitness' | 'nutrition' | 'mental';
   progress: number;
@@ -47,191 +42,180 @@ interface Goal {
   }>;
 }
 
-interface Patient {
-  id: string;
-  name: string;
-  age: number;
-  image?: string;
-  lastUpdate: string;
-  status: 'active' | 'review-needed' | 'completed';
-  activeGoals: number;
-  completedGoals: number;
-  overallProgress: number;
-  goals: Goal[];
-  progressHistory: Array<{
-    week: string;
-    progress: number;
-  }>;
-  categoryProgress: Array<{
-    category: string;
-    progress: number;
-  }>;
+interface AnalyticsData {
+  totalGoals: number;
+  avgProgress: number;
+  activeCount: number;
+  completedCount: number;
+  atRiskCount: number;
+  trends: { week: string; progress: number; }[];
+  comparison: { previous: number; current: number; change: number; trend: 'improved' | 'declined' | 'stable'; };
 }
 
-const mockPatients: Patient[] = [
-  {
-    id: '1',
-    name: 'Emma Wilson',
-    age: 32,
-    lastUpdate: '2 hours ago',
-    status: 'active',
-    activeGoals: 3,
-    completedGoals: 5,
-    overallProgress: 75,
-    goals: [
-      {
-        id: 'g1',
-        title: 'Weight Management',
-        category: 'health',
-        progress: 80,
-        target: 'Lose 10 lbs',
-        deadline: '2024-04-15',
-        status: 'on-track',
-        lastUpdate: '1 day ago',
-        milestones: [
-          {
-            id: 'm1',
-            title: 'Initial weigh-in',
-            completed: true,
-            dueDate: '2024-03-01'
-          },
-          {
-            id: 'm2',
-            title: 'Midway check',
-            completed: true,
-            dueDate: '2024-03-15'
-          },
-          {
-            id: 'm3',
-            title: 'Final weigh-in',
-            completed: false,
-            dueDate: '2024-04-15'
-          }
-        ]
-      },
-      {
-        id: 'g2',
-        title: 'Exercise Routine',
-        category: 'fitness',
-        progress: 65,
-        target: '30 mins daily workout',
-        deadline: '2024-04-30',
-        status: 'on-track',
-        lastUpdate: '3 hours ago',
-        milestones: [
-          {
-            id: 'm4',
-            title: 'Start with 10 mins',
-            completed: true,
-            dueDate: '2024-03-05'
-          },
-          {
-            id: 'm5',
-            title: 'Increase to 20 mins',
-            completed: true,
-            dueDate: '2024-03-20'
-          },
-          {
-            id: 'm6',
-            title: 'Achieve 30 mins',
-            completed: false,
-            dueDate: '2024-04-30'
-          }
-        ]
-      }
-    ],
-    progressHistory: [
-      { week: 'Week 1', progress: 40 },
-      { week: 'Week 2', progress: 55 },
-      { week: 'Week 3', progress: 65 },
-      { week: 'Week 4', progress: 75 }
-    ],
-    categoryProgress: [
-      { category: 'Health', progress: 80 },
-      { category: 'Fitness', progress: 65 },
-      { category: 'Nutrition', progress: 70 },
-      { category: 'Mental', progress: 85 }
-    ]
-  },
-  {
-    id: '2',
-    name: 'James Anderson',
-    age: 45,
-    lastUpdate: '1 day ago',
-    status: 'review-needed',
-    activeGoals: 4,
-    completedGoals: 2,
-    overallProgress: 45,
-    goals: [
-      {
-        id: 'g3',
-        title: 'Blood Pressure Management',
-        category: 'health',
-        progress: 50,
-        target: 'Maintain BP below 130/85',
-        deadline: '2024-05-01',
-        status: 'at-risk',
-        lastUpdate: '2 days ago',
-        milestones: [
-          {
-            id: 'm7',
-            title: 'Start BP monitoring',
-            completed: true,
-            dueDate: '2024-03-01'
-          },
-          {
-            id: 'm8',
-            title: 'Medication review',
-            completed: false,
-            dueDate: '2024-04-01'
-          }
-        ]
-      }
-    ],
-    progressHistory: [
-      { week: 'Week 1', progress: 30 },
-      { week: 'Week 2', progress: 35 },
-      { week: 'Week 3', progress: 40 },
-      { week: 'Week 4', progress: 45 }
-    ],
-    categoryProgress: [
-      { category: 'Health', progress: 50 },
-      { category: 'Fitness', progress: 40 },
-      { category: 'Nutrition', progress: 45 },
-      { category: 'Mental', progress: 55 }
-    ]
-  }
-];
+interface AIInsight {
+  id: string;
+  message: string;
+  type: 'trend' | 'recommendation' | 'risk';
+  severity: 'info' | 'warning' | 'critical';
+  timestamp: string;
+}
+
+interface Alert {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'info' | 'warning' | 'critical';
+  type: string;
+  timestamp: string;
+  patientId: string;
+}
 
 const STATUS_COLORS = {
-  active: 'bg-green-100 text-green-800',
+  'active': 'bg-green-100 text-green-800',
   'review-needed': 'bg-yellow-100 text-yellow-800',
-  completed: 'bg-blue-100 text-blue-800'
+  'completed': 'bg-blue-100 text-blue-800'
 };
 
 const GOAL_STATUS_COLORS = {
-  'on-track': 'text-green-500',
-  'at-risk': 'text-yellow-500',
-  completed: 'text-blue-500'
-};
-
-const CATEGORY_COLORS = {
-  Health: '#22c55e',
-  Fitness: '#3b82f6',
-  Nutrition: '#f59e0b',
-  Mental: '#8b5cf6'
+  'on-track': 'bg-green-100 text-green-800',
+  'at-risk': 'bg-yellow-100 text-yellow-800',
+  'completed': 'bg-blue-100 text-blue-800'
 };
 
 const PatientGoals = () => {
-  const [selectedPatient, setSelectedPatient] = useState<Patient>(mockPatients[0]);
+  // State
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [goals, setGoals] = useState<GoalEntry[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [timeRange, setTimeRange] = useState('30d');
+  const [sortBy, setSortBy] = useState<'deadline' | 'progress' | 'status'>('deadline');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredPatients = mockPatients.filter(patient =>
-    patient.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [patientsRes, goalsRes, analyticsRes, aiRes, alertsRes] = await Promise.all([
+          fetch('/api/patients'),
+          fetch(`/api/goals?timeRange=${timeRange}`),
+          fetch(`/api/goals/analytics?timeRange=${timeRange}`),
+          fetch(`/api/goals/insights/ai?timeRange=${timeRange}`),
+          fetch(`/api/goals/alerts?timeRange=${timeRange}`)
+        ]);
+        if (!patientsRes.ok || !goalsRes.ok || !analyticsRes.ok || !aiRes.ok || !alertsRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        const [patientsData, goalsData, analyticsData, aiData, alertsData] = await Promise.all([
+          patientsRes.json(),
+          goalsRes.json(),
+          analyticsRes.json(),
+          aiRes.json(),
+          alertsRes.json()
+        ]);
+        setPatients(patientsData);
+        setSelectedPatient(patientsData[0] || null);
+        setGoals(goalsData);
+        setAnalytics(analyticsData);
+        setAiInsights(aiData);
+        setAlerts(alertsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        toast.error('Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [timeRange]);
+
+  // Filtered and sorted goals
+  const filteredGoals = useMemo(() => {
+    let filtered = goals;
+    if (selectedPatient) {
+      filtered = filtered.filter(goal => goal.patientId === selectedPatient.id);
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(goal => goal.status === statusFilter);
+    }
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(goal => goal.category === categoryFilter);
+    }
+    switch (sortBy) {
+      case 'deadline':
+        filtered.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+        break;
+      case 'progress':
+        filtered.sort((a, b) => b.progress - a.progress);
+        break;
+      case 'status':
+        const statusOrder = { 'on-track': 0, 'at-risk': 1, 'completed': 2 };
+        filtered.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+        break;
+    }
+    return filtered;
+  }, [goals, selectedPatient, statusFilter, categoryFilter, sortBy]);
+
+  // Helpers
+  const getStatusColor = (status: 'active' | 'review-needed' | 'completed') => STATUS_COLORS[status];
+  const getGoalStatusColor = (status: 'on-track' | 'at-risk' | 'completed') => GOAL_STATUS_COLORS[status];
+  const getAlertStatusColor = (severity: 'info' | 'warning' | 'critical') => {
+    switch (severity) {
+      case 'critical':
+        return 'bg-red-100 text-red-800';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+  const getTrendIcon = (trend: 'improved' | 'declined' | 'stable') => {
+    switch (trend) {
+      case 'improved':
+        return <TrendingDown className="h-4 w-4 text-green-500" />;
+      case 'declined':
+        return <TrendingUp className="h-4 w-4 text-red-500" />;
+      default:
+        return <Minus className="h-4 w-4 text-yellow-500" />;
+    }
+  };
+  const statusOptions = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'on-track', label: 'On Track' },
+    { value: 'at-risk', label: 'At Risk' },
+    { value: 'completed', label: 'Completed' },
+  ];
+  const categoryOptions = [
+    { value: 'all', label: 'All Categories' },
+    { value: 'health', label: 'Health' },
+    { value: 'fitness', label: 'Fitness' },
+    { value: 'nutrition', label: 'Nutrition' },
+    { value: 'mental', label: 'Mental' },
+  ];
+  const timeRanges = [
+    { value: '7d', label: 'Last 7 Days' },
+    { value: '30d', label: 'Last 30 Days' },
+    { value: '90d', label: 'Last 90 Days' },
+  ];
+
+  if (loading) {
+    return <div className="container py-8 text-center text-lg">Loading goals data...</div>;
+  }
+  if (error) {
+    return <div className="container py-8 text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="container py-8">
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Goals Tracker</h1>
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
         {/* Patient List */}
         <Card>
@@ -249,42 +233,38 @@ const PatientGoals = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[calc(100vh-220px)]">
+            <ScrollArea className="h-[600px]">
               <div className="space-y-2">
-                {filteredPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                      selectedPatient.id === patient.id ? 'bg-accent' : ''
-                    }`}
-                    onClick={() => setSelectedPatient(patient)}
-                  >
-                    <Avatar>
-                      <AvatarFallback>
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium">{patient.name}</p>
-                        <Badge className={STATUS_COLORS[patient.status]}>
-                          {patient.status}
-                        </Badge>
-                      </div>
-                      <div className="mt-2">
-                        <Progress value={patient.overallProgress} className="h-2" />
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-sm text-muted-foreground">
-                            {patient.activeGoals} active goals
-                          </span>
-                          <span className="text-sm font-medium">
-                            {patient.overallProgress}% complete
-                          </span>
+                {patients.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((patient) => (
+                    <div
+                      key={patient.id}
+                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
+                        selectedPatient?.id === patient.id ? 'bg-accent' : ''
+                      }`}
+                      onClick={() => setSelectedPatient(patient)}
+                    >
+                      <Avatar>
+                        {patient.image ? (
+                          <AvatarImage src={patient.image} />
+                        ) : (
+                          <AvatarFallback>
+                            <User className="h-5 w-5" />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{patient.name}</p>
+                          <Badge className={getStatusColor(patient.status)}>{patient.status}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          Last update: {patient.lastUpdate}
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </ScrollArea>
           </CardContent>
@@ -292,184 +272,245 @@ const PatientGoals = () => {
 
         {/* Goals Dashboard */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Patient Goals - {selectedPatient.name}</h2>
-              <p className="text-muted-foreground">Last updated: {selectedPatient.lastUpdate}</p>
-            </div>
-            <Badge className={STATUS_COLORS[selectedPatient.status]}>
-              {selectedPatient.status.toUpperCase()}
-            </Badge>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{selectedPatient.overallProgress}%</h3>
-                    <Progress value={selectedPatient.overallProgress} className="h-2 mt-2" />
+          {selectedPatient && (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Goals Overview - {selectedPatient.name}</h2>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>Age: {selectedPatient.age}</span>
+                    <span>•</span>
+                    <span>Last update: {selectedPatient.lastUpdate}</span>
                   </div>
-                  <Target className="h-5 w-5 text-blue-500" />
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Active Goals</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{selectedPatient.activeGoals}</h3>
-                    <p className="text-sm text-muted-foreground">In progress</p>
-                  </div>
-                  <Activity className="h-5 w-5 text-yellow-500" />
+                <div className="flex gap-2">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={timeRange} onValueChange={setTimeRange}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Time Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeRanges.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Completed Goals</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">{selectedPatient.completedGoals}</h3>
-                    <p className="text-sm text-muted-foreground">Achieved</p>
-                  </div>
-                  <Trophy className="h-5 w-5 text-green-500" />
+              {/* Analytics Overview */}
+              {analytics && (
+                <div className="grid gap-4 md:grid-cols-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Goals</CardTitle>
+                      <Target className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.totalGoals}</div>
+                      <p className="text-xs text-muted-foreground">goals tracked</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Avg Progress</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.avgProgress.toFixed(1)}%</div>
+                      <p className="text-xs text-muted-foreground">
+                        {analytics.comparison.change > 0 ? '+' : ''}{analytics.comparison.change}% from previous
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Status Distribution</CardTitle>
+                      <BarChart2 className="h-4 w-4 text-orange-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Active</span>
+                          <span>{analytics.activeCount}</span>
+                        </div>
+                        <Progress value={(analytics.activeCount / analytics.totalGoals) * 100} className="h-2" />
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Completed</span>
+                          <span>{analytics.completedCount}</span>
+                        </div>
+                        <Progress value={(analytics.completedCount / analytics.totalGoals) * 100} className="h-2" />
+                        <div className="flex items-center justify-between text-sm">
+                          <span>At Risk</span>
+                          <span>{analytics.atRiskCount}</span>
+                        </div>
+                        <Progress value={(analytics.atRiskCount / analytics.totalGoals) * 100} className="h-2" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Trend Analysis</CardTitle>
+                      <LineChart className="h-4 w-4 text-purple-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {analytics.comparison.current}%
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {getTrendIcon(analytics.comparison.trend)}
+                        <span>
+                          {analytics.comparison.trend === 'improved' ? 'Improved' : 
+                            analytics.comparison.trend === 'declined' ? 'Declined' : 'Stable'}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
 
-          {/* Progress Charts */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Progress History</CardTitle>
-                <CardDescription>Weekly goal completion rate</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={selectedPatient.progressHistory}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              {/* AI Insights and Alerts */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-indigo-500" />
+                      AI Insights
+                    </CardTitle>
+                    <CardDescription>Smart analysis and recommendations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-4">
+                        {aiInsights.length > 0 ? aiInsights.map((insight) => (
+                          <div key={insight.id} className="p-4 border rounded-lg bg-muted">
+                            <div className="flex items-start gap-3">
+                              {insight.type === 'trend' && <TrendingUp className="h-4 w-4 text-blue-500" />}
+                              {insight.type === 'recommendation' && <Sparkles className="h-4 w-4 text-indigo-500" />}
+                              {insight.type === 'risk' && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                              <div className="flex-1">
+                                <p className="text-sm">{insight.message}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(insight.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )) : (
+                          <div className="text-muted-foreground text-sm">No AI insights available.</div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      Alerts
+                    </CardTitle>
+                    <CardDescription>Critical and warning items</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-4">
+                        {alerts.length > 0 ? alerts.map((alert) => (
+                          <div key={alert.id} className={`p-4 border rounded-lg ${getAlertStatusColor(alert.severity)}`}>
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="h-4 w-4" />
+                              <div className="flex-1">
+                                <h4 className="font-medium">{alert.title}</h4>
+                                <p className="text-sm text-muted-foreground">{alert.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(alert.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )) : (
+                          <div className="text-muted-foreground text-sm">No alerts.</div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Goals Trends Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Goals Trends</CardTitle>
+                  <CardDescription>Track progress over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={analytics?.trends || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="week" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="progress"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={{ fill: '#3b82f6' }}
-                      />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Line type="monotone" dataKey="progress" stroke="#8884d8" name="Progress" dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Category Progress</CardTitle>
-                <CardDescription>Progress by goal category</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={selectedPatient.categoryProgress}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="category" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Bar dataKey="progress" fill="#3b82f6">
-                        {selectedPatient.categoryProgress.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.category]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Active Goals */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Goals</CardTitle>
-              <CardDescription>Current goals and milestones</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {selectedPatient.goals.map((goal) => (
-                  <div key={goal.id} className="border-b pb-6 last:border-0">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="font-medium">{goal.title}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            Deadline: {goal.deadline}
-                          </span>
-                        </div>
-                      </div>
-                      <Badge
-                        className={`${
-                          goal.status === 'on-track'
-                            ? 'bg-green-100 text-green-800'
-                            : goal.status === 'at-risk'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}
-                      >
-                        {goal.status}
-                      </Badge>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium">Progress</span>
-                          <span className="text-sm text-muted-foreground">{goal.progress}%</span>
-                        </div>
-                        <Progress value={goal.progress} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <h5 className="text-sm font-medium">Milestones</h5>
-                        {goal.milestones.map((milestone) => (
-                          <div
-                            key={milestone.id}
-                            className="flex items-center justify-between bg-accent/50 rounded-lg p-2"
-                          >
-                            <div className="flex items-center gap-2">
-                              {milestone.completed ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <Timer className="h-4 w-4 text-yellow-500" />
-                              )}
-                              <span className="text-sm">{milestone.title}</span>
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                              Due: {milestone.dueDate}
-                            </span>
+              {/* Recent Goals */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Goals</CardTitle>
+                  <CardDescription>Latest goals and milestones</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {filteredGoals.map((goal) => (
+                      <div key={goal.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <Target className="h-4 w-4 text-primary" />
                           </div>
-                        ))}
+                          <div>
+                            <p className="font-medium">{goal.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {goal.category.charAt(0).toUpperCase() + goal.category.slice(1)} • Target: {goal.target}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <Badge className={getGoalStatusColor(goal.status)}>{goal.status}</Badge>
+                            <div className="flex items-center gap-1 mt-1 justify-end">
+                              <span className="text-sm text-muted-foreground">Progress: </span>
+                              <span className="font-medium">{goal.progress}%</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </div>

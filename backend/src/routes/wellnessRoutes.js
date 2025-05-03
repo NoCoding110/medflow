@@ -14,4 +14,7 @@ router.get('/analytics', auth, wellnessController.getWellnessAnalytics);
 // AI Insights
 router.get('/ai-insights', auth, wellnessController.getWellnessAIInsights);
 
+// Alerts
+router.get('/alerts', auth, wellnessController.getWellnessAlerts);
+
 module.exports = router; 

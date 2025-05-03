@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,12 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer
 } from 'recharts';
 import {
   Heart,
-  Activity,
+  Activity as LucideActivity,
   Thermometer,
   Search,
   Calendar,
@@ -28,159 +28,140 @@ import {
   TrendingDown,
   Minus,
   User,
-  ChevronRight
+  ChevronRight,
+  Brain
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+
+interface WellnessEntry {
+  id: string;
+  patientId: string;
+  recordedAt: string;
+  sleepDuration: number;
+  stressLevel: number;
+  activityMinutes: number;
+  waterIntake: number;
+}
 
 interface Patient {
   id: string;
   name: string;
   age: number;
   image?: string;
-  lastChecked: string;
-  metrics: {
-    heartRate: number;
-    heartRateTrend: 'up' | 'down' | 'stable';
-    steps: number;
-    stepsTrend: 'up' | 'down' | 'stable';
-    temperature: number;
-    temperatureTrend: 'up' | 'down' | 'stable';
-    bloodPressure: string;
-    bloodPressureTrend: 'up' | 'down' | 'stable';
-    sleep: number;
-    sleepTrend: 'up' | 'down' | 'stable';
-    stress: number;
-    stressTrend: 'up' | 'down' | 'stable';
-  };
-  weeklyData: Array<{
-    date: string;
-    heartRate: number;
-    steps: number;
-    temperature: number;
-  }>;
-  status: 'normal' | 'warning' | 'critical';
 }
 
-// Sample patient data
-const patients: Patient[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    age: 45,
-    lastChecked: '2 hours ago',
-    metrics: {
-      heartRate: 72,
-      heartRateTrend: 'up',
-      steps: 9500,
-      stepsTrend: 'up',
-      temperature: 36.6,
-      temperatureTrend: 'stable',
-      bloodPressure: '120/80',
-      bloodPressureTrend: 'stable',
-      sleep: 7.5,
-      sleepTrend: 'down',
-      stress: 42,
-      stressTrend: 'up'
-    },
-    weeklyData: [
-      { date: '2025-04-22', heartRate: 75, steps: 8000, temperature: 36.5 },
-      { date: '2025-04-23', heartRate: 72, steps: 9500, temperature: 36.6 },
-      { date: '2025-04-24', heartRate: 70, steps: 7500, temperature: 36.6 },
-      { date: '2025-04-25', heartRate: 73, steps: 9000, temperature: 36.7 },
-      { date: '2025-04-26', heartRate: 71, steps: 11000, temperature: 36.5 },
-      { date: '2025-04-27', heartRate: 74, steps: 8500, temperature: 36.6 },
-      { date: '2025-04-28', heartRate: 72, steps: 9500, temperature: 36.6 }
-    ],
-    status: 'normal'
-  },
-  {
-    id: '2',
-    name: 'Michael Chen',
-    age: 52,
-    lastChecked: '1 hour ago',
-    metrics: {
-      heartRate: 82,
-      heartRateTrend: 'up',
-      steps: 6500,
-      stepsTrend: 'down',
-      temperature: 37.2,
-      temperatureTrend: 'up',
-      bloodPressure: '135/85',
-      bloodPressureTrend: 'up',
-      sleep: 6.2,
-      sleepTrend: 'down',
-      stress: 65,
-      stressTrend: 'up'
-    },
-    weeklyData: [
-      { date: '2025-04-22', heartRate: 78, steps: 7000, temperature: 36.8 },
-      { date: '2025-04-23', heartRate: 80, steps: 6800, temperature: 36.9 },
-      { date: '2025-04-24', heartRate: 79, steps: 6500, temperature: 37.0 },
-      { date: '2025-04-25', heartRate: 81, steps: 6200, temperature: 37.1 },
-      { date: '2025-04-26', heartRate: 80, steps: 6400, temperature: 37.1 },
-      { date: '2025-04-27', heartRate: 81, steps: 6300, temperature: 37.2 },
-      { date: '2025-04-28', heartRate: 82, steps: 6500, temperature: 37.2 }
-    ],
-    status: 'warning'
-  },
-  {
-    id: '3',
-    name: 'Emily Davis',
-    age: 38,
-    lastChecked: '30 minutes ago',
-    metrics: {
-      heartRate: 95,
-      heartRateTrend: 'up',
-      steps: 3200,
-      stepsTrend: 'down',
-      temperature: 38.1,
-      temperatureTrend: 'up',
-      bloodPressure: '145/95',
-      bloodPressureTrend: 'up',
-      sleep: 5.5,
-      sleepTrend: 'down',
-      stress: 85,
-      stressTrend: 'up'
-    },
-    weeklyData: [
-      { date: '2025-04-22', heartRate: 82, steps: 7500, temperature: 36.9 },
-      { date: '2025-04-23', heartRate: 85, steps: 6500, temperature: 37.2 },
-      { date: '2025-04-24', heartRate: 88, steps: 5000, temperature: 37.5 },
-      { date: '2025-04-25', heartRate: 90, steps: 4200, temperature: 37.8 },
-      { date: '2025-04-26', heartRate: 92, steps: 3800, temperature: 37.9 },
-      { date: '2025-04-27', heartRate: 94, steps: 3500, temperature: 38.0 },
-      { date: '2025-04-28', heartRate: 95, steps: 3200, temperature: 38.1 }
-    ],
-    status: 'critical'
-  }
-];
-
 const WellnessDashboard = () => {
-  const [selectedPatient, setSelectedPatient] = useState<Patient>(patients[0]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [wellnessData, setWellnessData] = useState<WellnessEntry[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredPatients = patients.filter(patient =>
+  // Fetch patients (simulate or fetch from backend)
+  useEffect(() => {
+    // For demo, fetch from wellness data
+    const fetchPatients = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/patients', { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch patients');
+        const data = await res.json();
+        setPatients(data);
+        setSelectedPatient(data[0] || null);
+      } catch (err: any) {
+        setError(err.message);
+        toast.error('Failed to load patients');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatients();
+  }, []);
+
+  // Fetch wellness data for selected patient
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const fetchWellness = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/wellness?patientId=${selectedPatient.id}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch wellness data');
+        const data = await res.json();
+        setWellnessData(data);
+      } catch (err: any) {
+        setError(err.message);
+        toast.error('Failed to load wellness data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWellness();
+  }, [selectedPatient]);
+
+  // Fetch analytics
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(`/api/wellness/analytics?patientId=${selectedPatient.id}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch analytics');
+        const data = await res.json();
+        setAnalytics(data);
+      } catch (err) {
+        toast.error('Failed to load analytics');
+      }
+    };
+    fetchAnalytics();
+  }, [selectedPatient]);
+
+  // Fetch AI insights
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const fetchAI = async () => {
+      try {
+        const res = await fetch(`/api/wellness/ai-insights?patientId=${selectedPatient.id}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch AI insights');
+        const data = await res.json();
+        setAiInsights(data);
+      } catch (err) {
+        toast.error('Failed to load AI insights');
+      }
+    };
+    fetchAI();
+  }, [selectedPatient]);
+
+  // Fetch alerts
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch(`/api/wellness/alerts?patientId=${selectedPatient.id}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch alerts');
+        const data = await res.json();
+        setAlerts(data);
+      } catch (err) {
+        toast.error('Failed to load alerts');
+      }
+    };
+    fetchAlerts();
+  }, [selectedPatient]);
+
+  const filteredPatients = useMemo(() => patients.filter(patient =>
     patient.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [patients, searchQuery]);
 
-  const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
-    switch (trend) {
-      case 'up':
-        return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'down':
-        return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case 'stable':
-        return <Minus className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status: 'normal' | 'warning' | 'critical') => {
-    switch (status) {
-      case 'normal':
-        return 'bg-green-100 text-green-800';
-      case 'warning':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'critical':
+  const getStatusColor = (severity: string) => {
+    switch (severity) {
+      case 'high':
         return 'bg-red-100 text-red-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-green-100 text-green-800';
     }
   };
 
@@ -209,7 +190,7 @@ const WellnessDashboard = () => {
                   <div
                     key={patient.id}
                     className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                      selectedPatient.id === patient.id ? 'bg-accent' : ''
+                      selectedPatient?.id === patient.id ? 'bg-accent' : ''
                     }`}
                     onClick={() => setSelectedPatient(patient)}
                   >
@@ -221,13 +202,6 @@ const WellnessDashboard = () => {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <p className="font-medium">{patient.name}</p>
-                        <Badge className={getStatusColor(patient.status)}>
-                          {patient.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {patient.lastChecked}
                       </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -240,185 +214,143 @@ const WellnessDashboard = () => {
 
         {/* Wellness Dashboard */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">{selectedPatient.name}'s Wellness Dashboard</h2>
-              <p className="text-muted-foreground">
-                Age: {selectedPatient.age} • Last updated: {selectedPatient.lastChecked}
-              </p>
-            </div>
-            <Button>
-              <Calendar className="mr-2 h-4 w-4" />
-              Schedule Check-up
-            </Button>
-          </div>
-
-          {/* Key Metrics */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Heart Rate</CardTitle>
-                <Heart className="h-4 w-4 text-red-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">{selectedPatient.metrics.heartRate} BPM</div>
-                    <p className="text-xs text-muted-foreground">Normal range</p>
-                  </div>
-                  {getTrendIcon(selectedPatient.metrics.heartRateTrend)}
+          {selectedPatient && (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedPatient.name}'s Wellness Dashboard</h2>
+                  <p className="text-muted-foreground">
+                    Age: {selectedPatient.age}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Daily Steps</CardTitle>
-                <Activity className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">{selectedPatient.metrics.steps}</div>
-                    <p className="text-xs text-muted-foreground">Goal: 10,000</p>
-                  </div>
-                  {getTrendIcon(selectedPatient.metrics.stepsTrend)}
-                </div>
-              </CardContent>
-            </Card>
+              {/* Analytics Overview */}
+              <div className="grid gap-4 md:grid-cols-4 mb-6">
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Entries</p>
+                        <h3 className="text-2xl font-bold">{wellnessData.length}</h3>
+                      </div>
+                      <LucideActivity className="h-8 w-8 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Avg Sleep (hrs)</p>
+                        <h3 className="text-2xl font-bold">{analytics?.avgSleep?.toFixed(1) ?? '-'}</h3>
+                      </div>
+                      <Clock className="h-8 w-8 text-purple-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Avg Stress</p>
+                        <h3 className="text-2xl font-bold">{analytics?.avgStress?.toFixed(1) ?? '-'}</h3>
+                      </div>
+                      <AlertCircle className="h-8 w-8 text-red-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Recent Entry</p>
+                        <h3 className="text-2xl font-bold">{wellnessData[0]?.recordedAt ? new Date(wellnessData[0].recordedAt).toLocaleDateString() : '-'}</h3>
+                      </div>
+                      <Calendar className="h-8 w-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Temperature</CardTitle>
-                <Thermometer className="h-4 w-4 text-orange-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">{selectedPatient.metrics.temperature}°C</div>
-                    <p className="text-xs text-muted-foreground">Normal range</p>
-                  </div>
-                  {getTrendIcon(selectedPatient.metrics.temperatureTrend)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              {/* AI Insights and Alerts */}
+              <div className="grid gap-6 md:grid-cols-2 mb-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-purple-500" />
+                      AI Insights
+                    </CardTitle>
+                    <CardDescription>Smart analysis and recommendations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-4">
+                        {aiInsights?.tips?.length ? aiInsights.tips.map((tip: string, idx: number) => (
+                          <div key={idx} className="p-4 border rounded-lg bg-muted">
+                            <div className="flex items-start gap-3">
+                              <Brain className="h-4 w-4 text-purple-500" />
+                              <div className="flex-1">
+                                <h4 className="font-medium">{tip}</h4>
+                              </div>
+                            </div>
+                          </div>
+                        )) : <div className="text-muted-foreground">No AI insights available.</div>}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-500" />
+                      Alerts
+                    </CardTitle>
+                    <CardDescription>Critical and warning items</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-4">
+                        {alerts.length ? alerts.map((alert, idx) => (
+                          <div key={idx} className={`p-4 border rounded-lg ${getStatusColor(alert.severity)}`}>
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="h-4 w-4" />
+                              <div className="flex-1">
+                                <h4 className="font-medium">{alert.title}</h4>
+                                <p className="text-sm text-muted-foreground">{alert.description}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )) : <div className="text-muted-foreground">No alerts.</div>}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Trends */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Trends</CardTitle>
-              <CardDescription>Track patient's wellness metrics over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="heartRate">
-                <TabsList>
-                  <TabsTrigger value="heartRate">Heart Rate</TabsTrigger>
-                  <TabsTrigger value="steps">Steps</TabsTrigger>
-                  <TabsTrigger value="temperature">Temperature</TabsTrigger>
-                </TabsList>
-                <TabsContent value="heartRate" className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={selectedPatient.weeklyData}>
+              {/* Wellness Trends Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Wellness Trends</CardTitle>
+                  <CardDescription>Sleep, stress, activity, and hydration over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={wellnessData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
+                      <XAxis dataKey="recordedAt" tickFormatter={d => new Date(d).toLocaleDateString()} />
                       <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="heartRate" stroke="#ef4444" />
+                      <RechartsTooltip />
+                      <Line type="monotone" dataKey="sleepDuration" stroke="#8884d8" name="Sleep (hrs)" />
+                      <Line type="monotone" dataKey="stressLevel" stroke="#ff4d4f" name="Stress" />
+                      <Line type="monotone" dataKey="activityMinutes" stroke="#4caf50" name="Activity (min)" />
+                      <Line type="monotone" dataKey="waterIntake" stroke="#2196f3" name="Water (ml)" />
                     </LineChart>
                   </ResponsiveContainer>
-                </TabsContent>
-                <TabsContent value="steps" className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={selectedPatient.weeklyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="steps" stroke="#3b82f6" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </TabsContent>
-                <TabsContent value="temperature" className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={selectedPatient.weeklyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="temperature" stroke="#f97316" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          {/* Additional Metrics */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Blood Pressure</CardTitle>
-                <Activity className="h-4 w-4 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">{selectedPatient.metrics.bloodPressure}</div>
-                    <p className="text-xs text-muted-foreground">mmHg</p>
-                  </div>
-                  {getTrendIcon(selectedPatient.metrics.bloodPressureTrend)}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sleep</CardTitle>
-                <Clock className="h-4 w-4 text-indigo-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">{selectedPatient.metrics.sleep}h</div>
-                    <p className="text-xs text-muted-foreground">Average</p>
-                  </div>
-                  {getTrendIcon(selectedPatient.metrics.sleepTrend)}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Stress Level</CardTitle>
-                <AlertCircle className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">{selectedPatient.metrics.stress}%</div>
-                    <p className="text-xs text-muted-foreground">Based on HRV</p>
-                  </div>
-                  {getTrendIcon(selectedPatient.metrics.stressTrend)}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Device Status</CardTitle>
-                <Smartphone className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">Active</div>
-                    <p className="text-xs text-muted-foreground">Last sync: 5m ago</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </div>

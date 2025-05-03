@@ -790,6 +790,79 @@ const patientController = {
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
+  },
+
+  // Fitness Analytics endpoint
+  getFitnessAnalytics: async (req, res) => {
+    try {
+      const { patientId, startDate, endDate, exerciseType } = req.query;
+      const where = {};
+      if (patientId) where.patientId = patientId;
+      if (exerciseType) where.exerciseType = exerciseType;
+      if (startDate && endDate) where.recordedAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+      const data = await Fitness.findAll({ where });
+      const avgDuration = data.length ? data.reduce((a, b) => a + (b.duration || 0), 0) / data.length : 0;
+      const avgCalories = data.length ? data.reduce((a, b) => a + (b.caloriesBurned || 0), 0) / data.length : 0;
+      res.json({ avgDuration, avgCalories, count: data.length });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+
+  // Fitness AI Insights endpoint
+  getFitnessAIInsights: async (req, res) => {
+    try {
+      const { patientId } = req.query;
+      const data = await Fitness.findAll({ where: { patientId }, order: [['recordedAt', 'DESC']], limit: 10 });
+      let tips = [];
+      if (data.length) {
+        const last = data[0];
+        if (last.duration < 20) tips.push('Short workout detected. Encourage longer sessions.');
+        if (last.intensity === 'low') tips.push('Low intensity. Suggest increasing workout intensity.');
+        if (last.caloriesBurned < 150) tips.push('Low calories burned. Recommend more active days.');
+      }
+      res.json({ tips, recent: data });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+
+  // Fitness Alerts endpoint
+  getFitnessAlerts: async (req, res) => {
+    try {
+      const { patientId, startDate, endDate } = req.query;
+      const where = {};
+      if (patientId) where.patientId = patientId;
+      if (startDate && endDate) where.recordedAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+      const data = await Fitness.findAll({ where, order: [['recordedAt', 'DESC']], limit: 30 });
+      const alerts = [];
+      for (const entry of data) {
+        if (entry.duration < 10) alerts.push({
+          type: 'duration',
+          severity: 'high',
+          title: 'Very Short Workout',
+          description: `Only ${entry.duration} min on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.intensity === 'low') alerts.push({
+          type: 'intensity',
+          severity: 'medium',
+          title: 'Low Intensity',
+          description: `Low intensity workout on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.caloriesBurned < 100) alerts.push({
+          type: 'calories',
+          severity: 'medium',
+          title: 'Low Calories Burned',
+          description: `Only ${entry.caloriesBurned} kcal on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+      }
+      res.json(alerts);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
   }
 };
 

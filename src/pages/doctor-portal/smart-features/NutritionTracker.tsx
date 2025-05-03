@@ -1,325 +1,208 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  LineChart,
-  Line
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line
 } from 'recharts';
 import {
-  Apple,
-  Utensils,
-  Clock,
-  Search,
-  User,
-  ChevronRight,
-  AlertTriangle,
-  CheckCircle2,
-  Scale,
-  Leaf,
-  Fish,
-  Milk,
-  Beef,
-  Cookie
+  Apple, Utensils, Clock, Search, User, ChevronRight, AlertTriangle, CheckCircle2, Scale, Leaf, Fish, Milk, Beef, Cookie, TrendingUp, TrendingDown, Minus, BarChart2, Sparkles
 } from 'lucide-react';
+import { toast } from "react-hot-toast";
 
-interface NutritionData {
+// Types
+interface Patient {
   id: string;
   name: string;
   age: number;
   image?: string;
   lastMeal: string;
-  dailyOverview: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-    fiber: number;
-    calorieGoal: number;
-    proteinGoal: number;
-    carbsGoal: number;
-    fatsGoal: number;
-    fiberGoal: number;
-  };
-  mealDistribution: {
-    breakfast: number;
-    lunch: number;
-    dinner: number;
-    snacks: number;
-  };
-  weeklyNutrients: Array<{
-    day: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  }>;
   nutritionStatus: 'optimal' | 'needs-improvement' | 'attention-required';
   dietaryRestrictions: string[];
-  recentMeals: Array<{
-    type: string;
-    time: string;
-    calories: number;
-    items: string[];
-  }>;
-  nutritionTips: Array<{
-    category: string;
-    tip: string;
-    priority: 'high' | 'medium' | 'low';
-  }>;
 }
 
-const patients: NutritionData[] = [
-  {
-    id: '1',
-    name: 'Emma Wilson',
-    age: 32,
-    lastMeal: '1 hour ago',
-    dailyOverview: {
-      calories: 2100,
-      protein: 85,
-      carbs: 250,
-      fats: 70,
-      fiber: 25,
-      calorieGoal: 2200,
-      proteinGoal: 88,
-      carbsGoal: 275,
-      fatsGoal: 73,
-      fiberGoal: 28
-    },
-    mealDistribution: {
-      breakfast: 25,
-      lunch: 35,
-      dinner: 30,
-      snacks: 10
-    },
-    weeklyNutrients: [
-      { day: 'Mon', calories: 2000, protein: 82, carbs: 245, fats: 68 },
-      { day: 'Tue', calories: 2100, protein: 85, carbs: 250, fats: 70 },
-      { day: 'Wed', calories: 2150, protein: 87, carbs: 255, fats: 71 },
-      { day: 'Thu', calories: 2050, protein: 84, carbs: 248, fats: 69 },
-      { day: 'Fri', calories: 2200, protein: 89, carbs: 260, fats: 73 },
-      { day: 'Sat', calories: 1950, protein: 80, carbs: 240, fats: 65 },
-      { day: 'Sun', calories: 2000, protein: 82, carbs: 245, fats: 67 }
-    ],
-    nutritionStatus: 'optimal',
-    dietaryRestrictions: ['Lactose Intolerant'],
-    recentMeals: [
-      {
-        type: 'Lunch',
-        time: '1:30 PM',
-        calories: 650,
-        items: ['Grilled Chicken Salad', 'Quinoa', 'Avocado']
-      },
-      {
-        type: 'Breakfast',
-        time: '8:30 AM',
-        calories: 450,
-        items: ['Oatmeal', 'Banana', 'Almond Milk']
-      }
-    ],
-    nutritionTips: [
-      {
-        category: 'Protein Intake',
-        tip: 'Consider adding more plant-based proteins to diversify protein sources',
-        priority: 'medium'
-      },
-      {
-        category: 'Meal Timing',
-        tip: 'Try to maintain consistent meal times to optimize metabolism',
-        priority: 'low'
-      }
-    ]
-  },
-  {
-    id: '2',
-    name: 'James Anderson',
-    age: 45,
-    lastMeal: '30 minutes ago',
-    dailyOverview: {
-      calories: 1800,
-      protein: 65,
-      carbs: 220,
-      fats: 60,
-      fiber: 18,
-      calorieGoal: 2000,
-      proteinGoal: 75,
-      carbsGoal: 250,
-      fatsGoal: 67,
-      fiberGoal: 25
-    },
-    mealDistribution: {
-      breakfast: 20,
-      lunch: 40,
-      dinner: 35,
-      snacks: 5
-    },
-    weeklyNutrients: [
-      { day: 'Mon', calories: 1750, protein: 63, carbs: 215, fats: 58 },
-      { day: 'Tue', calories: 1800, protein: 65, carbs: 220, fats: 60 },
-      { day: 'Wed', calories: 1850, protein: 67, carbs: 225, fats: 62 },
-      { day: 'Thu', calories: 1780, protein: 64, carbs: 218, fats: 59 },
-      { day: 'Fri', calories: 1900, protein: 69, carbs: 230, fats: 63 },
-      { day: 'Sat', calories: 1700, protein: 61, carbs: 210, fats: 57 },
-      { day: 'Sun', calories: 1750, protein: 63, carbs: 215, fats: 58 }
-    ],
-    nutritionStatus: 'needs-improvement',
-    dietaryRestrictions: ['Low Sodium'],
-    recentMeals: [
-      {
-        type: 'Lunch',
-        time: '12:30 PM',
-        calories: 550,
-        items: ['Turkey Sandwich', 'Apple', 'Mixed Nuts']
-      },
-      {
-        type: 'Breakfast',
-        time: '7:30 AM',
-        calories: 350,
-        items: ['Whole Grain Toast', 'Eggs', 'Orange Juice']
-      }
-    ],
-    nutritionTips: [
-      {
-        category: 'Calorie Intake',
-        tip: 'Current intake is below target. Consider adding healthy snacks between meals',
-        priority: 'high'
-      },
-      {
-        category: 'Fiber Intake',
-        tip: 'Increase fiber intake by adding more whole grains and vegetables',
-        priority: 'medium'
-      }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Sophie Chen',
-    age: 28,
-    lastMeal: '2 hours ago',
-    dailyOverview: {
-      calories: 2400,
-      protein: 95,
-      carbs: 280,
-      fats: 80,
-      fiber: 30,
-      calorieGoal: 2300,
-      proteinGoal: 90,
-      carbsGoal: 270,
-      fatsGoal: 77,
-      fiberGoal: 28
-    },
-    mealDistribution: {
-      breakfast: 30,
-      lunch: 30,
-      dinner: 30,
-      snacks: 10
-    },
-    weeklyNutrients: [
-      { day: 'Mon', calories: 2350, protein: 93, carbs: 275, fats: 78 },
-      { day: 'Tue', calories: 2400, protein: 95, carbs: 280, fats: 80 },
-      { day: 'Wed', calories: 2450, protein: 97, carbs: 285, fats: 82 },
-      { day: 'Thu', calories: 2380, protein: 94, carbs: 278, fats: 79 },
-      { day: 'Fri', calories: 2500, protein: 99, carbs: 290, fats: 83 },
-      { day: 'Sat', calories: 2300, protein: 91, carbs: 270, fats: 77 },
-      { day: 'Sun', calories: 2350, protein: 93, carbs: 275, fats: 78 }
-    ],
-    nutritionStatus: 'attention-required',
-    dietaryRestrictions: ['Gluten-Free', 'No Red Meat'],
-    recentMeals: [
-      {
-        type: 'Lunch',
-        time: '1:00 PM',
-        calories: 750,
-        items: ['Salmon Bowl', 'Brown Rice', 'Roasted Vegetables']
-      },
-      {
-        type: 'Breakfast',
-        time: '9:00 AM',
-        calories: 550,
-        items: ['Protein Smoothie', 'Gluten-free Toast', 'Eggs']
-      }
-    ],
-    nutritionTips: [
-      {
-        category: 'Calorie Management',
-        tip: 'Current intake exceeds daily target. Focus on portion control',
-        priority: 'high'
-      },
-      {
-        category: 'Meal Balance',
-        tip: 'Consider reducing carbohydrate portion sizes in evening meals',
-        priority: 'medium'
-      }
-    ]
-  }
-];
+interface NutritionEntry {
+  id: string;
+  patientId: string;
+  date: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber: number;
+  mealType: string;
+  items: string[];
+}
 
-const COLORS = ['#4ade80', '#60a5fa', '#f97316'];
+interface AnalyticsData {
+  totalMeals: number;
+  avgCalories: number;
+  avgProtein: number;
+  avgCarbs: number;
+  avgFats: number;
+  avgFiber: number;
+  trends: { day: string; calories: number; protein: number; carbs: number; fats: number; }[];
+  comparison: { previous: number; current: number; change: number; trend: 'improved' | 'declined' | 'stable'; };
+}
+
+interface AIInsight {
+  id: string;
+  message: string;
+  type: 'trend' | 'recommendation' | 'risk';
+  severity: 'info' | 'warning' | 'critical';
+  timestamp: string;
+}
+
+interface Alert {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'info' | 'warning' | 'critical';
+  type: string;
+  timestamp: string;
+  patientId: string;
+}
+
+const STATUS_COLORS = {
+  'optimal': 'bg-green-100 text-green-800',
+  'needs-improvement': 'bg-yellow-100 text-yellow-800',
+  'attention-required': 'bg-red-100 text-red-800'
+};
 
 const NutritionTracker = () => {
-  const [selectedPatient, setSelectedPatient] = useState<NutritionData>(patients[0]);
+  // State
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [nutritionData, setNutritionData] = useState<NutritionEntry[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mealTypeFilter, setMealTypeFilter] = useState('all');
+  const [timeRange, setTimeRange] = useState('7d');
+  const [sortBy, setSortBy] = useState<'date' | 'calories' | 'protein'>('date');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [patientsRes, nutritionRes, analyticsRes, aiRes, alertsRes] = await Promise.all([
+          fetch('/api/patients'),
+          fetch(`/api/nutrition?timeRange=${timeRange}`),
+          fetch(`/api/nutrition/analytics?timeRange=${timeRange}`),
+          fetch(`/api/nutrition/insights/ai?timeRange=${timeRange}`),
+          fetch(`/api/nutrition/alerts?timeRange=${timeRange}`)
+        ]);
+        if (!patientsRes.ok || !nutritionRes.ok || !analyticsRes.ok || !aiRes.ok || !alertsRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        const [patientsData, nutritionData, analyticsData, aiData, alertsData] = await Promise.all([
+          patientsRes.json(),
+          nutritionRes.json(),
+          analyticsRes.json(),
+          aiRes.json(),
+          alertsRes.json()
+        ]);
+        setPatients(patientsData);
+        setSelectedPatient(patientsData[0] || null);
+        setNutritionData(nutritionData);
+        setAnalytics(analyticsData);
+        setAiInsights(aiData);
+        setAlerts(alertsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        toast.error('Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [timeRange]);
 
-  const getStatusColor = (status: 'optimal' | 'needs-improvement' | 'attention-required') => {
-    switch (status) {
-      case 'optimal':
-        return 'bg-green-100 text-green-800';
-      case 'needs-improvement':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'attention-required':
+  // Filtered and sorted nutrition entries
+  const filteredEntries = useMemo(() => {
+    let filtered = nutritionData;
+    if (selectedPatient) {
+      filtered = filtered.filter(e => e.patientId === selectedPatient.id);
+    }
+    if (mealTypeFilter !== 'all') {
+      filtered = filtered.filter(e => e.mealType === mealTypeFilter);
+    }
+    switch (sortBy) {
+      case 'date':
+        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        break;
+      case 'calories':
+        filtered.sort((a, b) => b.calories - a.calories);
+        break;
+      case 'protein':
+        filtered.sort((a, b) => b.protein - a.protein);
+        break;
+    }
+    return filtered;
+  }, [nutritionData, selectedPatient, mealTypeFilter, sortBy]);
+
+  // Helpers
+  const getStatusColor = (status: 'optimal' | 'needs-improvement' | 'attention-required') => STATUS_COLORS[status];
+  const getAlertStatusColor = (severity: 'info' | 'warning' | 'critical') => {
+    switch (severity) {
+      case 'critical':
         return 'bg-red-100 text-red-800';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-green-100 text-green-800';
     }
   };
-
-  const calculateProgress = (current: number, goal: number) => {
-    return Math.min((current / goal) * 100, 100);
-  };
-
-  const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
-    switch (priority) {
-      case 'high':
-        return 'text-red-500';
-      case 'medium':
-        return 'text-yellow-500';
-      case 'low':
-        return 'text-green-500';
+  const getTrendIcon = (trend: 'improved' | 'declined' | 'stable') => {
+    switch (trend) {
+      case 'improved':
+        return <TrendingDown className="h-4 w-4 text-green-500" />;
+      case 'declined':
+        return <TrendingUp className="h-4 w-4 text-red-500" />;
+      default:
+        return <Minus className="h-4 w-4 text-yellow-500" />;
     }
   };
+  const mealTypes = [
+    { value: 'all', label: 'All Meals' },
+    { value: 'breakfast', label: 'Breakfast' },
+    { value: 'lunch', label: 'Lunch' },
+    { value: 'dinner', label: 'Dinner' },
+    { value: 'snacks', label: 'Snacks' },
+  ];
+  const timeRanges = [
+    { value: '24h', label: 'Last 24 Hours' },
+    { value: '7d', label: 'Last 7 Days' },
+    { value: '30d', label: 'Last 30 Days' },
+    { value: '90d', label: 'Last 90 Days' },
+  ];
 
-  const mealDistributionData = Object.entries(selectedPatient.mealDistribution).map(([name, value]) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    value
-  }));
+  if (loading) {
+    return <div className="container py-8 text-center text-lg">Loading nutrition data...</div>;
+  }
+  if (error) {
+    return <div className="container py-8 text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="container py-8">
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Nutrition Tracker</h1>
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
         {/* Patient List */}
         <Card>
           <CardHeader>
             <CardTitle>Patients</CardTitle>
-            <CardDescription>Select a patient to view their nutrition data</CardDescription>
+            <CardDescription>Select a patient to view nutrition data</CardDescription>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -333,34 +216,39 @@ const NutritionTracker = () => {
           <CardContent>
             <ScrollArea className="h-[600px]">
               <div className="space-y-2">
-                {filteredPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                      selectedPatient.id === patient.id ? 'bg-accent' : ''
-                    }`}
-                    onClick={() => setSelectedPatient(patient)}
-                  >
-                    <Avatar>
-                      <AvatarFallback>
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium">{patient.name}</p>
-                        <Badge className={getStatusColor(patient.nutritionStatus)}>
-                          {patient.nutritionStatus.replace('-', ' ')}
-                        </Badge>
+                {patients.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((patient) => (
+                    <div
+                      key={patient.id}
+                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
+                        selectedPatient?.id === patient.id ? 'bg-accent' : ''
+                      }`}
+                      onClick={() => setSelectedPatient(patient)}
+                    >
+                      <Avatar>
+                        {patient.image ? (
+                          <AvatarImage src={patient.image} />
+                        ) : (
+                          <AvatarFallback>
+                            <User className="h-5 w-5" />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{patient.name}</p>
+                          <Badge className={getStatusColor(patient.nutritionStatus)}>
+                            {patient.nutritionStatus.replace('-', ' ')}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          Last meal: {patient.lastMeal}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        Last meal: {patient.lastMeal}
-                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                ))}
+                  ))}
               </div>
             </ScrollArea>
           </CardContent>
@@ -368,251 +256,226 @@ const NutritionTracker = () => {
 
         {/* Nutrition Dashboard */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Nutrition Insights - {selectedPatient.name}</h2>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <span>Age: {selectedPatient.age}</span>
-                <span>•</span>
-                <span>Last meal: {selectedPatient.lastMeal}</span>
-                {selectedPatient.dietaryRestrictions.length > 0 && (
-                  <>
+          {selectedPatient && (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Nutrition Overview - {selectedPatient.name}</h2>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>Age: {selectedPatient.age}</span>
                     <span>•</span>
-                    <span>Restrictions: {selectedPatient.dietaryRestrictions.join(', ')}</span>
-                  </>
-                )}
+                    <span>Last meal: {selectedPatient.lastMeal}</span>
+                    {selectedPatient.dietaryRestrictions.length > 0 && (
+                      <>
+                        <span>•</span>
+                        <span>Restrictions: {selectedPatient.dietaryRestrictions.join(', ')}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Select value={mealTypeFilter} onValueChange={setMealTypeFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Meal Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mealTypes.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={timeRange} onValueChange={setTimeRange}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Time Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeRanges.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <Button>
-              <Utensils className="mr-2 h-4 w-4" />
-              Create Meal Plan
-            </Button>
-          </div>
 
-          {/* Key Metrics */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Daily Calories</CardTitle>
-                <Apple className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold">{selectedPatient.dailyOverview.calories}</div>
-                  <p className="text-xs text-muted-foreground">kcal consumed</p>
-                  <Progress 
-                    value={calculateProgress(
-                      selectedPatient.dailyOverview.calories,
-                      selectedPatient.dailyOverview.calorieGoal
-                    )} 
-                    className="h-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Goal: {selectedPatient.dailyOverview.calorieGoal} kcal
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Protein Intake</CardTitle>
-                <Fish className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold">{selectedPatient.dailyOverview.protein}g</div>
-                  <p className="text-xs text-muted-foreground">Daily average</p>
-                  <Progress 
-                    value={calculateProgress(
-                      selectedPatient.dailyOverview.protein,
-                      selectedPatient.dailyOverview.proteinGoal
-                    )} 
-                    className="h-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Goal: {selectedPatient.dailyOverview.proteinGoal}g
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Carbohydrates</CardTitle>
-                <Cookie className="h-4 w-4 text-orange-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold">{selectedPatient.dailyOverview.carbs}g</div>
-                  <p className="text-xs text-muted-foreground">Daily average</p>
-                  <Progress 
-                    value={calculateProgress(
-                      selectedPatient.dailyOverview.carbs,
-                      selectedPatient.dailyOverview.carbsGoal
-                    )} 
-                    className="h-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Goal: {selectedPatient.dailyOverview.carbsGoal}g
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Healthy Fats</CardTitle>
-                <Leaf className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold">{selectedPatient.dailyOverview.fats}g</div>
-                  <p className="text-xs text-muted-foreground">Daily average</p>
-                  <Progress 
-                    value={calculateProgress(
-                      selectedPatient.dailyOverview.fats,
-                      selectedPatient.dailyOverview.fatsGoal
-                    )} 
-                    className="h-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Goal: {selectedPatient.dailyOverview.fatsGoal}g
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Meal Distribution & Weekly Trends */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Meal Distribution</CardTitle>
-                <CardDescription>Caloric intake by meal type</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={mealDistributionData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {mealDistributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Nutrient Trends</CardTitle>
-                <CardDescription>Macro distribution over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="calories">
-                  <TabsList>
-                    <TabsTrigger value="calories">Calories</TabsTrigger>
-                    <TabsTrigger value="macros">Macros</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="calories" className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={selectedPatient.weeklyNutrients}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="day" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="calories" stroke="#4ade80" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </TabsContent>
-                  <TabsContent value="macros" className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={selectedPatient.weeklyNutrients}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="day" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="protein" fill="#60a5fa" name="Protein" />
-                        <Bar dataKey="carbs" fill="#f97316" name="Carbs" />
-                        <Bar dataKey="fats" fill="#4ade80" name="Fats" />
-                        <Legend />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Meals & Nutrition Tips */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Meals</CardTitle>
-                <CardDescription>Latest recorded meals and snacks</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {selectedPatient.recentMeals.map((meal, index) => (
-                    <div key={index} className="flex items-center justify-between border-b pb-4 last:border-0">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 bg-primary/10 rounded-full">
-                          <Utensils className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{meal.type}</p>
-                          <p className="text-sm text-muted-foreground">{meal.time}</p>
-                        </div>
+              {/* Analytics Overview */}
+              {analytics && (
+                <div className="grid gap-4 md:grid-cols-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Meals</CardTitle>
+                      <Utensils className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.totalMeals}</div>
+                      <p className="text-xs text-muted-foreground">meals tracked</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Avg Calories</CardTitle>
+                      <Apple className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.avgCalories.toFixed(0)}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {analytics.comparison.change > 0 ? '+' : ''}{analytics.comparison.change}% from previous
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Avg Protein</CardTitle>
+                      <Fish className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analytics.avgProtein.toFixed(1)}g</div>
+                      <p className="text-xs text-muted-foreground">per meal</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Trend Analysis</CardTitle>
+                      <BarChart2 className="h-4 w-4 text-orange-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {analytics.comparison.current}
                       </div>
-                      <div>
-                        <p className="font-medium text-right">{meal.calories} kcal</p>
-                        <p className="text-sm text-muted-foreground">{meal.items.join(', ')}</p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {getTrendIcon(analytics.comparison.trend)}
+                        <span>
+                          {analytics.comparison.trend === 'improved' ? 'Improved' : 
+                            analytics.comparison.trend === 'declined' ? 'Declined' : 'Stable'}
+                        </span>
                       </div>
-                    </div>
-                  ))}
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
+              )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Nutrition Tips</CardTitle>
-                <CardDescription>Personalized recommendations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {selectedPatient.nutritionTips.map((tip, index) => (
-                    <div key={index} className="flex items-start gap-4 border-b pb-4 last:border-0">
-                      <div className={`mt-1 ${getPriorityColor(tip.priority)}`}>
-                        {tip.priority === 'high' ? (
-                          <AlertTriangle className="h-5 w-5" />
-                        ) : (
-                          <CheckCircle2 className="h-5 w-5" />
+              {/* AI Insights and Alerts */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-indigo-500" />
+                      AI Insights
+                    </CardTitle>
+                    <CardDescription>Smart analysis and recommendations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-4">
+                        {aiInsights.length > 0 ? aiInsights.map((insight) => (
+                          <div key={insight.id} className="p-4 border rounded-lg bg-muted">
+                            <div className="flex items-start gap-3">
+                              {insight.type === 'trend' && <TrendingUp className="h-4 w-4 text-blue-500" />}
+                              {insight.type === 'recommendation' && <Sparkles className="h-4 w-4 text-indigo-500" />}
+                              {insight.type === 'risk' && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                              <div className="flex-1">
+                                <p className="text-sm">{insight.message}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(insight.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )) : (
+                          <div className="text-muted-foreground text-sm">No AI insights available.</div>
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium">{tip.category}</p>
-                        <p className="text-sm text-muted-foreground">{tip.tip}</p>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      Alerts
+                    </CardTitle>
+                    <CardDescription>Critical and warning items</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-4">
+                        {alerts.length > 0 ? alerts.map((alert) => (
+                          <div key={alert.id} className={`p-4 border rounded-lg ${getAlertStatusColor(alert.severity)}`}>
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="h-4 w-4" />
+                              <div className="flex-1">
+                                <h4 className="font-medium">{alert.title}</h4>
+                                <p className="text-sm text-muted-foreground">{alert.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(alert.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )) : (
+                          <div className="text-muted-foreground text-sm">No alerts.</div>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Nutrition Trends Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nutrition Trends</CardTitle>
+                  <CardDescription>Track nutrition metrics over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={analytics?.trends || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Line type="monotone" dataKey="calories" stroke="#8884d8" name="Calories" dot={false} />
+                      <Line type="monotone" dataKey="protein" stroke="#4ade80" name="Protein" dot={false} />
+                      <Line type="monotone" dataKey="carbs" stroke="#fbbf24" name="Carbs" dot={false} />
+                      <Line type="monotone" dataKey="fats" stroke="#ef4444" name="Fats" dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Recent Meals */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Meals</CardTitle>
+                  <CardDescription>Latest recorded meals</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {filteredEntries.map((entry) => (
+                      <div key={entry.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <Utensils className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium capitalize">{entry.mealType}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(entry.date).toLocaleString()} • {entry.items.join(', ')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="font-medium">{entry.calories} kcal</p>
+                            <p className="text-xs text-muted-foreground">{entry.protein}g protein</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </div>

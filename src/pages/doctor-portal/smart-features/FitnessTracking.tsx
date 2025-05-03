@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,9 @@ import {
   Minus,
   Dumbbell,
   Timer as TimerIcon,
-  Target
+  Target,
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 
 interface FitnessData {
@@ -70,110 +72,73 @@ interface FitnessData {
   status: 'active' | 'inactive' | 'needs-attention';
 }
 
-const patients: FitnessData[] = [
-  {
-    id: '1',
-    name: 'Emma Wilson',
-    age: 32,
-    lastActive: '10 minutes ago',
-    weeklyOverview: {
-      averageSteps: 8500,
-      activeDays: '5/7',
-      totalDistance: 42.5,
-      caloriesBurned: 2800,
-      stepsGoal: 10000,
-      distanceGoal: 50,
-      caloriesGoal: 3000
-    },
-    activityTrend: [
-      { day: 'Mon', steps: 9000, calories: 400, distance: 6.2, activeMinutes: 45 },
-      { day: 'Tue', steps: 7500, calories: 350, distance: 5.8, activeMinutes: 38 },
-      { day: 'Wed', steps: 10000, calories: 450, distance: 7.1, activeMinutes: 52 },
-      { day: 'Thu', steps: 8500, calories: 380, distance: 6.5, activeMinutes: 41 },
-      { day: 'Fri', steps: 12000, calories: 520, distance: 8.3, activeMinutes: 65 },
-      { day: 'Sat', steps: 6000, calories: 280, distance: 4.2, activeMinutes: 30 },
-      { day: 'Sun', steps: 7000, calories: 320, distance: 5.1, activeMinutes: 35 }
-    ],
-    workouts: [
-      { type: 'Running', duration: 45, calories: 420, date: '2025-04-28' },
-      { type: 'Cycling', duration: 60, calories: 380, date: '2025-04-27' },
-      { type: 'Swimming', duration: 30, calories: 250, date: '2025-04-26' }
-    ],
-    fitnessLevel: 'Intermediate',
-    status: 'active'
-  },
-  {
-    id: '2',
-    name: 'James Anderson',
-    age: 45,
-    lastActive: '1 hour ago',
-    weeklyOverview: {
-      averageSteps: 6200,
-      activeDays: '4/7',
-      totalDistance: 31.0,
-      caloriesBurned: 2100,
-      stepsGoal: 8000,
-      distanceGoal: 40,
-      caloriesGoal: 2500
-    },
-    activityTrend: [
-      { day: 'Mon', steps: 6500, calories: 300, distance: 4.5, activeMinutes: 35 },
-      { day: 'Tue', steps: 5800, calories: 280, distance: 4.0, activeMinutes: 30 },
-      { day: 'Wed', steps: 7200, calories: 340, distance: 5.1, activeMinutes: 42 },
-      { day: 'Thu', steps: 6000, calories: 290, distance: 4.2, activeMinutes: 33 },
-      { day: 'Fri', steps: 8000, calories: 380, distance: 5.6, activeMinutes: 48 },
-      { day: 'Sat', steps: 4500, calories: 220, distance: 3.2, activeMinutes: 25 },
-      { day: 'Sun', steps: 5200, calories: 250, distance: 3.7, activeMinutes: 28 }
-    ],
-    workouts: [
-      { type: 'Walking', duration: 45, calories: 220, date: '2025-04-28' },
-      { type: 'Yoga', duration: 60, calories: 180, date: '2025-04-27' },
-      { type: 'Strength', duration: 40, calories: 280, date: '2025-04-26' }
-    ],
-    fitnessLevel: 'Beginner',
-    status: 'needs-attention'
-  },
-  {
-    id: '3',
-    name: 'Sophie Chen',
-    age: 28,
-    lastActive: '2 hours ago',
-    weeklyOverview: {
-      averageSteps: 11200,
-      activeDays: '6/7',
-      totalDistance: 56.0,
-      caloriesBurned: 3200,
-      stepsGoal: 12000,
-      distanceGoal: 60,
-      caloriesGoal: 3500
-    },
-    activityTrend: [
-      { day: 'Mon', steps: 11500, calories: 520, distance: 8.1, activeMinutes: 72 },
-      { day: 'Tue', steps: 10800, calories: 480, distance: 7.6, activeMinutes: 65 },
-      { day: 'Wed', steps: 12200, calories: 550, distance: 8.6, activeMinutes: 78 },
-      { day: 'Thu', steps: 11000, calories: 490, distance: 7.7, activeMinutes: 68 },
-      { day: 'Fri', steps: 13000, calories: 580, distance: 9.1, activeMinutes: 85 },
-      { day: 'Sat', steps: 9500, calories: 420, distance: 6.7, activeMinutes: 58 },
-      { day: 'Sun', steps: 10200, calories: 450, distance: 7.2, activeMinutes: 62 }
-    ],
-    workouts: [
-      { type: 'HIIT', duration: 45, calories: 480, date: '2025-04-28' },
-      { type: 'Running', duration: 60, calories: 520, date: '2025-04-27' },
-      { type: 'CrossFit', duration: 50, calories: 450, date: '2025-04-26' }
-    ],
-    fitnessLevel: 'Advanced',
-    status: 'active'
-  }
-];
+interface AnalyticsData {
+  totalPatients: number;
+  avgSteps: number;
+  avgCalories: number;
+  mostActiveDay: string;
+  leastActiveDay: string;
+}
+
+interface AIInsight {
+  message: string;
+  type: 'trend' | 'recommendation' | 'risk';
+}
+
+interface Alert {
+  message: string;
+  severity: 'info' | 'warning' | 'critical';
+}
 
 const FitnessTracking = () => {
-  const [selectedPatient, setSelectedPatient] = useState<FitnessData>(patients[0]);
+  // State
+  const [fitnessData, setFitnessData] = useState<FitnessData[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [aiInsights, setAIInsights] = useState<AIInsight[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<FitnessData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'steps' | 'calories'>('name');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch data
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      fetch('/api/fitness').then(r => r.json()),
+      fetch('/api/fitness/analytics').then(r => r.json()),
+      fetch('/api/fitness/insights/ai').then(r => r.json()),
+      fetch('/api/fitness/alerts').then(r => r.json()),
+    ])
+      .then(([fitness, analytics, ai, alerts]) => {
+        setFitnessData(fitness);
+        setAnalytics(analytics);
+        setAIInsights(ai);
+        setAlerts(alerts);
+        setSelectedPatient(fitness[0] || null);
+      })
+      .catch(() => setError('Failed to load fitness data.'))
+      .finally(() => setLoading(false));
+  }, []);
 
+  // Filtering and sorting
+  const filteredPatients = useMemo(() => {
+    let filtered = fitnessData.filter(patient =>
+      patient.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    if (sortBy === 'name') {
+      filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === 'steps') {
+      filtered = filtered.sort((a, b) => b.weeklyOverview.averageSteps - a.weeklyOverview.averageSteps);
+    } else if (sortBy === 'calories') {
+      filtered = filtered.sort((a, b) => b.weeklyOverview.caloriesBurned - a.weeklyOverview.caloriesBurned);
+    }
+    return filtered;
+  }, [fitnessData, searchQuery, sortBy]);
+
+  // Helpers
   const getStatusColor = (status: 'active' | 'inactive' | 'needs-attention') => {
     switch (status) {
       case 'active':
@@ -199,6 +164,17 @@ const FitnessTracking = () => {
   const calculateProgress = (current: number, goal: number) => {
     return Math.min((current / goal) * 100, 100);
   };
+
+  // Loading/Error states
+  if (loading) {
+    return <div className="container py-8 text-center text-lg">Loading fitness data...</div>;
+  }
+  if (error) {
+    return <div className="container py-8 text-center text-red-500">{error}</div>;
+  }
+  if (!selectedPatient) {
+    return <div className="container py-8 text-center text-muted-foreground">No patient data available.</div>;
+  }
 
   return (
     <div className="container py-8">

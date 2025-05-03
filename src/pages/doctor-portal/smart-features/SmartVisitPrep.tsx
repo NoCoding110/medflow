@@ -44,6 +44,7 @@ import { Switch } from "@/components/ui/switch";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { toast } from "react-hot-toast";
 
 interface VisitData {
   id: string;
@@ -55,6 +56,7 @@ interface VisitData {
   aiSuggestions: string[];
   requiredDocuments: string[];
   notes: string;
+  patientId: string;
 }
 
 interface AnalyticsData {
@@ -64,13 +66,25 @@ interface AnalyticsData {
   completedPrep: number;
   pendingPrep: number;
   alerts: number;
+  comparison: { previous: number; current: number; change: number; trend: 'improved' | 'declined' | 'stable'; };
 }
 
-interface AISuggestion {
-  type: 'preparation' | 'documentation' | 'followup';
-  content: string;
-  priority: 'high' | 'medium' | 'low';
-  category: string;
+interface AIInsight {
+  id: string;
+  message: string;
+  type: 'trend' | 'recommendation' | 'risk';
+  severity: 'info' | 'warning' | 'critical';
+  timestamp: string;
+}
+
+interface Alert {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'info' | 'warning' | 'critical';
+  type: string;
+  timestamp: string;
+  patientId: string;
 }
 
 interface AnalyticsFilter {
@@ -88,13 +102,14 @@ export const SmartVisitPrep = () => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
   const [activeTab, setActiveTab] = useState("upcoming");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visits, setVisits] = useState<VisitData[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [retryCount, setRetryCount] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [analyticsFilter, setAnalyticsFilter] = useState<AnalyticsFilter>({
     dateRange: undefined,
     visitTypes: [],
@@ -114,75 +129,31 @@ export const SmartVisitPrep = () => {
   // Debounced search
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // Enhanced filter function with more options
-  const filteredVisits = useMemo(() => {
-    return visits.filter(visit => {
-      const matchesSearch = 
-        visit.patientName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        visit.type.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        visit.status.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        visit.notes.toLowerCase().includes(debouncedSearch.toLowerCase());
-
-      const matchesStatus = selectedStatus === "all" || visit.preparationStatus === selectedStatus;
-      const matchesType = selectedType === "all" || visit.type === selectedType;
-      const matchesDateRange = !dateRange?.from || !dateRange?.to || 
-        (new Date(visit.dateTime) >= dateRange.from && new Date(visit.dateTime) <= dateRange.to);
-
-      return matchesSearch && matchesStatus && matchesType && matchesDateRange;
-    });
-  }, [visits, debouncedSearch, selectedStatus, selectedType, dateRange]);
-
-  // Enhanced analytics calculations
-  const calculatedAnalytics = useMemo(() => {
-    if (!analytics) return null;
-    
-    return {
-      ...analytics,
-      completionRate: analytics.completedPrep / (analytics.completedPrep + analytics.pendingPrep) * 100,
-      averagePrepTime: calculateAveragePrepTime(visits),
-      riskScore: calculateRiskScore(visits),
-      visitTypeDistribution: calculateVisitTypeDistribution(visits),
-      preparationTrends: calculatePreparationTrends(visits),
-      doctorPerformance: calculateDoctorPerformance(visits),
-    };
-  }, [analytics, visits]);
-
-  // Real-time updates handler
-  useEffect(() => {
-    if (lastMessage) {
-      const update = JSON.parse(lastMessage.data);
-      if (update.type === 'visit_update') {
-        setVisits(prev => prev.map(v => v.id === update.visit.id ? update.visit : v));
-      } else if (update.type === 'ai_suggestion') {
-        setAiSuggestions(prev => [...prev, update.suggestion]);
-      }
-    }
-  }, [lastMessage]);
-
-  // Auto-refresh if enabled
-  useEffect(() => {
-    if (viewPreferences.autoRefresh) {
-      const interval = setInterval(fetchData, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [viewPreferences.autoRefresh]);
-
-  // Enhanced data fetch with AI suggestions
+  // Fetch data from backend
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
     try {
-      const data = await simulateDataFetch();
-      setVisits(data.visits);
-      setAnalytics(data.analytics);
-      
-      // Fetch AI suggestions
-      const suggestions = await fetchAISuggestions(data.visits);
-      setAiSuggestions(suggestions);
-      
+      const [visitsRes, analyticsRes, aiRes, alertsRes] = await Promise.all([
+        fetch('/api/visits'),
+        fetch('/api/visits/analytics'),
+        fetch('/api/visits/insights/ai'),
+        fetch('/api/visits/alerts')
+      ]);
+      if (!visitsRes.ok || !analyticsRes.ok || !aiRes.ok || !alertsRes.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      const [visitsData, analyticsData, aiData, alertsData] = await Promise.all([
+        visitsRes.json(),
+        analyticsRes.json(),
+        aiRes.json(),
+        alertsRes.json()
+      ]);
+      setVisits(visitsData);
+      setAnalytics(analyticsData);
+      setAiInsights(aiData);
+      setAlerts(alertsData);
       setRetryCount(0);
-      
       toast({
         title: "Data Updated",
         description: "Visit preparation data has been refreshed",
@@ -204,12 +175,73 @@ export const SmartVisitPrep = () => {
     }
   }, [retryCount, toast]);
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Real-time updates handler
+  useEffect(() => {
+    if (lastMessage) {
+      const update = JSON.parse(lastMessage.data);
+      if (update.type === 'visit_update') {
+        setVisits(prev => prev.map(v => v.id === update.visit.id ? update.visit : v));
+      } else if (update.type === 'ai_suggestion') {
+        setAiInsights(prev => [...prev, update.suggestion]);
+      }
+    }
+  }, [lastMessage]);
+
+  // Auto-refresh if enabled
+  useEffect(() => {
+    if (viewPreferences.autoRefresh) {
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [viewPreferences.autoRefresh, fetchData]);
+
+  // Filtering and sorting
+  const filteredVisits = useMemo(() => {
+    return visits.filter(visit => {
+      const matchesSearch = 
+        visit.patientName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        visit.type.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        visit.status.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        visit.notes.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchesStatus = selectedStatus === "all" || visit.preparationStatus === selectedStatus;
+      const matchesType = selectedType === "all" || visit.type === selectedType;
+      // Date range filter can be added here if backend supports
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [visits, debouncedSearch, selectedStatus, selectedType]);
+
+  // Analytics calculations
+  const calculatedAnalytics = useMemo(() => {
+    if (!analytics) return null;
+    return {
+      ...analytics,
+      completionRate: analytics.completedPrep / (analytics.completedPrep + analytics.pendingPrep) * 100,
+    };
+  }, [analytics]);
+
+  // Helper for alert color
+  const getAlertStatusColor = (severity: 'info' | 'warning' | 'critical') => {
+    switch (severity) {
+      case 'critical':
+        return 'bg-red-100 text-red-800';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+
   // Export data function
   const handleExportData = () => {
     const data = {
       visits,
       analytics,
-      aiSuggestions,
+      aiInsights,
+      alerts,
       timestamp: new Date().toISOString(),
     };
     
@@ -478,22 +510,22 @@ export const SmartVisitPrep = () => {
           <TabsContent value="ai-insights" className="p-4 h-full">
             <ScrollArea className="h-full">
               <div className="grid gap-4">
-                {aiSuggestions.map((suggestion, index) => (
+                {aiInsights.map((insight, index) => (
                   <Card key={index}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg font-semibold">
-                          {suggestion.type}
+                          {insight.type}
                         </CardTitle>
-                        <Badge variant={suggestion.priority === 'high' ? 'destructive' : 'default'}>
-                          {suggestion.priority}
+                        <Badge variant={insight.severity === 'critical' ? 'destructive' : insight.severity === 'warning' ? 'outline' : 'default'}>
+                          {insight.severity}
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p>{suggestion.content}</p>
-                      <div className="mt-2">
-                        <Badge variant="outline">{suggestion.category}</Badge>
+                      <p>{insight.message}</p>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {new Date(insight.timestamp).toLocaleString()}
                       </div>
                     </CardContent>
                   </Card>

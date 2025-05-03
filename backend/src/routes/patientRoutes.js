@@ -31,4 +31,9 @@ router.get('/analytics', auth, patientController.getPatientAnalytics);
 router.get('/ai-insights', auth, patientController.getPatientAIInsights);
 router.get('/alerts', auth, patientController.getPatientAlerts);
 
+// Fitness analytics, AI, alerts
+router.get('/doctor/fitness/analytics', auth, patientController.getFitnessAnalytics);
+router.get('/doctor/fitness/ai-insights', auth, patientController.getFitnessAIInsights);
+router.get('/doctor/fitness/alerts', auth, patientController.getFitnessAlerts);
+
 module.exports = router; 

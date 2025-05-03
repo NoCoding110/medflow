@@ -83,6 +83,52 @@ const vitalsController = {
       res.status(400).json({ error: err.message });
     }
   },
+
+  // Alerts endpoint
+  async getVitalsAlerts(req, res) {
+    try {
+      const { patientId, startDate, endDate, type } = req.query;
+      const where = {};
+      if (patientId) where.patientId = patientId;
+      if (type) where.type = type;
+      if (startDate && endDate) where.recordedAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+      const data = await Vital.findAll({ where, order: [['recordedAt', 'DESC']], limit: 30 });
+      const alerts = [];
+      for (const entry of data) {
+        if (entry.type === 'spO2' && entry.value < 92) alerts.push({
+          type: 'spO2',
+          severity: 'high',
+          title: 'Low SpO2',
+          description: `SpO2 at ${entry.value}% on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.type === 'heartRate' && (entry.value < 50 || entry.value > 110)) alerts.push({
+          type: 'heartRate',
+          severity: 'high',
+          title: 'Abnormal Heart Rate',
+          description: `Heart rate at ${entry.value} BPM on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.type === 'temperature' && entry.value > 37.5) alerts.push({
+          type: 'temperature',
+          severity: 'medium',
+          title: 'Fever Detected',
+          description: `Temperature at ${entry.value}°C on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.type === 'bloodGlucose' && entry.value > 180) alerts.push({
+          type: 'bloodGlucose',
+          severity: 'medium',
+          title: 'High Blood Glucose',
+          description: `Blood glucose at ${entry.value} mg/dL on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+      }
+      res.json(alerts);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
 };
 
 module.exports = vitalsController; 

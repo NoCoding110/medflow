@@ -80,6 +80,51 @@ const wellnessController = {
       res.status(400).json({ error: err.message });
     }
   },
+
+  // Alerts endpoint
+  async getWellnessAlerts(req, res) {
+    try {
+      const { patientId, startDate, endDate } = req.query;
+      const where = {};
+      if (patientId) where.patientId = patientId;
+      if (startDate && endDate) where.recordedAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+      const data = await Wellness.findAll({ where, order: [['recordedAt', 'DESC']], limit: 30 });
+      const alerts = [];
+      for (const entry of data) {
+        if (entry.stressLevel > 8) alerts.push({
+          type: 'stress',
+          severity: 'high',
+          title: 'Critical Stress Level',
+          description: `Stress level ${entry.stressLevel} recorded on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.sleepDuration < 5) alerts.push({
+          type: 'sleep',
+          severity: 'high',
+          title: 'Severely Low Sleep',
+          description: `Only ${entry.sleepDuration} hours of sleep on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.activityMinutes < 15) alerts.push({
+          type: 'activity',
+          severity: 'medium',
+          title: 'Low Activity',
+          description: `Only ${entry.activityMinutes} minutes of activity on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+        if (entry.waterIntake < 800) alerts.push({
+          type: 'hydration',
+          severity: 'medium',
+          title: 'Low Hydration',
+          description: `Only ${entry.waterIntake}ml water intake on ${entry.recordedAt.toLocaleDateString()}`,
+          timestamp: entry.recordedAt,
+        });
+      }
+      res.json(alerts);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
 };
 
 module.exports = wellnessController; 
