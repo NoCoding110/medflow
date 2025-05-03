@@ -201,7 +201,12 @@ const FitnessTracking = () => {
               <AIInsightsPanel
                 patient={{ id: selectedPatient.id, name: selectedPatient.name }}
                 module="fitness"
-                data={selectedPatient}
+                data={{
+                  fitness: selectedPatient,
+                  analytics,
+                  aiInsights,
+                  alerts
+                }}
               />
               <div className="flex items-center justify-between">
                 <div>

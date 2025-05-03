@@ -45,7 +45,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { toast } from "react-hot-toast";
-import AIInsightsBox from '@/components/AIInsightsBox';
+import AIInsightsPanel from '@/components/AIInsightsPanel';
 
 interface VisitData {
   id: string;
@@ -68,6 +68,7 @@ interface AnalyticsData {
   pendingPrep: number;
   alerts: number;
   comparison: { previous: number; current: number; change: number; trend: 'improved' | 'declined' | 'stable'; };
+  doctorPerformance: any[];
 }
 
 interface AIInsight {
@@ -94,6 +95,9 @@ interface AnalyticsFilter {
   status: string[];
   doctors: string[];
 }
+
+// Add placeholder type for AISuggestion
+type AISuggestion = any;
 
 export const SmartVisitPrep = () => {
   const navigate = useNavigate();
@@ -221,6 +225,8 @@ export const SmartVisitPrep = () => {
     return {
       ...analytics,
       completionRate: analytics.completedPrep / (analytics.completedPrep + analytics.pendingPrep) * 100,
+      doctorPerformance: analytics.doctorPerformance || [],
+      comparison: analytics.comparison || { previous: 0, current: 0, change: 0, trend: 'stable' },
     };
   }, [analytics]);
 
@@ -277,7 +283,16 @@ export const SmartVisitPrep = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-semibold">Visit Preparation</h1>
-            <AIInsightsBox />
+            <AIInsightsPanel
+              patient={null}
+              module="visit-prep"
+              data={{
+                visits,
+                analytics,
+                aiInsights,
+                alerts
+              }}
+            />
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -587,7 +602,8 @@ const simulateDataFetch = async (): Promise<{ visits: VisitData[], analytics: An
           "Insurance Information",
           "Previous Test Results"
         ],
-        notes: "Initial consultation for chronic condition"
+        notes: "Initial consultation for chronic condition",
+        patientId: "1"
       },
       {
         id: "2",
@@ -606,7 +622,8 @@ const simulateDataFetch = async (): Promise<{ visits: VisitData[], analytics: An
           "Updated Medication List",
           "Recent Lab Work"
         ],
-        notes: "Follow-up for medication adjustment"
+        notes: "Follow-up for medication adjustment",
+        patientId: "2"
       },
       // Add more mock visits as needed
     ],
@@ -624,7 +641,9 @@ const simulateDataFetch = async (): Promise<{ visits: VisitData[], analytics: An
       upcomingVisits: 15,
       completedPrep: 8,
       pendingPrep: 7,
-      alerts: 3
+      alerts: 3,
+      comparison: { previous: 10, current: 15, change: 5, trend: 'improved' },
+      doctorPerformance: []
     }
   };
 };

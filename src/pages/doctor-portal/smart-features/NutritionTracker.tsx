@@ -220,7 +220,12 @@ const NutritionTracker = () => {
               <AIInsightsPanel
                 patient={{ id: selectedPatient.id, name: selectedPatient.name }}
                 module="nutrition"
-                data={nutritionData.filter(n => n.patientId === selectedPatient.id)}
+                data={{
+                  nutritionEntries: filteredEntries,
+                  analytics,
+                  aiInsights,
+                  alerts
+                }}
               />
               <div className="flex items-center justify-between">
                 <div>

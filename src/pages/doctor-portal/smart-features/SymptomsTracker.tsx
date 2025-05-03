@@ -14,6 +14,8 @@ import {
   Activity, AlertCircle, Calendar, ChevronRight, Clock, FileText, Search, ThermometerIcon, User, HeartPulse, Stethoscope, PlusCircle, History, Brain, TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart2, Sparkles
 } from 'lucide-react';
 import { toast } from "react-hot-toast";
+import { PatientSelector } from '@/components/PatientSelector';
+import AIInsightsPanel from '@/components/AIInsightsPanel';
 
 // Types
 interface Symptom {
@@ -207,64 +209,33 @@ const SymptomsTracker = () => {
     <div className="container py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Symptoms Tracker</h1>
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
-        {/* Patient List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patients</CardTitle>
-            <CardDescription>Select a patient to view symptoms</CardDescription>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patients..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-2">
-                {patients.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((patient) => (
-                    <div
-                      key={patient.id}
-                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                        selectedPatient?.id === patient.id ? 'bg-accent' : ''
-                      }`}
-                      onClick={() => setSelectedPatient(patient)}
-                    >
-                      <Avatar>
-                        {patient.image ? (
-                          <AvatarImage src={patient.image} />
-                        ) : (
-                          <AvatarFallback>
-                            <User className="h-5 w-5" />
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">{patient.name}</p>
-                          <Badge className={STATUS_COLORS[patient.status]}>{patient.status}</Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          Last checkup: {patient.lastCheckup}
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        {/* Patient Selector */}
+        <PatientSelector
+          patients={patients.map(p => ({
+            id: p.id,
+            name: p.name,
+            status: p.status,
+            lastActivity: p.lastCheckup,
+            image: p.image,
+          }))}
+          selectedPatientId={selectedPatient?.id || null}
+          onSelect={id => setSelectedPatient(patients.find(p => p.id === id) || null)}
+        />
 
         {/* Symptoms Dashboard */}
         <div className="space-y-6">
           {selectedPatient && (
             <>
+              <AIInsightsPanel
+                patient={{ id: selectedPatient.id, name: selectedPatient.name }}
+                module="symptoms"
+                data={{
+                  symptoms: filteredSymptoms,
+                  analytics,
+                  aiInsights,
+                  alerts
+                }}
+              />
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Symptoms Overview - {selectedPatient.name}</h2>

@@ -224,12 +224,21 @@ const VitalsTracker = () => {
               <AIInsightsPanel
                 patient={{ id: selectedPatient.id, name: selectedPatient.name }}
                 module="vitals"
-                data={vitalsData.filter(v => v.patientId === selectedPatient.id)}
+                data={{
+                  vitals: selectedPatient,
+                  analytics,
+                  aiInsights,
+                  alerts
+                }}
               />
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold">{selectedPatient.name}'s Vitals</h2>
-                  <p className="text-muted-foreground">Age: {(selectedPatient as any).age || ''}</p>
+                  <h2 className="text-2xl font-bold">Patient Vitals Tracker - {selectedPatient.name}</h2>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>Age: {(selectedPatient as any).age}</span>
+                    <span>•</span>
+                    <span>Last active: {selectedPatient.lastActive || ''}</span>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
