@@ -195,7 +195,15 @@ const DoctorLab = () => {
       if (searchQuery) query = query.ilike('patient_name', `%${searchQuery}%`);
       const { data, error } = await query.order('date', { ascending: false });
       if (error) throw error;
-      setTests(data || []);
+      // Map snake_case to camelCase
+      const mappedData = (data || []).map(test => ({
+        ...test,
+        patientName: test.patient_name,
+        patientId: test.patient_id,
+        testType: test.test_type,
+        // add other fields as needed
+      }));
+      setTests(mappedData);
     } catch (e: any) {
       setErrorTests(e.message || 'Failed to load lab tests');
       setTests([]);
