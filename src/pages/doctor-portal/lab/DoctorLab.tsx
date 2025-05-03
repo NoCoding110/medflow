@@ -148,48 +148,108 @@ const DoctorLab = () => {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    const ws = new WebSocket(WS_URL);
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout;
 
-    ws.onopen = () => {
-      console.log('WebSocket Connected');
-      setSocket(ws);
+    const connect = () => {
+      try {
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+          console.log('WebSocket Connected');
+          setSocket(ws);
+          // Clear any existing reconnect timeout
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleRealtimeUpdate(data);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          toast({
+            title: "Connection Error",
+            description: "Failed to establish real-time connection. Please check your network and try again.",
+            variant: "destructive",
+          });
+        };
+
+        ws.onclose = () => {
+          console.log('WebSocket Disconnected');
+          setSocket(null);
+          // Attempt to reconnect after 5 seconds
+          reconnectTimeout = setTimeout(() => {
+            if (!socket) {
+              console.log('Attempting to reconnect...');
+              connect();
+            }
+          }, 5000);
+        };
+      } catch (error) {
+        console.error('Error creating WebSocket connection:', error);
+        toast({
+          title: "Connection Error",
+          description: "Failed to create WebSocket connection. Please try again later.",
+          variant: "destructive",
+        });
+      }
     };
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleRealtimeUpdate(data);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to establish real-time connection",
-        variant: "destructive",
-      });
-    };
+    connect();
 
     return () => {
       if (ws) {
         ws.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
       }
     };
   }, []);
 
   // Handle real-time updates
   const handleRealtimeUpdate = (data: any) => {
-    switch (data.type) {
-      case 'TEST_UPDATE':
-        updateTestStatus(data.testId, data.status);
-        break;
-      case 'NEW_TEST':
-        addNewTest(data.test);
-        break;
-      case 'WORKFLOW_UPDATE':
-        updateWorkflow(data.workflowId, data.status);
-        break;
-      default:
-        console.log('Unknown update type:', data.type);
+    if (!data || typeof data !== 'object') {
+      console.error('Invalid WebSocket message format:', data);
+      return;
+    }
+
+    try {
+      switch (data.type) {
+        case 'TEST_UPDATE':
+          if (!data.testId || !data.status) {
+            console.error('Invalid TEST_UPDATE message format:', data);
+            return;
+          }
+          updateTestStatus(data.testId, data.status);
+          break;
+        case 'NEW_TEST':
+          if (!data.test || typeof data.test !== 'object') {
+            console.error('Invalid NEW_TEST message format:', data);
+            return;
+          }
+          addNewTest(data.test);
+          break;
+        case 'WORKFLOW_UPDATE':
+          if (!data.workflowId || !data.status) {
+            console.error('Invalid WORKFLOW_UPDATE message format:', data);
+            return;
+          }
+          updateWorkflow(data.workflowId, data.status);
+          break;
+        default:
+          console.warn('Unknown update type:', data.type);
+      }
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
     }
   };
 
