@@ -129,7 +129,13 @@ const DoctorLab = () => {
       if (filterPriority !== 'all') params.append('priority', filterPriority);
       if (searchQuery) params.append('search', searchQuery);
       const res = await fetch(`/api/lab-tests?${params.toString()}`, { credentials: 'include' });
+
+      const contentType = res.headers.get('content-type');
       if (!res.ok) throw new Error('Failed to fetch lab tests');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error('Server did not return JSON.\n' + text.slice(0, 200));
+      }
       const data = await res.json();
       setTests(data);
     } catch (e: any) {
