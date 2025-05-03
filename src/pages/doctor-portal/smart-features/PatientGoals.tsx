@@ -13,7 +13,8 @@ import {
   Search, User, Target, Trophy, Clock, TrendingUp, CheckCircle2, Timer, Calendar, Activity, TrendingDown, Minus, BarChart2, Sparkles, AlertTriangle
 } from 'lucide-react';
 import { toast } from "react-hot-toast";
-import AIInsightsBox from '@/components/AIInsightsBox';
+import { PatientSelector } from '@/components/PatientSelector';
+import AIInsightsPanel from '@/components/AIInsightsPanel';
 
 // Types
 interface Patient {
@@ -217,65 +218,34 @@ const PatientGoals = () => {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Patient Goals</h1>
-      <AIInsightsBox />
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
-        {/* Patient List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patients</CardTitle>
-            <CardDescription>Select a patient to view goals</CardDescription>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patients..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-2">
-                {patients.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((patient) => (
-                    <div
-                      key={patient.id}
-                      className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                        selectedPatient?.id === patient.id ? 'bg-accent' : ''
-                      }`}
-                      onClick={() => setSelectedPatient(patient)}
-                    >
-                      <Avatar>
-                        {patient.image ? (
-                          <AvatarImage src={patient.image} />
-                        ) : (
-                          <AvatarFallback>
-                            <User className="h-5 w-5" />
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">{patient.name}</p>
-                          <Badge className={getStatusColor(patient.status)}>{patient.status}</Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          Last update: {patient.lastUpdate}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        {/* Patient Selector */}
+        <PatientSelector
+          patients={patients.map(p => ({
+            id: p.id,
+            name: p.name,
+            status: p.status,
+            lastActivity: p.lastUpdate,
+            image: p.image,
+          }))}
+          selectedPatientId={selectedPatient?.id || null}
+          onSelect={id => setSelectedPatient(patients.find(p => p.id === id) || null)}
+        />
 
         {/* Goals Dashboard */}
         <div className="space-y-6">
           {selectedPatient && (
             <>
+              <AIInsightsPanel
+                patient={{ id: selectedPatient.id, name: selectedPatient.name }}
+                module="goals"
+                data={{
+                  goals: filteredGoals,
+                  analytics,
+                  aiInsights,
+                  alerts
+                }}
+              />
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Goals Overview - {selectedPatient.name}</h2>
@@ -389,73 +359,6 @@ const PatientGoals = () => {
                   </Card>
                 </div>
               )}
-
-              {/* AI Insights and Alerts */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-indigo-500" />
-                      AI Insights
-                    </CardTitle>
-                    <CardDescription>Smart analysis and recommendations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[200px]">
-                      <div className="space-y-4">
-                        {aiInsights.length > 0 ? aiInsights.map((insight) => (
-                          <div key={insight.id} className="p-4 border rounded-lg bg-muted">
-                            <div className="flex items-start gap-3">
-                              {insight.type === 'trend' && <TrendingUp className="h-4 w-4 text-blue-500" />}
-                              {insight.type === 'recommendation' && <Sparkles className="h-4 w-4 text-indigo-500" />}
-                              {insight.type === 'risk' && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                              <div className="flex-1">
-                                <p className="text-sm">{insight.message}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(insight.timestamp).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )) : (
-                          <div className="text-muted-foreground text-sm">No AI insights available.</div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-red-500" />
-                      Alerts
-                    </CardTitle>
-                    <CardDescription>Critical and warning items</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[200px]">
-                      <div className="space-y-4">
-                        {alerts.length > 0 ? alerts.map((alert) => (
-                          <div key={alert.id} className={`p-4 border rounded-lg ${getAlertStatusColor(alert.severity)}`}>
-                            <div className="flex items-start gap-3">
-                              <AlertTriangle className="h-4 w-4" />
-                              <div className="flex-1">
-                                <h4 className="font-medium">{alert.title}</h4>
-                                <p className="text-sm text-muted-foreground">{alert.description}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(alert.timestamp).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )) : (
-                          <div className="text-muted-foreground text-sm">No alerts.</div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              </div>
 
               {/* Goals Trends Chart */}
               <Card>

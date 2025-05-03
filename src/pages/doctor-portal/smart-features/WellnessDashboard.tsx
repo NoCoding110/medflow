@@ -32,7 +32,8 @@ import {
   Brain
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import AIInsightsBox from '@/components/AIInsightsBox';
+import { PatientSelector } from '@/components/PatientSelector';
+import AIInsightsPanel from '@/components/AIInsightsPanel';
 
 interface WellnessEntry {
   id: string;
@@ -169,54 +170,33 @@ const WellnessDashboard = () => {
   return (
     <div className="container py-8">
       <div className="grid gap-6 md:grid-cols-[300px,1fr]">
-        {/* Patient List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patients</CardTitle>
-            <CardDescription>Select a patient to view their wellness data</CardDescription>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patients..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-2">
-                {filteredPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent ${
-                      selectedPatient?.id === patient.id ? 'bg-accent' : ''
-                    }`}
-                    onClick={() => setSelectedPatient(patient)}
-                  >
-                    <Avatar>
-                      <AvatarFallback>
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium">{patient.name}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        {/* Patient Selector */}
+        <PatientSelector
+          patients={patients.map(p => ({
+            id: p.id,
+            name: p.name,
+            status: 'active', // or use a real status if available
+            lastActivity: '', // add last activity if available
+            image: p.image,
+          }))}
+          selectedPatientId={selectedPatient?.id || null}
+          onSelect={id => setSelectedPatient(patients.find(p => p.id === id) || null)}
+        />
 
         {/* Wellness Dashboard */}
         <div className="space-y-6">
           {selectedPatient && (
             <>
+              <AIInsightsPanel
+                patient={{ id: selectedPatient.id, name: selectedPatient.name }}
+                module="wellness"
+                data={{
+                  wellnessData,
+                  analytics,
+                  aiInsights,
+                  alerts
+                }}
+              />
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">{selectedPatient.name}'s Wellness Dashboard</h2>
@@ -225,8 +205,6 @@ const WellnessDashboard = () => {
                   </p>
                 </div>
               </div>
-
-              <AIInsightsBox />
 
               {/* Analytics Overview */}
               <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -272,61 +250,6 @@ const WellnessDashboard = () => {
                       </div>
                       <Calendar className="h-8 w-8 text-green-500" />
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* AI Insights and Alerts */}
-              <div className="grid gap-6 md:grid-cols-2 mb-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-purple-500" />
-                      AI Insights
-                    </CardTitle>
-                    <CardDescription>Smart analysis and recommendations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[200px]">
-                      <div className="space-y-4">
-                        {aiInsights?.tips?.length ? aiInsights.tips.map((tip: string, idx: number) => (
-                          <div key={idx} className="p-4 border rounded-lg bg-muted">
-                            <div className="flex items-start gap-3">
-                              <Brain className="h-4 w-4 text-purple-500" />
-                              <div className="flex-1">
-                                <h4 className="font-medium">{tip}</h4>
-                              </div>
-                            </div>
-                          </div>
-                        )) : <div className="text-muted-foreground">No AI insights available.</div>}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-red-500" />
-                      Alerts
-                    </CardTitle>
-                    <CardDescription>Critical and warning items</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[200px]">
-                      <div className="space-y-4">
-                        {alerts.length ? alerts.map((alert, idx) => (
-                          <div key={idx} className={`p-4 border rounded-lg ${getStatusColor(alert.severity)}`}>
-                            <div className="flex items-start gap-3">
-                              <AlertCircle className="h-4 w-4" />
-                              <div className="flex-1">
-                                <h4 className="font-medium">{alert.title}</h4>
-                                <p className="text-sm text-muted-foreground">{alert.description}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )) : <div className="text-muted-foreground">No alerts.</div>}
-                      </div>
-                    </ScrollArea>
                   </CardContent>
                 </Card>
               </div>
