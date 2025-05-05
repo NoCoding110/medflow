@@ -33,6 +33,7 @@ const priorityColors = {
 const RemindersPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [doctorId, setDoctorId] = useState<string | null>(null);
   const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -48,22 +49,48 @@ const RemindersPage = () => {
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [error, setError] = useState<string | null>(null);
+  const [remindersRefresh, setRemindersRefresh] = useState(0);
 
   useEffect(() => {
-    fetchReminders();
-    // eslint-disable-next-line
-  }, [user?.id]);
+    const resolveDoctorId = async () => {
+      if (!user) return;
+      if (/^[0-9a-fA-F-]{36}$/.test(user.id)) {
+        setDoctorId(user.id);
+      } else if (user.email) {
+        const { data, error } = await supabase
+          .from("doctors")
+          .select("id")
+          .eq("email", user.email)
+          .single();
+        if (data?.id) {
+          setDoctorId(data.id);
+        } else {
+          setError("Could not resolve doctor profile. Please contact support.");
+        }
+      } else {
+        setError("No valid user ID or email found.");
+      }
+    };
+    resolveDoctorId();
+  }, [user]);
 
-  async function fetchReminders() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("reminders")
-      .select("*")
-      .eq("doctor_id", user?.id)
-      .order("due_date", { ascending: true });
-    if (!error) setReminders(data || []);
-    setLoading(false);
-  }
+  useEffect(() => {
+    const fetchReminders = async () => {
+      if (!doctorId) return;
+      setLoading(true);
+      setError(null);
+      const { data, error } = await supabase
+        .from("reminders")
+        .select("*")
+        .eq("doctor_id", doctorId)
+        .order("due_date", { ascending: true });
+      if (!error) setReminders(data || []);
+      else setError(error.message);
+      setLoading(false);
+    };
+    if (doctorId) fetchReminders();
+  }, [doctorId, remindersRefresh]);
 
   function groupReminders(reminders) {
     const today = [], upcoming = [], completed = [];
@@ -94,14 +121,14 @@ const RemindersPage = () => {
     e.preventDefault();
     setAdding(true);
     const { error } = await supabase.from("reminders").insert({
-      doctor_id: user?.id,
+      doctor_id: doctorId,
       ...newReminder,
       due_date: newReminder.due_date ? new Date(newReminder.due_date).toISOString() : null
     });
     setAdding(false);
     setShowAdd(false);
     setNewReminder({ title: "", description: "", due_date: "", priority: "medium", category: "" });
-    await fetchReminders();
+    setRemindersRefresh(r => r + 1);
     toast({ title: "Reminder added" });
   };
 
@@ -114,23 +141,27 @@ const RemindersPage = () => {
     }).eq("id", editReminder.id);
     setShowEdit(false);
     setEditReminder(null);
-    await fetchReminders();
+    setRemindersRefresh(r => r + 1);
     toast({ title: "Reminder updated" });
   };
 
   const handleToggleComplete = async (reminder: any) => {
     await supabase.from("reminders").update({ completed: !reminder.completed }).eq("id", reminder.id);
-    await fetchReminders();
+    setRemindersRefresh(r => r + 1);
     toast({ title: reminder.completed ? "Marked as incomplete" : "Marked as complete" });
   };
 
   const handleDelete = async (reminder: any) => {
     await supabase.from("reminders").delete().eq("id", reminder.id);
-    await fetchReminders();
+    setRemindersRefresh(r => r + 1);
     toast({ title: "Reminder deleted" });
   };
 
   const grouped = groupReminders(filterReminders(reminders));
+
+  if (error) {
+    return <div className="container py-8 text-red-600">{error}</div>;
+  }
 
   return (
     <div className="container py-8">
