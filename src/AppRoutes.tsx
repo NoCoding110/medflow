@@ -7,6 +7,8 @@ import { patientRoutes } from "@/routes/patientRoutes";
 import { doctorRoutes } from "@/routes/doctorRoutes";
 import { adminRoutes } from "@/routes/adminRoutes";
 import NewPatient from "./pages/NewPatient";
+import PatientRegistration from "./pages/patient/registration/PatientRegistration";
+import Appointments from './pages/doctor-portal/appointments/Appointments';
 
 const AppRoutes = () => {
   return (
@@ -14,6 +16,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
       <Route path="/patients/new" element={<NewPatient />} />
+      <Route path="/patient/register" element={<PatientRegistration />} />
       {protectedRoutes.map((route) => (
         <Route key={route.path} {...route} />
       ))}
@@ -28,6 +31,7 @@ const AppRoutes = () => {
         {doctorRoutes.children.map((childRoute) => (
           <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} />
         ))}
+        <Route path="/appointments" element={<Appointments />} />
       </Route>
       {/* Admin routes */}
       <Route path={adminRoutes.path} element={adminRoutes.element}>

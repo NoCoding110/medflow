@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import AppRoutes from "./AppRoutes";
 import { useVersionCheck } from './hooks/useVersionCheck';
 import { TooltipProvider } from "@/components/ui/tooltip";
+import PatientRegistration from './pages/patient/registration/PatientRegistration';
 
 function App() {
   useVersionCheck();
