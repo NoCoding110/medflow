@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Handle route persistence
   useEffect(() => {
     if (!isLoading) {
-      if (!user && !location.pathname.startsWith('/login')) {
+      if (!user && !location.pathname.startsWith('/login') && location.pathname !== '/') {
         // Save the attempted URL
         sessionStorage.setItem('redirectTo', location.pathname);
         navigate('/login');
@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('user');
     sessionStorage.removeItem('redirectTo');
-    navigate('/login');
+    navigate('/');
   };
 
   return (
