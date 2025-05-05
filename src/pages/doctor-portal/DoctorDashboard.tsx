@@ -252,13 +252,38 @@ const DoctorDashboard = () => {
     alerts: false
   });
 
-  // Fetch analytics
+  // Fetch analytics from Supabase
   const fetchAnalytics = useCallback(async () => {
     setLoading(prev => ({ ...prev, analytics: true }));
     try {
-      const res = await fetch('/api/analytics/summary', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch analytics');
-      setAnalytics(await res.json());
+      // Fetch patients
+      const { data: patientsData, error: patientsError } = await supabase
+        .from('patients')
+        .select('id, status');
+      if (patientsError) throw patientsError;
+      const totalPatients = patientsData?.length || 0;
+      const activePatients = patientsData?.filter(p => p.status === 'active').length || 0;
+
+      // Fetch today's appointments
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const { data: todayAppointments, error: todayAppointmentsError } = await supabase
+        .from('patient_appointments')
+        .select('id')
+        .gte('appointment_date', today.toISOString())
+        .lt('appointment_date', tomorrow.toISOString());
+      if (todayAppointmentsError) throw todayAppointmentsError;
+
+      setAnalytics({
+        totalPatients,
+        activePatients,
+        appointmentsToday: todayAppointments?.length || 0,
+        revenue: { current: 0, previous: 0, trend: 'up' }, // Placeholder
+        patientEngagement: { score: 0, trend: 'up' }, // Placeholder
+        healthOutcomes: { improvement: 0, decline: 0, stable: 0 }, // Placeholder
+      });
     } catch (error) {
       toast.error('Failed to load analytics');
     } finally {
@@ -266,13 +291,16 @@ const DoctorDashboard = () => {
     }
   }, []);
 
-  // Fetch AI insights
+  // Fetch AI insights from Supabase
   const fetchAiInsights = useCallback(async () => {
     setLoading(prev => ({ ...prev, insights: true }));
     try {
-      const res = await fetch('/api/insights/ai', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch AI insights');
-      setAiInsights(await res.json());
+      const { data, error } = await supabase
+        .from('ai_insights')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAiInsights(data || []);
     } catch (error) {
       toast.error('Failed to load AI insights');
     } finally {
@@ -280,22 +308,16 @@ const DoctorDashboard = () => {
     }
   }, []);
 
-  // Fetch alerts
+  // Fetch alerts from Supabase
   const fetchAlerts = useCallback(async () => {
     setLoading(prev => ({ ...prev, alerts: true }));
     try {
-      const res = await fetch('/api/alerts', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch alerts');
-      const alerts = await res.json();
-      setAlerts(alerts.map((alert: any) => ({
-        id: alert.id,
-        type: alert.type,
-        title: alert.title,
-        description: alert.description,
-        severity: alert.severity,
-        timestamp: alert.created_at,
-        details: { patientName: alert.patient_name, patientId: alert.patient_id || '', data: {} }
-      })));
+      const { data, error } = await supabase
+        .from('alerts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAlerts(data || []);
     } catch (error) {
       toast.error('Failed to load alerts');
     } finally {
@@ -441,121 +463,6 @@ const DoctorDashboard = () => {
         break;
     }
     setIsAlertDialogOpen(false);
-  };
-
-  useEffect(() => {
-    fetchAnalyticsFromSupabase();
-    fetchRevenue();
-    fetchEngagement();
-    fetchHealthOutcomes();
-    fetchAIInsights();
-    fetchAlerts();
-  }, []);
-
-  const fetchAnalyticsFromSupabase = async () => {
-    setLoading(prev => ({ ...prev, analytics: true }));
-    try {
-      // Fetch patients
-      const { data: patientsData, error: patientsError } = await supabase
-        .from('patients')
-        .select('id, status');
-      if (patientsError) throw patientsError;
-      const totalPatients = patientsData?.length || 0;
-      const activePatients = patientsData?.filter(p => p.status === 'active').length || 0;
-
-      // Fetch today's appointments
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const { data: todayAppointments, error: todayAppointmentsError } = await supabase
-        .from('patient_appointments')
-        .select('id')
-        .gte('appointment_date', today.toISOString())
-        .lt('appointment_date', tomorrow.toISOString());
-      if (todayAppointmentsError) throw todayAppointmentsError;
-
-      // Fetch this week's appointments
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      const { data: weekAppointments, error: weekAppointmentsError } = await supabase
-        .from('patient_appointments')
-        .select('id')
-        .gte('appointment_date', today.toISOString())
-        .lt('appointment_date', nextWeek.toISOString());
-      if (weekAppointmentsError) throw weekAppointmentsError;
-
-      setAnalytics({
-        totalPatients,
-        activePatients,
-        appointmentsToday: todayAppointments?.length || 0,
-        revenue: { current: 0, previous: 0, trend: 'up' }, // Placeholder
-        patientEngagement: { score: 0, trend: 'up' }, // Placeholder
-        healthOutcomes: { improvement: 0, decline: 0, stable: 0 }, // Placeholder
-      });
-    } catch (error) {
-      toast.error('Failed to load analytics');
-    } finally {
-      setLoading(prev => ({ ...prev, analytics: false }));
-    }
-  };
-
-  const fetchRevenue = async () => {
-    const { data, error } = await supabase
-      .from('revenue')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(2);
-    if (!error && data && data.length > 0) {
-      const current = Number(data[0].amount);
-      const previous = data[1] ? Number(data[1].amount) : current;
-      const trend = current >= previous ? 'up' : 'down';
-      setRevenue({ current, previous, trend });
-    }
-  };
-
-  const fetchEngagement = async () => {
-    const { data, error } = await supabase
-      .from('patient_engagement')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    if (!error && data && data.length > 0) {
-      setEngagement({ score: data[0].score, trend: data[0].trend });
-    }
-  };
-
-  const fetchHealthOutcomes = async () => {
-    const { data, error } = await supabase
-      .from('health_outcomes')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    if (!error && data && data.length > 0) {
-      setHealthOutcomes({
-        improvement: data[0].improvement,
-        stable: data[0].stable,
-        decline: data[0].decline
-      });
-    }
-  };
-
-  const fetchAIInsights = async () => {
-    const { data, error } = await supabase
-      .from('ai_insights')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) {
-      setAiInsights(data.map((insight: any) => ({
-        id: insight.id,
-        type: insight.type,
-        title: insight.title,
-        description: insight.description,
-        severity: insight.severity,
-        timestamp: insight.created_at,
-        details: { patientName: insight.patient_name, data: {} }
-      })));
-    }
   };
 
   return (
