@@ -109,10 +109,30 @@ const FitnessTracking = () => {
     setLoading(true);
     setError(null);
     Promise.all([
-      fetch('/api/fitness').then(r => r.json()),
-      fetch('/api/fitness/analytics').then(r => r.json()),
-      fetch('/api/fitness/insights/ai').then(r => r.json()),
-      fetch('/api/fitness/alerts').then(r => r.json()),
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/fitness`, {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      }).then(r => r.json()),
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/fitness/analytics`, {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      }).then(r => r.json()),
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/fitness/insights/ai`, {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      }).then(r => r.json()),
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/fitness/alerts`, {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      }).then(r => r.json()),
     ])
       .then(([fitness, analytics, ai, alerts]) => {
         setFitnessData(fitness);

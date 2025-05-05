@@ -89,11 +89,36 @@ const VitalsTracker = () => {
         setLoading(true);
         setError(null);
         const [patientsRes, vitalsRes, analyticsRes, aiRes, alertsRes] = await Promise.all([
-          fetch('/api/patients'),
-          fetch(`/api/vitals?type=${typeFilter}&timeRange=${timeRange}`),
-          fetch(`/api/vitals/analytics?type=${typeFilter}&timeRange=${timeRange}`),
-          fetch(`/api/vitals/insights/ai?type=${typeFilter}&timeRange=${timeRange}`),
-          fetch(`/api/vitals/alerts?type=${typeFilter}&timeRange=${timeRange}`)
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/patients`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals?type=${typeFilter}&timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals/analytics?type=${typeFilter}&timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals/insights/ai?type=${typeFilter}&timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals/alerts?type=${typeFilter}&timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          })
         ]);
 
         if (!patientsRes.ok || !vitalsRes.ok || !analyticsRes.ok || !aiRes.ok || !alertsRes.ok) {

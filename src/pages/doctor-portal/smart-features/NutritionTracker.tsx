@@ -98,11 +98,36 @@ const NutritionTracker = () => {
         setLoading(true);
         setError(null);
         const [patientsRes, nutritionRes, analyticsRes, aiRes, alertsRes] = await Promise.all([
-          fetch('/api/patients'),
-          fetch(`/api/nutrition?timeRange=${timeRange}`),
-          fetch(`/api/nutrition/analytics?timeRange=${timeRange}`),
-          fetch(`/api/nutrition/insights/ai?timeRange=${timeRange}`),
-          fetch(`/api/nutrition/alerts?timeRange=${timeRange}`)
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/patients`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition?timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition/analytics?timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition/insights/ai?timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition/alerts?timeRange=${timeRange}`, {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            }
+          })
         ]);
         if (!patientsRes.ok || !nutritionRes.ok || !analyticsRes.ok || !aiRes.ok || !alertsRes.ok) {
           throw new Error('Failed to fetch data');
