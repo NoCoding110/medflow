@@ -101,7 +101,7 @@ const VitalsTracker = () => {
         let vitalsQuery = supabase
           .from('vitals')
           .select('*')
-          .gte('recordedAt', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
+          .gte('recorded_at', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
 
         // Only add type filter if not 'all'
         if (typeFilter !== 'all') {
