@@ -1,4 +1,3 @@
-
 import { Patient, Appointment } from '../types/patient';
 import { Note } from '../types/medical';
 import { mockPatients, mockNotes, mockAppointments } from '../data/mock-data';
@@ -20,11 +19,6 @@ export const calculateAge = (dateOfBirth: string): number => {
   }
   
   return age;
-};
-
-// Function to get patient by ID
-export const getPatientById = (patientId: string): Patient | undefined => {
-  return mockPatients.find(patient => patient.id === patientId);
 };
 
 // Function to get notes by patient ID

@@ -1,11 +1,10 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/lib/auth"; // Path stays the same, TypeScript will resolve it
+import { useAuth } from "@/lib/auth";
 import { 
   Users, 
   Calendar, 
@@ -18,13 +17,51 @@ import {
   mockAppointments,
   mockPatients,
   mockNotes,
-  formatPatientName,
-  getPatientById
+  formatPatientName
 } from "@/lib/data";
+import { getPatientById } from "@/lib/services/patient-service";
+import { Patient as ServicePatient } from "@/lib/services/patient-service";
+import { Patient as TypePatient } from "@/lib/types/patient";
+
+// Helper function to convert service patient to type patient
+const convertPatient = (servicePatient: ServicePatient): TypePatient => {
+  return {
+    id: servicePatient.id,
+    firstName: servicePatient.firstName,
+    lastName: servicePatient.lastName,
+    dateOfBirth: servicePatient.dateOfBirth,
+    gender: servicePatient.gender,
+    email: servicePatient.email,
+    phone: servicePatient.phone,
+    address: servicePatient.address,
+    insuranceProvider: servicePatient.insurance.provider,
+    insuranceNumber: servicePatient.insurance.policyNumber,
+    medicalHistory: {
+      conditions: servicePatient.medicalHistory.conditions,
+      surgeries: servicePatient.medicalHistory.surgeries.map(surgery => ({
+        name: surgery,
+        date: '', // We don't have this information in the service patient
+        notes: ''
+      })),
+      familyHistory: [], // We don't have this information in the service patient
+      immunizations: [] // We don't have this information in the service patient
+    },
+    allergies: servicePatient.medicalHistory.allergies,
+    medications: servicePatient.medicalHistory.medications.map(med => ({
+      name: med,
+      dosage: '',
+      frequency: '',
+      startDate: '',
+      prescribedBy: ''
+    })),
+    status: servicePatient.status
+  };
+};
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [patients, setPatients] = useState<Record<string, TypePatient>>({});
   
   // Get today's appointments (in a real app, this would come from an API)
   const today = new Date().toISOString().split('T')[0];
@@ -42,6 +79,28 @@ const Dashboard = () => {
     .filter(note => note.doctorId === user?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
+
+  // Load patient data for appointments and notes
+  useEffect(() => {
+    const loadPatientData = async () => {
+      const patientIds = new Set([
+        ...todaysAppointments.map(a => a.patientId),
+        ...upcomingAppointments.map(a => a.patientId),
+        ...recentNotes.map(n => n.patientId)
+      ]);
+
+      const patientData: Record<string, TypePatient> = {};
+      for (const patientId of patientIds) {
+        const servicePatient = await getPatientById(patientId);
+        if (servicePatient) {
+          patientData[patientId] = convertPatient(servicePatient);
+        }
+      }
+      setPatients(patientData);
+    };
+
+    loadPatientData();
+  }, [todaysAppointments, upcomingAppointments, recentNotes]);
 
   return (
     <Layout>
@@ -158,7 +217,7 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {todaysAppointments.map((appointment) => {
-                    const patient = getPatientById(appointment.patientId);
+                    const patient = patients[appointment.patientId];
                     return (
                       <div 
                         key={appointment.id} 
@@ -229,7 +288,7 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   recentNotes.map((note) => {
-                    const patient = getPatientById(note.patientId);
+                    const patient = patients[note.patientId];
                     return (
                       <div 
                         key={note.id} 
@@ -273,7 +332,7 @@ const Dashboard = () => {
             <CardContent>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {upcomingAppointments.map((appointment) => {
-                  const patient = getPatientById(appointment.patientId);
+                  const patient = patients[appointment.patientId];
                   return (
                     <div
                       key={appointment.id}

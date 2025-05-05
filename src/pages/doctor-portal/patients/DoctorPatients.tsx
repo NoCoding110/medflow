@@ -12,6 +12,9 @@ import { Progress } from "@/components/ui/progress";
 import NewPatientDialog from "./NewPatientDialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from '@/lib/auth';
+import { useToast } from '@/components/ui/use-toast';
+import NewPatientForm from '@/components/doctor-portal/NewPatientForm';
 
 interface Patient {
   id: string;
@@ -25,6 +28,7 @@ interface Patient {
   last_visit?: string;
   next_appointment?: string;
   created_at: string;
+  address: string;
 }
 
 interface DisplayPatient {
@@ -39,6 +43,7 @@ interface DisplayPatient {
   phone: string;
   email: string;
   next_appointment?: string;
+  address: string;
 }
 
 interface Analytics {
@@ -60,6 +65,8 @@ interface Analytics {
 
 const DoctorPatients = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [patients, setPatients] = useState<DisplayPatient[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [errorPatients, setErrorPatients] = useState<string | null>(null);
@@ -77,6 +84,7 @@ const DoctorPatients = () => {
   const [isNewPatientDialogOpen, setIsNewPatientDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [showNewPatientForm, setShowNewPatientForm] = useState(false);
   
   // Fetch patients from Supabase
   const fetchPatients = useCallback(async () => {
@@ -86,6 +94,7 @@ const DoctorPatients = () => {
       const { data, error } = await supabase
         .from('patients')
         .select('*')
+        .eq('doctor_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -102,18 +111,23 @@ const DoctorPatients = () => {
         dob: patient.date_of_birth,
         phone: patient.phone_number,
         email: patient.email,
-        next_appointment: patient.next_appointment
+        next_appointment: patient.next_appointment,
+        address: patient.address
       }));
 
       setPatients(transformedPatients);
     } catch (e: any) {
       setErrorPatients(e.message || 'Failed to load patients');
       setPatients([]);
-      toast.error('Failed to load patients');
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch patients. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setLoadingPatients(false);
     }
-  }, []);
+  }, [user?.id]);
 
   // Helper function to calculate age
   const calculateAge = (dateOfBirth: string) => {
@@ -242,8 +256,10 @@ const DoctorPatients = () => {
   }, [patients]);
 
   useEffect(() => {
-    fetchPatients();
-  }, [fetchPatients]);
+    if (user?.id) {
+      fetchPatients();
+    }
+  }, [user?.id, fetchPatients]);
 
   useEffect(() => {
     if (patients.length > 0) {
@@ -321,6 +337,23 @@ const DoctorPatients = () => {
       }
     });
   }, [patients, searchTerm, searchField, statusFilter, riskFilter, sortConfig, activeTab]);
+
+  const handlePatientAdded = () => {
+    setShowNewPatientForm(false);
+    fetchPatients();
+    toast({
+      title: 'Success',
+      description: 'Patient added successfully',
+    });
+  };
+
+  if (loadingPatients) {
+    return <div>Loading...</div>;
+  }
+
+  if (errorPatients) {
+    return <div>Error: {errorPatients}</div>;
+  }
 
   return (
     <div className="container py-8">
@@ -456,7 +489,7 @@ const DoctorPatients = () => {
               <Button variant="outline" onClick={() => {}}>
                 <Download className="mr-2 h-4 w-4" /> Export
               </Button>
-              <Button onClick={() => setIsNewPatientDialogOpen(true)}>
+              <Button onClick={() => setShowNewPatientForm(true)}>
                 <Plus className="mr-2 h-4 w-4" /> New Patient
               </Button>
             </div>
@@ -700,10 +733,12 @@ const DoctorPatients = () => {
         </TabsContent>
       </Tabs>
 
-      <NewPatientDialog
-        open={isNewPatientDialogOpen}
-        onClose={() => setIsNewPatientDialogOpen(false)}
-      />
+      {showNewPatientForm && (
+        <NewPatientForm
+          onSuccess={handlePatientAdded}
+          onCancel={() => setShowNewPatientForm(false)}
+        />
+      )}
     </div>
   );
 };

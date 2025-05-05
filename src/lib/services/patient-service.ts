@@ -24,8 +24,8 @@ export interface Patient {
   medicalHistory: {
     allergies: string[];
     medications: string[];
-    surgeries: string[];
     conditions: string[];
+    surgeries: string[];
     primaryCarePhysician: string;
   };
   wearableDevices: {
@@ -48,6 +48,7 @@ export interface Patient {
       medication: boolean;
     };
   };
+  status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
 }
@@ -127,20 +128,54 @@ export interface PatientAIInsight {
   priority: "high" | "medium" | "low";
 }
 
-export const createPatient = async (patientData: Omit<Patient, "id" | "createdAt" | "updatedAt">) => {
-  try {
-    const { data, error } = await supabase
-      .from("patients")
-      .insert([patientData])
-      .select()
-      .single();
+export const createPatient = async (data: Omit<Patient, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<Patient> => {
+  const { data: patient, error } = await supabase
+    .from('patients')
+    .insert([
+      {
+        user_id: data.userId,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        date_of_birth: data.dateOfBirth,
+        gender: data.gender,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        emergency_contact: data.emergencyContact,
+        insurance: data.insurance,
+        medical_history: data.medicalHistory,
+        wearable_devices: data.wearableDevices,
+        preferences: data.preferences,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ])
+    .select()
+    .single();
 
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error creating patient:", error);
-    throw error;
-  }
+  if (error) throw error;
+  if (!patient) throw new Error('Failed to create patient');
+
+  return {
+    id: patient.id,
+    userId: patient.user_id,
+    firstName: patient.first_name,
+    lastName: patient.last_name,
+    dateOfBirth: patient.date_of_birth,
+    gender: patient.gender,
+    email: patient.email,
+    phone: patient.phone,
+    address: patient.address,
+    emergencyContact: patient.emergency_contact,
+    insurance: patient.insurance,
+    medicalHistory: patient.medical_history,
+    wearableDevices: patient.wearable_devices,
+    preferences: patient.preferences,
+    status: patient.status,
+    createdAt: patient.created_at,
+    updatedAt: patient.updated_at,
+  };
 };
 
 export const getPatient = async (patientId: string) => {
@@ -289,6 +324,7 @@ export const getPatientById = async (patientId: string): Promise<Patient | null>
       medicalHistory: data.medical_history,
       wearableDevices: data.wearable_devices,
       preferences: data.preferences,
+      status: data.status,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };

@@ -7,6 +7,7 @@ export interface Doctor {
   firstName: string;
   lastName: string;
   role: 'doctor';
+  password: string | null;
   specialization?: string;
   licenseNumber?: string;
   phone?: string;
@@ -129,6 +130,19 @@ interface DoctorPatientResponse {
       last_name: string;
     }[];
   };
+}
+
+export interface DoctorRegistrationData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  specialization: string;
+  npiNumber: string;
+  licenseNumber: string;
+  phone: string;
+  address: string;
+  bio?: string;
+  profileImage?: string;
 }
 
 export const getDoctorByEmail = async (email: string): Promise<Doctor | null> => {
@@ -523,6 +537,149 @@ export const ensureDoctorSarahJohnson = async () => {
     return true;
   } catch (error) {
     console.error("Error ensuring Dr. Sarah Johnson's profile:", error);
+    throw error;
+  }
+};
+
+export const createDoctor = async (data: DoctorRegistrationData): Promise<Doctor> => {
+  try {
+    // First, create the user record
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .insert([
+        {
+          email: data.email,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          role: "doctor",
+          // Password will be set when the doctor first logs in
+          password: null,
+        },
+      ])
+      .select()
+      .single();
+
+    if (userError) throw userError;
+    if (!userData) throw new Error("Failed to create user record");
+
+    // Then, create the doctor profile
+    const { data: doctorData, error: doctorError } = await supabase
+      .from("doctors")
+      .insert([
+        {
+          user_id: userData.id,
+          specialization: data.specialization,
+          npi_number: data.npiNumber,
+          license_number: data.licenseNumber,
+          phone: data.phone,
+          address: data.address,
+          bio: data.bio,
+          profile_image: data.profileImage,
+        },
+      ])
+      .select()
+      .single();
+
+    if (doctorError) throw doctorError;
+    if (!doctorData) throw new Error("Failed to create doctor record");
+
+    // Create default tables for the doctor
+    await Promise.all([
+      // Create appointments table
+      supabase.from("appointments").insert([
+        {
+          doctor_id: doctorData.id,
+          patient_id: null,
+          date: null,
+          time: null,
+          type: "checkup",
+          status: "scheduled",
+          notes: "",
+        },
+      ]),
+      // Create reminders table
+      supabase.from("reminders").insert([
+        {
+          doctor_id: doctorData.id,
+          title: "Welcome to MedFlow",
+          description: "Set up your profile and preferences",
+          due_date: new Date().toISOString(),
+          priority: "medium",
+          status: "pending",
+        },
+      ]),
+      // Create notes table
+      supabase.from("doctor_notes").insert([
+        {
+          doctor_id: doctorData.id,
+          patient_id: null,
+          title: "Welcome Note",
+          content: "Welcome to your new MedFlow account!",
+          created_at: new Date().toISOString(),
+        },
+      ]),
+    ]);
+
+    return {
+      ...userData,
+      ...doctorData,
+    };
+  } catch (error) {
+    console.error("Error creating doctor:", error);
+    throw error;
+  }
+};
+
+export const setupDoctorPassword = async (email: string, password: string): Promise<void> => {
+  try {
+    // First, verify the doctor exists and hasn't set a password yet
+    const { data: doctor, error: fetchError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .eq("role", "doctor")
+      .is("password", null)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!doctor) throw new Error("Doctor not found or password already set");
+
+    // Update the password
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ password })
+      .eq("id", doctor.id);
+
+    if (updateError) throw updateError;
+
+    // Create default settings for the doctor
+    await supabase.from("doctor_settings").insert([
+      {
+        doctor_id: doctor.id,
+        notifications_enabled: true,
+        email_notifications: true,
+        sms_notifications: false,
+        appointment_reminders: true,
+        patient_messages: true,
+        lab_results: true,
+        prescription_updates: true,
+        working_hours: {
+          monday: { start: "09:00", end: "17:00" },
+          tuesday: { start: "09:00", end: "17:00" },
+          wednesday: { start: "09:00", end: "17:00" },
+          thursday: { start: "09:00", end: "17:00" },
+          friday: { start: "09:00", end: "17:00" },
+          saturday: { start: null, end: null },
+          sunday: { start: null, end: null },
+        },
+        appointment_duration: 30, // minutes
+        max_patients_per_day: 20,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+  } catch (error) {
+    console.error("Error setting up doctor password:", error);
     throw error;
   }
 }; 
