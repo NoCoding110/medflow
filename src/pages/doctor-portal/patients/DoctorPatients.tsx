@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, User, Calendar, FileText, Filter, Download, MoreVertical, Brain, BarChart2, LineChart, Activity, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { Search, Plus, User, Calendar, FileText, Filter, Download, MoreVertical, Brain, BarChart2, LineChart, Activity, TrendingUp, TrendingDown, Users, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
