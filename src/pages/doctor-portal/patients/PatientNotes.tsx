@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,55 +6,51 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search, Plus, FilePlus } from "lucide-react";
 import QuickNoteDialog from "../notes/QuickNoteDialog";
 import NewNoteDialog from "../notes/NewNoteDialog";
-
-// Mock function to get patient data
-const getPatientById = (id: string) => {
-  const patients = [
-    {
-      id: "1",
-      name: "John Smith",
-    },
-    // Add more patients as needed
-  ];
-  return patients.find(p => p.id === id);
-};
-
-// Mock function to get patient notes
-const getPatientNotes = (patientId: string) => {
-  const notes = [
-    {
-      id: "1",
-      patientId: "1",
-      date: "2025-04-14",
-      type: "Progress Note",
-      title: "Follow-up Appointment",
-      content: "Patient reports improved symptoms. Blood pressure: 120/80. Continue current medications.",
-      doctorName: "Dr. Sarah Johnson"
-    },
-    {
-      id: "2",
-      patientId: "1",
-      date: "2025-03-15",
-      type: "Lab Review",
-      title: "Blood Work Results",
-      content: "Comprehensive metabolic panel reviewed. All values within normal range.",
-      doctorName: "Dr. Sarah Johnson"
-    },
-    // Add more notes as needed
-  ];
-  return notes.filter(note => note.patientId === patientId);
-};
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabaseClient";
 
 const PatientNotes = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
+  const [patient, setPatient] = useState<any>(null);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notesLoading, setNotesLoading] = useState(false);
   const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
   const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
-  const [notes, setNotes] = useState(getPatientNotes(id!));
-  
-  const patient = getPatientById(id!);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [noteError, setNoteError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchPatient = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("id", id)
+        .single();
+      setPatient(data);
+      setLoading(false);
+    };
+    if (id) fetchPatient();
+  }, [id]);
+
+  useEffect(() => {
+    const fetchNotes = async () => {
+      setNotesLoading(true);
+      const { data, error } = await supabase
+        .from("patient_notes")
+        .select("*")
+        .eq("patient_id", id)
+        .order("created_at", { ascending: false });
+      if (!error) setNotes(data || []);
+      setNotesLoading(false);
+    };
+    if (id) fetchNotes();
+  }, [id]);
+
+  if (loading) return <div>Loading...</div>;
   if (!patient) {
     return (
       <div className="container py-8">
@@ -79,31 +75,53 @@ const PatientNotes = () => {
   );
 
   const handleQuickNoteSubmit = async (data: any) => {
-    const newNote = {
-      id: (notes.length + 1).toString(),
-      patientId: id!,
-      date: new Date().toISOString().split('T')[0],
-      type: data.type,
-      title: data.title,
-      content: data.content,
-      doctorName: "Dr. Sarah Johnson"
-    };
-
-    setNotes(prev => [newNote, ...prev]);
+    setNoteError(null);
+    try {
+      const { error } = await supabase.from("patient_notes").insert({
+        patient_id: patient.id,
+        doctor_id: user?.id,
+        doctor_name: user?.name || user?.email || "Unknown",
+        title: data.title,
+        content: data.content,
+        type: data.type,
+        created_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      // Refresh notes
+      const { data: newNotes } = await supabase
+        .from("patient_notes")
+        .select("*")
+        .eq("patient_id", patient.id)
+        .order("created_at", { ascending: false });
+      setNotes(newNotes || []);
+    } catch (err: any) {
+      setNoteError(err.message || "Failed to add note");
+    }
   };
 
   const handleNewNoteSubmit = async (data: any) => {
-    const newNote = {
-      id: (notes.length + 1).toString(),
-      patientId: id!,
-      date: new Date().toISOString().split('T')[0],
-      type: data.type,
-      title: data.title,
-      content: `SUBJECTIVE:\n${data.subjective}\n\nOBJECTIVE:\n${data.objective}\n\nASSESSMENT:\n${data.assessment}\n\nPLAN:\n${data.plan}`,
-      doctorName: "Dr. Sarah Johnson"
-    };
-
-    setNotes(prev => [newNote, ...prev]);
+    setNoteError(null);
+    try {
+      const { error } = await supabase.from("patient_notes").insert({
+        patient_id: patient.id,
+        doctor_id: user?.id,
+        doctor_name: user?.name || user?.email || "Unknown",
+        title: data.title,
+        content: `SUBJECTIVE:\n${data.subjective}\n\nOBJECTIVE:\n${data.objective}\n\nASSESSMENT:\n${data.assessment}\n\nPLAN:\n${data.plan}`,
+        type: data.type,
+        created_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      // Refresh notes
+      const { data: newNotes } = await supabase
+        .from("patient_notes")
+        .select("*")
+        .eq("patient_id", patient.id)
+        .order("created_at", { ascending: false });
+      setNotes(newNotes || []);
+    } catch (err: any) {
+      setNoteError(err.message || "Failed to add note");
+    }
   };
 
   return (
