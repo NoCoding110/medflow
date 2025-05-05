@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import NewNoteDialog from "../notes/NewNoteDialog";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
 import AudioRecorderComponent from '@/components/AudioRecorder';
+import { toast } from "@/components/ui/use-toast";
 
 const PatientNotes = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ const PatientNotes = () => {
   const [aiSuggestions, setAiSuggestions] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [newNote, setNewNote] = useState('');
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -43,19 +45,43 @@ const PatientNotes = () => {
     if (id) fetchPatient();
   }, [id]);
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      setNotesLoading(true);
+  const fetchNotes = useCallback(async () => {
+    setLoading(true);
+    try {
+      // First get the doctor's ID from the doctors table
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (doctorError) throw doctorError;
+      if (!doctorData) throw new Error('Doctor profile not found');
+
       const { data, error } = await supabase
-        .from("patient_notes")
-        .select("*")
-        .eq("patient_id", id)
-        .order("created_at", { ascending: false });
-      if (!error) setNotes(data || []);
-      setNotesLoading(false);
-    };
+        .from('doctor_notes')
+        .select('*')
+        .eq('doctor_id', doctorData.id)
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch notes. Please try again later.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user?.id, toast]);
+
+  useEffect(() => {
     if (id) fetchNotes();
-  }, [id]);
+  }, [id, fetchNotes]);
 
   if (loading) return <div>Loading...</div>;
   if (!patient) {
@@ -95,12 +121,7 @@ const PatientNotes = () => {
       });
       if (error) throw error;
       // Refresh notes
-      const { data: newNotes } = await supabase
-        .from("patient_notes")
-        .select("*")
-        .eq("patient_id", patient.id)
-        .order("created_at", { ascending: false });
-      setNotes(newNotes || []);
+      fetchNotes();
     } catch (err: any) {
       setNoteError(err.message || "Failed to add note");
     }
@@ -120,12 +141,7 @@ const PatientNotes = () => {
       });
       if (error) throw error;
       // Refresh notes
-      const { data: newNotes } = await supabase
-        .from("patient_notes")
-        .select("*")
-        .eq("patient_id", patient.id)
-        .order("created_at", { ascending: false });
-      setNotes(newNotes || []);
+      fetchNotes();
     } catch (err: any) {
       setNoteError(err.message || "Failed to add note");
     }
@@ -169,6 +185,49 @@ const PatientNotes = () => {
       setAiError('Failed to get AI suggestions');
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+
+    try {
+      // First get the doctor's ID from the doctors table
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (doctorError) throw doctorError;
+      if (!doctorData) throw new Error('Doctor profile not found');
+
+      const { error } = await supabase
+        .from('doctor_notes')
+        .insert([
+          {
+            doctor_id: doctorData.id,
+            patient_id: id,
+            content: newNote,
+            created_at: new Date().toISOString()
+          }
+        ]);
+
+      if (error) throw error;
+
+      setNewNote('');
+      fetchNotes();
+      toast({
+        title: "Success",
+        description: "Note added successfully.",
+      });
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add note. Please try again later.",
+      });
     }
   };
 

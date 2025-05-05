@@ -16,6 +16,20 @@ import { useAuth } from '@/lib/auth';
 import { useToast } from '@/components/ui/use-toast';
 import NewPatientForm from '@/components/doctor-portal/NewPatientForm';
 
+// Helper function to calculate age
+const calculateAge = (dateOfBirth: string) => {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
+
 interface Patient {
   id: string;
   first_name: string;
@@ -86,62 +100,82 @@ const DoctorPatients = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showNewPatientForm, setShowNewPatientForm] = useState(false);
   
+  // Helper function to calculate risk level
+  const calculateRiskLevel = (patient: any): string => {
+    // Simple risk calculation based on age and status
+    const age = calculateAge(patient.date_of_birth);
+    const status = patient.status || 'active';
+    
+    if (age > 65 || status === 'inactive') {
+      return 'high';
+    } else if (age > 50) {
+      return 'medium';
+    } else {
+      return 'low';
+    }
+  };
+
   // Fetch patients from Supabase
   const fetchPatients = useCallback(async () => {
     setLoadingPatients(true);
     setErrorPatients(null);
     try {
+      // First get the doctor's ID from the doctors table
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (doctorError) throw doctorError;
+      if (!doctorData) throw new Error('Doctor profile not found');
+
+      // Then fetch patients using the doctor's ID
       const { data, error } = await supabase
         .from('patients')
-        .select('*')
-        .eq('doctor_id', user?.id)
+        .select(`
+          *,
+          users (
+            id,
+            email,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('doctor_id', doctorData.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Transform the data to match our display interface
-      const transformedPatients: DisplayPatient[] = data.map(patient => ({
+
+      // Transform the data to match the DisplayPatient interface
+      const transformedPatients = data.map(patient => ({
         id: patient.id,
         name: `${patient.first_name} ${patient.last_name}`,
         age: calculateAge(patient.date_of_birth),
         gender: patient.gender,
-        lastVisit: patient.last_visit || new Date().toISOString(),
-        status: patient.status === 'active' ? 'Active' : 'Inactive',
-        riskLevel: 'low', // Default value
+        lastVisit: patient.last_visit || 'Never',
+        status: patient.status || 'active',
+        riskLevel: calculateRiskLevel(patient),
         dob: patient.date_of_birth,
-        phone: patient.phone_number,
-        email: patient.email,
+        phone: patient.phone,
+        email: patient.users?.email || '',
         next_appointment: patient.next_appointment,
         address: patient.address
       }));
 
       setPatients(transformedPatients);
-    } catch (e: any) {
-      setErrorPatients(e.message || 'Failed to load patients');
-      setPatients([]);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      setErrorPatients('Failed to fetch patients. Please try again later.');
       toast({
-        title: 'Error',
-        description: 'Failed to fetch patients. Please try again.',
-        variant: 'destructive',
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch patients. Please try again later.",
       });
     } finally {
       setLoadingPatients(false);
     }
-  }, [user?.id]);
-
-  // Helper function to calculate age
-  const calculateAge = (dateOfBirth: string) => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
+  }, [user?.id, toast]);
 
   // Fetch analytics
   const fetchAnalytics = useCallback(async () => {

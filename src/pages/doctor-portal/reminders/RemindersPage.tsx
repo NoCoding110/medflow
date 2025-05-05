@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,71 +31,79 @@ const priorityColors = {
   high: "bg-red-200 text-red-800"
 };
 
+interface Reminder {
+  id: string;
+  doctor_id: string;
+  patient_id: string;
+  content: string;
+  created_at: string;
+  patients?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
 const RemindersPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [reminders, setReminders] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editReminder, setEditReminder] = useState<any>(null);
-  const [newReminder, setNewReminder] = useState({
-    title: "",
-    description: "",
-    due_date: "",
-    priority: "medium",
-    category: ""
-  });
+  const [newReminder, setNewReminder] = useState('');
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState<string | null>(null);
   const [remindersRefresh, setRemindersRefresh] = useState(0);
+  const [selectedPatientId, setSelectedPatientId] = useState('');
 
-  useEffect(() => {
-    const resolveDoctorId = async () => {
-      if (!user) return;
-      
-      try {
-        await ensureDoctorSarahJohnson();
-        
-        if (/^[0-9a-fA-F-]{36}$/.test(user.id)) {
-          setDoctorId(user.id);
-        } else if (user.email) {
-          const doctor = await getDoctorByEmail(user.email);
-          if (doctor?.id) {
-            setDoctorId(doctor.id);
-          } else {
-            setError(`Could not resolve doctor profile. Please contact support.`);
-          }
-        } else {
-          setError('No valid user ID or email found.');
-        }
-      } catch (err) {
-        console.error("Error resolving doctor ID:", err);
-        setError("An error occurred while resolving your doctor profile. Please try again later.");
-      }
-    };
-    resolveDoctorId();
-  }, [user]);
+  const fetchReminders = useCallback(async () => {
+    setLoading(true);
+    try {
+      // First get the doctor's ID from the doctors table
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
 
-  useEffect(() => {
-    const fetchReminders = async () => {
-      if (!doctorId) return;
-      setLoading(true);
-      setError(null);
+      if (doctorError) throw doctorError;
+      if (!doctorData) throw new Error('Doctor profile not found');
+
       const { data, error } = await supabase
-        .from("reminders")
-        .select("*")
-        .eq("doctor_id", doctorId)
-        .order("due_date", { ascending: true });
-      if (!error) setReminders(data || []);
-      else setError(error.message);
+        .from('doctor_reminders')
+        .select(`
+          *,
+          patients (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('doctor_id', doctorData.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReminders(data || []);
+    } catch (error) {
+      console.error('Error fetching reminders:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch reminders. Please try again later.",
+      });
+    } finally {
       setLoading(false);
-    };
-    if (doctorId) fetchReminders();
-  }, [doctorId, remindersRefresh]);
+    }
+  }, [user?.id, toast]);
+
+  useEffect(() => {
+    fetchReminders();
+  }, [fetchReminders]);
 
   function groupReminders(reminders) {
     const today = [], upcoming = [], completed = [];
@@ -122,19 +130,48 @@ const RemindersPage = () => {
     return filtered;
   }
 
-  const handleAddReminder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdding(true);
-    const { error } = await supabase.from("reminders").insert({
-      doctor_id: doctorId,
-      ...newReminder,
-      due_date: newReminder.due_date ? new Date(newReminder.due_date).toISOString() : null
-    });
-    setAdding(false);
-    setShowAdd(false);
-    setNewReminder({ title: "", description: "", due_date: "", priority: "medium", category: "" });
-    setRemindersRefresh(r => r + 1);
-    toast({ title: "Reminder added" });
+  const handleAddReminder = async () => {
+    if (!newReminder.trim()) return;
+
+    try {
+      // First get the doctor's ID from the doctors table
+      const { data: doctorData, error: doctorError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (doctorError) throw doctorError;
+      if (!doctorData) throw new Error('Doctor profile not found');
+
+      const { error } = await supabase
+        .from('doctor_reminders')
+        .insert([
+          {
+            doctor_id: doctorData.id,
+            patient_id: selectedPatientId,
+            content: newReminder,
+            created_at: new Date().toISOString()
+          }
+        ]);
+
+      if (error) throw error;
+
+      setNewReminder('');
+      setSelectedPatientId('');
+      fetchReminders();
+      toast({
+        title: "Success",
+        description: "Reminder added successfully.",
+      });
+    } catch (error) {
+      console.error('Error adding reminder:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add reminder. Please try again later.",
+      });
+    }
   };
 
   const handleEditReminder = async (e: React.FormEvent) => {

@@ -147,35 +147,82 @@ export interface DoctorRegistrationData {
 
 export const getDoctorByEmail = async (email: string): Promise<Doctor | null> => {
   try {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("email", email)
-      .eq("role", "doctor")
+    // First get the user
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('role', 'doctor')
       .single();
 
-    if (error) throw error;
-    return data;
+    if (userError) throw userError;
+    if (!userData) return null;
+
+    // Then get the doctor profile
+    const { data: doctorData, error: doctorError } = await supabase
+      .from('doctors')
+      .select('*')
+      .eq('user_id', userData.id)
+      .single();
+
+    if (doctorError) throw doctorError;
+    if (!doctorData) return null;
+
+    // Combine the data
+    return {
+      id: doctorData.id,
+      email: userData.email,
+      firstName: userData.first_name,
+      lastName: userData.last_name,
+      role: 'doctor',
+      password: userData.password,
+      specialization: doctorData.specialization,
+      licenseNumber: doctorData.license_number,
+      phone: doctorData.phone,
+      address: doctorData.address,
+      bio: doctorData.bio,
+      profileImage: doctorData.profile_image,
+      createdAt: doctorData.created_at,
+      updatedAt: doctorData.updated_at
+    };
   } catch (error) {
-    console.error("Error fetching doctor by email:", error);
-    throw error;
+    console.error('Error getting doctor by email:', error);
+    return null;
   }
 };
 
 export const getDoctorById = async (doctorId: string): Promise<Doctor | null> => {
   try {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", doctorId)
-      .eq("role", "doctor")
+    // First get the doctor profile
+    const { data: doctorData, error: doctorError } = await supabase
+      .from('doctors')
+      .select('*, users(*)')
+      .eq('id', doctorId)
       .single();
 
-    if (error) throw error;
-    return data;
+    if (doctorError) throw doctorError;
+    if (!doctorData) return null;
+
+    // Combine the data
+    return {
+      id: doctorData.id,
+      email: doctorData.users.email,
+      firstName: doctorData.users.first_name,
+      lastName: doctorData.users.last_name,
+      role: 'doctor',
+      password: doctorData.users.password,
+      specialization: doctorData.specialization,
+      licenseNumber: doctorData.license_number,
+      phone: doctorData.phone,
+      address: doctorData.address,
+      bio: doctorData.bio,
+      profileImage: doctorData.profile_image,
+      createdAt: doctorData.created_at,
+      updatedAt: doctorData.updated_at
+    };
   } catch (error) {
-    console.error("Error fetching doctor by ID:", error);
-    throw error;
+    console.error('Error getting doctor by ID:', error);
+    return null;
   }
 };
 
@@ -215,56 +262,43 @@ export const updateDoctor = async (doctorId: string, updates: Partial<Doctor>): 
 export const getDoctorPatients = async (doctorId: string): Promise<Patient[]> => {
   try {
     const { data, error } = await supabase
-      .from("doctor_patients")
+      .from('patients')
       .select(`
-        patients (
+        *,
+        users (
           id,
-          user_id,
+          email,
           first_name,
-          last_name,
-          date_of_birth,
-          gender,
-          phone,
-          address,
-          emergency_contact,
-          insurance,
-          medical_history,
-          wearable_devices,
-          preferences,
-          created_at,
-          updated_at,
-          users (
-            id,
-            email,
-            first_name,
-            last_name
-          )
+          last_name
         )
       `)
-      .eq("doctor_id", doctorId);
+      .eq('doctor_id', doctorId)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return ((data as unknown) as DoctorPatientResponse[])?.map(d => ({
-      id: d.patients.id,
-      userId: d.patients.user_id,
-      firstName: d.patients.first_name,
-      lastName: d.patients.last_name,
-      dateOfBirth: d.patients.date_of_birth,
-      gender: d.patients.gender,
-      email: d.patients.users[0]?.email || '',
-      phone: d.patients.phone,
-      address: d.patients.address,
-      emergencyContact: d.patients.emergency_contact,
-      insurance: d.patients.insurance,
-      medicalHistory: d.patients.medical_history,
-      wearableDevices: d.patients.wearable_devices,
-      preferences: d.patients.preferences,
-      createdAt: d.patients.created_at,
-      updatedAt: d.patients.updated_at
-    })) || [];
+
+    return data.map(patient => ({
+      id: patient.id,
+      userId: patient.user_id,
+      firstName: patient.first_name,
+      lastName: patient.last_name,
+      email: patient.users?.email || '',
+      dateOfBirth: patient.date_of_birth,
+      gender: patient.gender,
+      phone: patient.phone,
+      address: patient.address,
+      emergencyContact: patient.emergency_contact,
+      insurance: patient.insurance,
+      medicalHistory: patient.medical_history,
+      wearableDevices: patient.wearable_devices,
+      preferences: patient.preferences,
+      status: patient.status || 'active',
+      createdAt: patient.created_at,
+      updatedAt: patient.updated_at
+    }));
   } catch (error) {
-    console.error("Error fetching doctor's patients:", error);
-    throw error;
+    console.error('Error getting doctor patients:', error);
+    return [];
   }
 };
 
@@ -510,31 +544,67 @@ export const createDoctorSarahJohnson = async () => {
 
 export const ensureDoctorSarahJohnson = async () => {
   try {
-    // Check if Dr. Sarah Johnson exists
-    const { data: existingDoctor, error: fetchError } = await supabase
-      .from("users")
-      .select(`
-        *,
-        doctors (*)
-      `)
-      .eq("email", "sarah.johnson@medflow.com")
-      .eq("role", "doctor")
+    // Check if user exists
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', 'sarah@medflow.com')
+      .eq('role', 'doctor')
       .single();
 
-    if (fetchError && fetchError.code !== "PGRST116") { // PGRST116 is "not found" error
-      throw fetchError;
-    }
+    if (userError && userError.code !== 'PGRST116') throw userError;
 
-    if (!existingDoctor) {
-      // Create Dr. Sarah Johnson's profile if it doesn't exist
-      console.log("Creating Dr. Sarah Johnson's profile...");
-      await createDoctorSarahJohnson();
-      console.log("Dr. Sarah Johnson's profile created successfully");
+    let userId: string;
+    if (!userData) {
+      // Create user if not exists
+      const { data: newUser, error: createUserError } = await supabase
+        .from('users')
+        .insert({
+          email: 'sarah@medflow.com',
+          first_name: 'Sarah',
+          last_name: 'Johnson',
+          role: 'doctor',
+          password: 'password123'
+        })
+        .select()
+        .single();
+
+      if (createUserError) throw createUserError;
+      userId = newUser.id;
     } else {
-      console.log("Dr. Sarah Johnson's profile already exists");
+      userId = userData.id;
     }
 
-    return true;
+    // Check if doctor profile exists
+    const { data: doctorData, error: doctorError } = await supabase
+      .from('doctors')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (doctorError && doctorError.code !== 'PGRST116') throw doctorError;
+
+    if (!doctorData) {
+      // Create doctor profile if not exists
+      const { data: newDoctor, error: createDoctorError } = await supabase
+        .from('doctors')
+        .insert({
+          user_id: userId,
+          specialization: 'Cardiology',
+          license_number: 'MD123456',
+          phone: '+1 (555) 123-4567',
+          address: '123 Medical Center Drive, Suite 456, New York, NY 10001',
+          bio: 'Dr. Sarah Johnson is a board-certified cardiologist with over 15 years of experience in treating cardiovascular diseases. She specializes in preventive cardiology and advanced heart failure management.',
+          profile_image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80'
+        })
+        .select()
+        .single();
+
+      if (createDoctorError) throw createDoctorError;
+      return newDoctor;
+    }
+
+    return doctorData;
   } catch (error) {
     console.error("Error ensuring Dr. Sarah Johnson's profile:", error);
     throw error;

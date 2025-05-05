@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import QuickNoteDialog from '../notes/QuickNoteDialog';
 import AudioRecorderComponent from '@/components/AudioRecorder';
+import { toast } from "@/components/ui/use-toast";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,18 +27,70 @@ const PatientProfile = () => {
   const [isVoiceNoteOpen, setIsVoiceNoteOpen] = useState(false);
 
   useEffect(() => {
-    const fetchPatient = async () => {
+    const fetchPatientData = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("id", id)
-        .single();
-      setPatient(data);
-      setLoading(false);
+      try {
+        // First get the doctor's ID from the doctors table
+        const { data: doctorData, error: doctorError } = await supabase
+          .from('doctors')
+          .select('id')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (doctorError) throw doctorError;
+        if (!doctorData) throw new Error('Doctor profile not found');
+
+        const { data, error } = await supabase
+          .from('patients')
+          .select(`
+            *,
+            users (
+              id,
+              email,
+              first_name,
+              last_name
+            )
+          `)
+          .eq('doctor_id', doctorData.id)
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+        if (!data) throw new Error('Patient not found');
+
+        setPatient({
+          id: data.id,
+          userId: data.user_id,
+          firstName: data.first_name,
+          lastName: data.last_name,
+          email: data.users?.email || '',
+          dateOfBirth: data.date_of_birth,
+          gender: data.gender,
+          phone: data.phone,
+          address: data.address,
+          emergencyContact: data.emergency_contact,
+          insurance: data.insurance,
+          medicalHistory: data.medical_history,
+          wearableDevices: data.wearable_devices,
+          preferences: data.preferences,
+          status: data.status || 'active',
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        });
+      } catch (error) {
+        console.error('Error fetching patient data:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch patient data. Please try again later.",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
-    if (id) fetchPatient();
-  }, [id]);
+
+    if (id) fetchPatientData();
+  }, [id, user?.id, toast]);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -118,7 +171,7 @@ const PatientProfile = () => {
         </Button>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-navy-800">{patient.first_name} {patient.last_name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-navy-800">{patient.firstName} {patient.lastName}</h1>
             <p className="text-navy-600">Patient ID: {patient.id}</p>
           </div>
           <div className="flex space-x-2">
@@ -146,7 +199,7 @@ const PatientProfile = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-navy-600">Date of Birth</p>
-              <p className="font-medium">{patient.date_of_birth}</p>
+              <p className="font-medium">{patient.dateOfBirth}</p>
             </div>
             <div>
               <p className="text-sm text-navy-600">Gender</p>
@@ -155,7 +208,7 @@ const PatientProfile = () => {
           </div>
           <div>
             <p className="text-sm text-navy-600">Phone</p>
-            <p className="font-medium">{patient.phone_number}</p>
+            <p className="font-medium">{patient.phone}</p>
           </div>
           <div>
             <p className="text-sm text-navy-600">Email</p>
