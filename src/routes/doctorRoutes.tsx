@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import DoctorPortal from "@/pages/doctor-portal/DoctorPortal";
-import DoctorDashboard from "@/pages/doctor-portal/DoctorDashboard";
+import Dashboard from "@/pages/doctor-portal/Dashboard";
 import DoctorPatients from "@/pages/doctor-portal/patients/DoctorPatients";
 import DoctorNotes from "@/pages/doctor-portal/notes/DoctorNotes";
 import DoctorAppointments from "@/pages/doctor-portal/appointments/DoctorAppointments";
@@ -87,7 +87,7 @@ export const doctorRoutes = {
     </DoctorRoute>
   ),
   children: [
-    { path: "", element: <DoctorDashboard /> },
+    { path: "", element: <Dashboard /> },
     { path: "records", element: <DoctorRecords /> },
     { path: "patients", element: <DoctorPatients /> },
     { path: "patients/:id/profile", element: <PatientProfile /> },
