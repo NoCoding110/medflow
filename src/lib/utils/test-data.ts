@@ -3,12 +3,12 @@ import { Doctor } from "@/lib/services/doctor-service";
 
 interface TestDoctorData {
   email: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   specialization: string;
-  licenseNumber: string;
-  phoneNumber: string;
-  profileImage?: string;
+  license_number: string;
+  phone_number: string;
+  profile_image?: string;
 }
 
 export const createTestDoctor = async (data: TestDoctorData) => {
@@ -20,12 +20,12 @@ export const createTestDoctor = async (data: TestDoctorData) => {
         {
           email: data.email,
           password_hash: "hashed_password_here", // In production, this should be properly hashed
-          first_name: data.firstName,
-          last_name: data.lastName,
+          first_name: data.first_name,
+          last_name: data.last_name,
           specialization: data.specialization,
-          license_number: data.licenseNumber,
-          phone_number: data.phoneNumber,
-          profile_image: data.profileImage || "https://example.com/default-doctor.jpg",
+          license_number: data.license_number,
+          phone_number: data.phone_number,
+          profile_image: data.profile_image || "https://example.com/default-doctor.jpg",
           status: "active"
         },
       ])
