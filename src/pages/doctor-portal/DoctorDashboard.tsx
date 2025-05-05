@@ -444,22 +444,22 @@ const DoctorDashboard = () => {
   const handleAlertAction = (action: string, alert: Alert) => {
     switch (action) {
       case 'review':
-        toast.success(`Opening ${alert.type === 'lab' ? 'lab results' : 'trend data'} for ${alert.details.patientName}`);
+        toast.success(`Opening ${alert.type === 'lab' ? 'lab results' : 'trend data'} for ${alert.details?.patientName}`);
         break;
       case 'order':
-        toast.success(`Ordering follow-up tests for ${alert.details.patientName}`);
+        toast.success(`Ordering follow-up tests for ${alert.details?.patientName}`);
         break;
       case 'adjust':
-        toast.success(`Opening medication adjustment form for ${alert.details.patientName}`);
+        toast.success(`Opening medication adjustment form for ${alert.details?.patientName}`);
         break;
       case 'consult':
-        toast.success(`Initiating pharmacy consultation for ${alert.details.patientName}`);
+        toast.success(`Initiating pharmacy consultation for ${alert.details?.patientName}`);
         break;
       case 'contact':
-        toast.success(`Opening communication channel with ${alert.details.patientName}`);
+        toast.success(`Opening communication channel with ${alert.details?.patientName}`);
         break;
       case 'schedule':
-        toast.success(`Opening scheduler for ${alert.details.patientName}`);
+        toast.success(`Opening scheduler for ${alert.details?.patientName}`);
         break;
     }
     setIsAlertDialogOpen(false);
@@ -620,7 +620,7 @@ const DoctorDashboard = () => {
                     <div className="flex-1">
                       <h4 className="font-medium">{alert.title}</h4>
                       <p className="text-sm text-muted-foreground">{alert.description}</p>
-                      {alert.details.patientName && (
+                      {alert.details?.patientName && (
                         <Badge variant="outline" className="mt-2">
                           {alert.details.patientName}
                         </Badge>
