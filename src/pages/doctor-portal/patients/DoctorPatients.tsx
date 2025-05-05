@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/components/ui/use-toast';
 import NewPatientForm from '@/components/doctor-portal/NewPatientForm';
+import { getDoctorPatients } from "@/lib/services/doctor-service";
 
 // Helper function to calculate age
 const calculateAge = (dateOfBirth: string) => {
@@ -40,7 +41,7 @@ interface Patient {
   phone_number: string;
   status: 'active' | 'inactive';
   last_visit?: string;
-  next_appointment?: string;
+  nextAppointment?: string;
   created_at: string;
   address: string;
 }
@@ -56,7 +57,7 @@ interface DisplayPatient {
   dob: string;
   phone: string;
   email: string;
-  next_appointment?: string;
+  nextAppointment?: string;
   address: string;
 }
 
@@ -120,47 +121,21 @@ const DoctorPatients = () => {
     setLoadingPatients(true);
     setErrorPatients(null);
     try {
-      // Get the doctor's ID from the users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', user?.id)
-        .eq('role', 'doctor')
-        .single();
-
-      if (userError) throw userError;
-      if (!userData) throw new Error('Doctor profile not found');
-
-      // Then fetch patients using the doctor's ID
-      const { data, error } = await supabase
-        .from('patients')
-        .select(`
-          *,
-          users (
-            id,
-            email,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('doctor_id', userData.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
+      const patients = await getDoctorPatients(user?.id || '');
+      
       // Transform the data to match the DisplayPatient interface
-      const transformedPatients = data.map(patient => ({
+      const transformedPatients = patients.map(patient => ({
         id: patient.id,
-        name: `${patient.first_name} ${patient.last_name}`,
-        age: calculateAge(patient.date_of_birth),
+        name: `${patient.firstName} ${patient.lastName}`,
+        age: calculateAge(patient.dateOfBirth),
         gender: patient.gender,
-        lastVisit: patient.last_visit || 'Never',
+        lastVisit: 'Never', // Default value since this isn't in the Patient interface
         status: patient.status || 'active',
         riskLevel: calculateRiskLevel(patient),
-        dob: patient.date_of_birth,
+        dob: patient.dateOfBirth,
         phone: patient.phone,
-        email: patient.users?.email || '',
-        next_appointment: patient.next_appointment,
+        email: patient.email,
+        nextAppointment: undefined, // Default value since this isn't in the Patient interface
         address: patient.address
       }));
 
@@ -356,7 +331,7 @@ const DoctorPatients = () => {
         });
         break;
       case 'upcoming':
-        filtered = filtered.filter(patient => patient.next_appointment !== undefined);
+        filtered = filtered.filter(patient => patient.nextAppointment !== undefined);
         break;
     }
     
