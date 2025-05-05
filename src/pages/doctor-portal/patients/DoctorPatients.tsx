@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, User, Calendar, FileText, Filter, Download, MoreVertical, Bell, AlertCircle, Brain, BarChart2, LineChart, Activity, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { Search, Plus, User, Calendar, FileText, Filter, Download, MoreVertical, Brain, BarChart2, LineChart, Activity, TrendingUp, TrendingDown, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -11,30 +11,34 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Progress } from "@/components/ui/progress";
 import NewPatientDialog from "./NewPatientDialog";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabaseClient";
 
 interface Patient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  gender: string;
+  email: string;
+  phone_number: string;
+  status: 'active' | 'inactive';
+  last_visit?: string;
+  next_appointment?: string;
+  created_at: string;
+}
+
+interface DisplayPatient {
   id: string;
   name: string;
   age: number;
   gender: string;
   lastVisit: string;
-  status: 'Active' | 'Inactive';
-  riskLevel: 'low' | 'medium' | 'high';
-  alerts?: string[];
-  upcomingAppointment?: string;
-  engagementScore?: number;
-  healthScore?: number;
-  dob?: string;
-  phone?: string;
-  email?: string;
-  aiInsights?: {
-    id: string;
-    type: 'health' | 'engagement' | 'risk';
-    title: string;
-    description: string;
-    severity: 'low' | 'medium' | 'high';
-    timestamp: string;
-  }[];
+  status: string;
+  riskLevel: string;
+  dob: string;
+  phone: string;
+  email: string;
+  next_appointment?: string;
 }
 
 interface Analytics {
@@ -56,7 +60,7 @@ interface Analytics {
 
 const DoctorPatients = () => {
   const navigate = useNavigate();
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patients, setPatients] = useState<DisplayPatient[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [errorPatients, setErrorPatients] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -74,28 +78,56 @@ const DoctorPatients = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   
-  // Fetch patients from backend
+  // Fetch patients from Supabase
   const fetchPatients = useCallback(async () => {
     setLoadingPatients(true);
     setErrorPatients(null);
     try {
-      const params = new URLSearchParams();
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (riskFilter !== 'all') params.append('risk', riskFilter);
-      if (searchTerm) params.append('search', searchTerm);
-      if (searchField) params.append('field', searchField);
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
       
-      const res = await fetch(`/api/patients?${params.toString()}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch patients');
-      const data = await res.json();
-      setPatients(data.patients || data);
+      // Transform the data to match our display interface
+      const transformedPatients: DisplayPatient[] = data.map(patient => ({
+        id: patient.id,
+        name: `${patient.first_name} ${patient.last_name}`,
+        age: calculateAge(patient.date_of_birth),
+        gender: patient.gender,
+        lastVisit: patient.last_visit || new Date().toISOString(),
+        status: patient.status === 'active' ? 'Active' : 'Inactive',
+        riskLevel: 'low', // Default value
+        dob: patient.date_of_birth,
+        phone: patient.phone_number,
+        email: patient.email,
+        next_appointment: patient.next_appointment
+      }));
+
+      setPatients(transformedPatients);
     } catch (e: any) {
       setErrorPatients(e.message || 'Failed to load patients');
       setPatients([]);
+      toast.error('Failed to load patients');
     } finally {
       setLoadingPatients(false);
     }
-  }, [statusFilter, riskFilter, searchTerm, searchField]);
+  }, []);
+
+  // Helper function to calculate age
+  const calculateAge = (dateOfBirth: string) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
 
   // Fetch analytics
   const fetchAnalytics = useCallback(async () => {
@@ -159,11 +191,11 @@ const DoctorPatients = () => {
           case 'mrn':
             return patient.id.includes(searchTerm);
           case 'dob':
-            return patient.dob?.includes(searchTerm);
+            return patient.dob.includes(searchTerm);
           case 'phone':
-            return patient.phone?.includes(searchTerm);
+            return patient.phone.includes(searchTerm);
           case 'email':
-            return patient.email?.toLowerCase().includes(searchTerm.toLowerCase());
+            return patient.email.toLowerCase().includes(searchTerm.toLowerCase());
           default:
             return patient.name.toLowerCase().includes(searchTerm.toLowerCase());
         }
@@ -198,17 +230,14 @@ const DoctorPatients = () => {
         });
         break;
       case 'upcoming':
-        filtered = filtered.filter(patient => patient.upcomingAppointment !== null);
-        break;
-      case 'alerts':
-        filtered = filtered.filter(patient => patient.alerts && patient.alerts.length > 0);
+        filtered = filtered.filter(patient => patient.next_appointment !== undefined);
         break;
     }
     
     // Sort patients
     return filtered.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+      const aValue = a[sortConfig.key as keyof DisplayPatient];
+      const bValue = b[sortConfig.key as keyof DisplayPatient];
       
       if (sortConfig.direction === 'asc') {
         return aValue > bValue ? 1 : -1;
@@ -427,9 +456,6 @@ const DoctorPatients = () => {
             <TabsTrigger value="upcoming" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">
               Upcoming
             </TabsTrigger>
-            <TabsTrigger value="alerts" className="data-[state=active]:bg-white data-[state=active]:text-navy-800 data-[state=active]:font-medium">
-              Alerts
-            </TabsTrigger>
           </TabsList>
           <div className="flex items-center space-x-2">
             <select 
@@ -495,22 +521,10 @@ const DoctorPatients = () => {
                   <div className="col-span-1">{patient.age}</div>
                   <div className="col-span-2">{patient.gender}</div>
                   <div className="col-span-2">{new Date(patient.lastVisit).toLocaleDateString()}</div>
-                  <div className="col-span-2 flex items-center space-x-2">
+                  <div className="col-span-2">
                     <Badge variant={patient.status === 'Active' ? 'default' : 'secondary'}>
                       {patient.status}
                     </Badge>
-                    {patient.alerts && patient.alerts.length > 0 && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <AlertCircle className="h-4 w-4 text-yellow-500" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{patient.alerts.join(', ')}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
                   </div>
                   <div className="col-span-1 flex space-x-2">
                     <Button
@@ -602,14 +616,6 @@ const DoctorPatients = () => {
                         <span className="text-navy-600">Last Visit</span>
                         <span className="font-medium">{new Date(patient.lastVisit).toLocaleDateString()}</span>
                       </div>
-                      {patient.alerts && patient.alerts.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-navy-100">
-                          <div className="flex items-center space-x-2 text-yellow-600">
-                            <AlertCircle className="h-4 w-4" />
-                            <span className="text-sm">{patient.alerts[0]}</span>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
