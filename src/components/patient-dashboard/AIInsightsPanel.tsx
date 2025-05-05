@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Activity, Heart, Moon, TrendingUp } from "lucide-react";
-import { getWearableData } from "@/lib/services/wearable-service";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 
 interface AIInsightsPanelProps {
   patientId: string;
@@ -16,26 +16,15 @@ interface Insight {
 }
 
 export const AIInsightsPanel = ({ patientId }: AIInsightsPanelProps) => {
+  const { wearableData, loading, error } = useRealtimeUpdates(patientId);
   const [insights, setInsights] = useState<Insight[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getWearableData(patientId);
-        const insights = analyzeData(data);
-        setInsights(insights);
-      } catch (err) {
-        setError("Failed to fetch insights");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [patientId]);
+    if (wearableData && wearableData.length > 0) {
+      const newInsights = analyzeData(wearableData);
+      setInsights(newInsights);
+    }
+  }, [wearableData]);
 
   const analyzeData = (wearableData: any[]): Insight[] => {
     if (!wearableData || wearableData.length === 0) return [];

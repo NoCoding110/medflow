@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 import { WearableDataPanel } from "@/components/patient-dashboard/WearableDataPanel";
 import { AIInsightsPanel } from "@/components/patient-dashboard/AIInsightsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,16 +12,27 @@ export const PatientDashboard = () => {
   const [nextAppointment, setNextAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Use real-time updates hook
+  const { patientData, wearableData, loading: realtimeLoading, error: realtimeError } = useRealtimeUpdates(user?.id || "");
+
   useEffect(() => {
     // Fetch next appointment and other data
     // This would be implemented based on your appointment management system
     setLoading(false);
   }, []);
 
-  if (loading) {
+  if (loading || realtimeLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (realtimeError) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-red-500">Error loading dashboard data</div>
       </div>
     );
   }
@@ -74,9 +86,11 @@ export const PatientDashboard = () => {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">
+              {patientData?.medicalHistory?.medications?.length || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Last updated 2 days ago
+              Active medications
             </p>
           </CardContent>
         </Card>
@@ -105,27 +119,19 @@ export const PatientDashboard = () => {
         <Card>
           <CardContent className="p-6">
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                <div>
-                  <p className="font-medium">Prescription Refill Requested</p>
-                  <p className="text-sm text-muted-foreground">Mar 10, 2024</p>
+              {wearableData.slice(0, 3).map((data, index) => (
+                <div key={index} className="flex items-center gap-4">
+                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                  <div>
+                    <p className="font-medium">
+                      {data.deviceType === "apple_watch" ? "Apple Watch" : "Oura Ring"} Data Updated
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(data.lastSync).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                <div>
-                  <p className="font-medium">Lab Results Available</p>
-                  <p className="text-sm text-muted-foreground">Mar 8, 2024</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="h-2 w-2 rounded-full bg-purple-500"></div>
-                <div>
-                  <p className="font-medium">Appointment Scheduled</p>
-                  <p className="text-sm text-muted-foreground">Mar 5, 2024</p>
-                </div>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>

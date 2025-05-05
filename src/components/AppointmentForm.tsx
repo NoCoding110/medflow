@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,23 +18,54 @@ import {
 } from "@/components/ui/select";
 import { mockPatients, createAppointment, formatPatientName } from "@/lib/data";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
-import { format } from "date-fns";
+import { format, addDays, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, AlertCircle } from "lucide-react";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { getAvailableTimeSlots } from '@/lib/services/appointment-service';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+const appointmentSchema = z.object({
+  date: z.date({
+    required_error: 'Please select a date',
+  }),
+  time: z.string({
+    required_error: 'Please select a time',
+  }),
+  type: z.enum(['checkup', 'follow-up', 'consultation', 'emergency'], {
+    required_error: 'Please select an appointment type',
+  }),
+  notes: z.string().optional(),
+});
+
+type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
 interface AppointmentFormProps {
   onSubmit: (appointment: any) => void;
   onCancel: () => void;
   initialData?: any;
+  doctorId: string;
+  onSuccess?: () => void;
 }
 
 const AppointmentForm: React.FC<AppointmentFormProps> = ({
   onSubmit,
   onCancel,
   initialData = {},
+  doctorId,
+  onSuccess,
 }) => {
   const [searchParams] = useSearchParams();
   const preselectedPatientId = searchParams.get("patientId");
@@ -54,6 +84,17 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const form = useForm<AppointmentFormData>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      notes: '',
+    },
+  });
+
+  const selectedDate = form.watch('date');
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -115,6 +156,26 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     }
   }, [formData.startTime]);
 
+  useEffect(() => {
+    if (selectedDate) {
+      const fetchTimeSlots = async () => {
+        try {
+          const slots = await getAvailableTimeSlots(doctorId, selectedDate);
+          setAvailableSlots(slots);
+        } catch (error) {
+          console.error('Error fetching time slots:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to fetch available time slots',
+            variant: 'destructive',
+          });
+        }
+      };
+
+      fetchTimeSlots();
+    }
+  }, [selectedDate, doctorId, toast]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -155,12 +216,13 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm() || !user) return;
     
     try {
+      setLoading(true);
       // Get patient name
       const patient = mockPatients.find(p => p.id === formData.patientId);
       if (!patient) {
@@ -181,7 +243,14 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       };
       
       // In a real app, this would make an API call
-      const newAppointment = createAppointment(appointmentData);
+      const newAppointment = await createAppointment({
+        patientId: user.id,
+        doctorId,
+        date: formData.date,
+        time: formData.time,
+        type: formData.type,
+        notes: formData.notes,
+      });
       
       toast({
         title: "Success",
@@ -189,155 +258,127 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         variant: "default",
       });
       
-      onSubmit(newAppointment);
+      form.reset();
+      onSuccess?.();
       
     } catch (error) {
+      console.error('Error creating appointment:', error);
       toast({
         title: "Error",
         description: "Failed to schedule appointment",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="patientId">Patient *</Label>
-        <Select
-          value={formData.patientId}
-          onValueChange={(value) => handleSelectChange("patientId", value)}
-        >
-          <SelectTrigger id="patientId" className={errors.patientId ? "border-red-500" : ""}>
-            <SelectValue placeholder="Select a patient" />
-          </SelectTrigger>
-          <SelectContent>
-            {mockPatients.map((patient) => (
-              <SelectItem key={patient.id} value={patient.id}>
-                {formatPatientName(patient)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.patientId && (
-          <div className="flex items-center gap-1 text-sm text-red-500">
-            <AlertCircle className="h-3.5 w-3.5" />
-            <span>{errors.patientId}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="reason">Reason for Visit *</Label>
-        <Input
-          id="reason"
-          name="reason"
-          value={formData.reason}
-          onChange={handleChange}
-          className={errors.reason ? "border-red-500" : ""}
-        />
-        {errors.reason && (
-          <div className="flex items-center gap-1 text-sm text-red-500">
-            <AlertCircle className="h-3.5 w-3.5" />
-            <span>{errors.reason}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  errors.date ? "border-red-500" : "",
-                  !formData.date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.date ? format(formData.date, "PPP") : "Select a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+    <Form {...form}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Date</FormLabel>
               <Calendar
                 mode="single"
-                selected={formData.date}
-                onSelect={(date) => 
-                  setFormData({ ...formData, date: date || new Date() })
-                }
-                initialFocus
+                selected={field.value}
+                onSelect={field.onChange}
+                disabled={(date) => {
+                  const today = startOfDay(new Date());
+                  const maxDate = endOfDay(addDays(today, 30));
+                  return date < today || date > maxDate;
+                }}
+                className="rounded-md border"
               />
-            </PopoverContent>
-          </Popover>
-          {errors.date && (
-            <div className="flex items-center gap-1 text-sm text-red-500">
-              <AlertCircle className="h-3.5 w-3.5" />
-              <span>{errors.date}</span>
-            </div>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-2">
-            <Label htmlFor="startTime">Start Time *</Label>
-            <Input
-              id="startTime"
-              name="startTime"
-              type="time"
-              value={formData.startTime}
-              onChange={handleChange}
-              className={errors.startTime ? "border-red-500" : ""}
-            />
-            {errors.startTime && (
-              <div className="flex items-center gap-1 text-sm text-red-500">
-                <AlertCircle className="h-3.5 w-3.5" />
-                <span>{errors.startTime}</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="endTime">End Time *</Label>
-            <Input
-              id="endTime"
-              name="endTime"
-              type="time"
-              value={formData.endTime}
-              onChange={handleChange}
-              className={errors.endTime ? "border-red-500" : ""}
-            />
-            {errors.endTime && (
-              <div className="flex items-center gap-1 text-sm text-red-500">
-                <AlertCircle className="h-3.5 w-3.5" />
-                <span>{errors.endTime}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea
-          id="notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          placeholder="Additional appointment details..."
-          rows={3}
         />
-      </div>
-      
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">Schedule Appointment</Button>
-      </div>
-    </form>
+
+        <FormField
+          control={form.control}
+          name="time"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Time</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={!selectedDate || availableSlots.length === 0}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a time slot" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {availableSlots.map((slot) => (
+                    <SelectItem key={slot} value={slot}>
+                      {format(new Date(`2000-01-01T${slot}`), 'h:mm a')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Appointment Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select appointment type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="checkup">Checkup</SelectItem>
+                  <SelectItem value="follow-up">Follow-up</SelectItem>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="emergency">Emergency</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes (Optional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Add any additional notes or concerns"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Scheduling...' : 'Schedule Appointment'}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 

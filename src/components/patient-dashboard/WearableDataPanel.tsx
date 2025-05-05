@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Heart, Moon, TrendingUp, Watch } from "lucide-react";
-import { getWearableData } from "@/lib/services/wearable-service";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 import { format } from "date-fns";
 
 interface WearableDataPanelProps {
@@ -9,25 +9,7 @@ interface WearableDataPanelProps {
 }
 
 export const WearableDataPanel = ({ patientId }: WearableDataPanelProps) => {
-  const [wearableData, setWearableData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getWearableData(patientId);
-        setWearableData(data);
-      } catch (err) {
-        setError("Failed to fetch wearable data");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [patientId]);
+  const { wearableData, loading, error } = useRealtimeUpdates(patientId);
 
   if (loading) {
     return (
@@ -57,7 +39,7 @@ export const WearableDataPanel = ({ patientId }: WearableDataPanelProps) => {
     );
   }
 
-  if (wearableData.length === 0) {
+  if (!wearableData || wearableData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -119,7 +101,7 @@ export const WearableDataPanel = ({ patientId }: WearableDataPanelProps) => {
               <Moon className="h-8 w-8 text-purple-500" />
               <div>
                 <div className="text-sm text-muted-foreground">Sleep</div>
-                <div className="text-2xl font-semibold">{latestData.sleep.duration}h</div>
+                <div className="text-2xl font-semibold">{latestData.sleep.duration.toFixed(1)}h</div>
                 <div className="text-sm text-muted-foreground">
                   Quality: {latestData.sleep.quality}%
                 </div>
@@ -149,7 +131,7 @@ export const WearableDataPanel = ({ patientId }: WearableDataPanelProps) => {
         </div>
 
         <div className="mt-4 text-sm text-muted-foreground">
-          Last updated: {format(new Date(wearableData[0].timestamp), "MMM d, yyyy h:mm a")}
+          Last updated: {format(new Date(wearableData[0].lastSync), "MMM d, yyyy h:mm a")}
         </div>
       </CardContent>
     </Card>

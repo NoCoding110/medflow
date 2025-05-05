@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { Patient } from "@/lib/types/patient";
 
 export interface WearableDeviceData {
+  id: string;
   patientId: string;
   deviceType: string;
   deviceId: string;

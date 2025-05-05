@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { createPatient } from "@/lib/services/patient-service";
+import { seedTestData } from "@/lib/services/test-data-generator";
 
 export interface PatientRegistrationFormData {
   firstName: string;
@@ -187,7 +188,7 @@ export const usePatientRegistration = () => {
     e.preventDefault();
     
     try {
-      await createPatient({
+      const patient = await createPatient({
         firstName: formData.firstName,
         lastName: formData.lastName,
         dateOfBirth: formData.dateOfBirth,
@@ -196,6 +197,9 @@ export const usePatientRegistration = () => {
         phone: formData.phone,
         address: `${formData.address.street}, ${formData.address.city}, ${formData.address.state} ${formData.address.zip}`,
       });
+
+      // Generate test data for the new patient
+      await seedTestData(patient.id);
       
       toast({
         title: "Registration Complete",

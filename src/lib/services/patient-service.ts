@@ -3,8 +3,11 @@ import { supabase } from "@/lib/supabase";
 export interface Patient {
   id: string;
   userId: string;
+  firstName: string;
+  lastName: string;
   dateOfBirth: string;
   gender: "Male" | "Female" | "Other" | "Prefer not to say";
+  email: string;
   phone: string;
   address: string;
   emergencyContact: {
