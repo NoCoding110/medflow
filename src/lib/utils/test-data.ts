@@ -127,16 +127,21 @@ export const createTestDoctorWithSampleData = async (data: TestDoctorData) => {
 
 export const ensureTestDoctor = async (data: TestDoctorData): Promise<Doctor> => {
   try {
-    // Check if the doctor exists
+    // First, try to find the doctor by email
     const { data: existingDoctor, error: checkError } = await supabase
       .from('doctors')
       .select('*')
       .eq('email', data.email)
       .single();
 
-    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing doctor:', checkError);
+      throw checkError;
+    }
 
+    // If doctor exists, return it
     if (existingDoctor) {
+      console.log('Found existing doctor:', existingDoctor);
       return {
         id: existingDoctor.id,
         email: existingDoctor.email,
@@ -154,24 +159,61 @@ export const ensureTestDoctor = async (data: TestDoctorData): Promise<Doctor> =>
       };
     }
 
-    // Create the doctor if they don't exist
-    const newDoctor = await createTestDoctor(data);
+    // If doctor doesn't exist, try to create it
+    try {
+      const newDoctor = await createTestDoctor(data);
+      console.log('Created new doctor:', newDoctor);
+      return {
+        id: newDoctor.id,
+        email: newDoctor.email,
+        firstName: newDoctor.first_name,
+        lastName: newDoctor.last_name,
+        role: 'doctor',
+        specialization: newDoctor.specialization,
+        licenseNumber: newDoctor.license_number,
+        phone: newDoctor.phone_number,
+        profileImage: newDoctor.profile_image || '',
+        bio: '', // Not stored in the database
+        status: newDoctor.status || 'active',
+        createdAt: newDoctor.created_at,
+        updatedAt: newDoctor.updated_at
+      };
+    } catch (createError: any) {
+      // If creation fails due to duplicate license number, try to find the doctor by license number
+      if (createError.code === '23505' && createError.details?.includes('license_number')) {
+        console.log('License number already exists, trying to find doctor by license number');
+        const { data: doctorByLicense, error: licenseError } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('license_number', data.license_number)
+          .single();
 
-    return {
-      id: newDoctor.id,
-      email: newDoctor.email,
-      firstName: newDoctor.first_name,
-      lastName: newDoctor.last_name,
-      role: 'doctor',
-      specialization: newDoctor.specialization,
-      licenseNumber: newDoctor.license_number,
-      phone: newDoctor.phone_number,
-      profileImage: newDoctor.profile_image || '',
-      bio: '', // Not stored in the database
-      status: newDoctor.status || 'active',
-      createdAt: newDoctor.created_at,
-      updatedAt: newDoctor.updated_at
-    };
+        if (licenseError) {
+          console.error('Error finding doctor by license number:', licenseError);
+          throw licenseError;
+        }
+
+        if (doctorByLicense) {
+          console.log('Found doctor by license number:', doctorByLicense);
+          return {
+            id: doctorByLicense.id,
+            email: doctorByLicense.email,
+            firstName: doctorByLicense.first_name,
+            lastName: doctorByLicense.last_name,
+            role: 'doctor',
+            specialization: doctorByLicense.specialization,
+            licenseNumber: doctorByLicense.license_number,
+            phone: doctorByLicense.phone_number,
+            profileImage: doctorByLicense.profile_image || '',
+            bio: '', // Not stored in the database
+            status: doctorByLicense.status || 'active',
+            createdAt: doctorByLicense.created_at,
+            updatedAt: doctorByLicense.updated_at
+          };
+        }
+      }
+      throw createError;
+    }
   } catch (error) {
     console.error('Error ensuring test doctor:', error);
     throw error;
