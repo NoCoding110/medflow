@@ -55,7 +55,7 @@ const Dashboard: React.FC = () => {
       // Fetch patient statistics
       const { data: patientsData, error: patientsError } = await supabase
         .from('patients')
-        .select('id, status');
+        .select('id, status, first_name, last_name');
 
       if (patientsError) throw patientsError;
 
@@ -112,16 +112,15 @@ const Dashboard: React.FC = () => {
       if (activitiesError) throw activitiesError;
 
       // Transform activities data
-      const transformedActivities: RecentActivity[] = ((activities as unknown) as AppointmentWithPatient[]).map(activity => ({
+      const transformedActivities = (activities || []).map(activity => ({
         id: activity.id,
         patient_id: activity.patient_id,
         type: 'appointment',
         description: activity.appointment_type,
         created_at: activity.created_at,
-        patient: {
-          first_name: activity.patients[0].first_name,
-          last_name: activity.patients[0].last_name
-        }
+        patient: Array.isArray(activity.patients) && activity.patients.length > 0
+          ? activity.patients[0]
+          : { first_name: 'Unknown', last_name: 'Patient' }
       }));
 
       setRecentActivities(transformedActivities);
