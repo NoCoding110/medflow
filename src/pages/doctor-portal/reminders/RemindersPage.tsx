@@ -53,26 +53,34 @@ const RemindersPage = () => {
   const [remindersRefresh, setRemindersRefresh] = useState(0);
 
   useEffect(() => {
-    const resolveDoctorId = async () => {
+    const resolveUserId = async () => {
       if (!user) return;
       if (/^[0-9a-fA-F-]{36}$/.test(user.id)) {
         setDoctorId(user.id);
-      } else if (user.email) {
-        const { data, error } = await supabase
-          .from("doctors")
-          .select("id")
-          .eq("email", user.email)
-          .single();
-        if (data?.id) {
-          setDoctorId(data.id);
+      } else if (user.email && user.role) {
+        let table = null;
+        if (user.role === 'doctor') table = 'doctor';
+        else if (user.role === 'patient') table = 'patient';
+        else if (user.role === 'admin') table = 'admin';
+        if (table) {
+          const { data, error } = await supabase
+            .from(table)
+            .select('id')
+            .eq('email', user.email)
+            .single();
+          if (data?.id) {
+            setDoctorId(data.id);
+          } else {
+            setError(`Could not resolve ${user.role} profile. Please contact support.`);
+          }
         } else {
-          setError("Could not resolve doctor profile. Please contact support.");
+          setError('Unrecognized user role.');
         }
       } else {
-        setError("No valid user ID or email found.");
+        setError('No valid user ID, email, or role found.');
       }
     };
-    resolveDoctorId();
+    resolveUserId();
   }, [user]);
 
   useEffect(() => {
