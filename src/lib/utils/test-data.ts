@@ -218,4 +218,44 @@ export const ensureTestDoctor = async (data: TestDoctorData): Promise<Doctor> =>
     console.error('Error ensuring test doctor:', error);
     throw error;
   }
-}; 
+};
+
+// Sample test data for appointments
+export const testAppointments = [
+  {
+    id: 'appt-1',
+    patientId: '55555555-5555-5555-5555-555555555555',
+    doctorId: '11111111-1111-1111-1111-111111111111',
+    date: '2025-05-05',
+    time: '10:00',
+    type: 'checkup',
+    status: 'scheduled',
+    notes: 'Annual check-up appointment.',
+    createdAt: '2025-04-01T10:00:00Z',
+    updatedAt: '2025-04-01T10:00:00Z',
+  },
+  {
+    id: 'appt-2',
+    patientId: '55555555-5555-5555-5555-555555555555',
+    doctorId: '22222222-2222-2222-2222-222222222222',
+    date: '2025-06-15',
+    time: '14:00',
+    type: 'follow-up',
+    status: 'scheduled',
+    notes: 'Follow-up for cardiology.',
+    createdAt: '2025-05-01T10:00:00Z',
+    updatedAt: '2025-05-01T10:00:00Z',
+  },
+  {
+    id: 'appt-3',
+    patientId: '55555555-5555-5555-5555-555555555555',
+    doctorId: '11111111-1111-1111-1111-111111111111',
+    date: '2025-02-15',
+    time: '09:00',
+    type: 'checkup',
+    status: 'completed',
+    notes: 'Vitals are stable. Recommended follow-up in 3 months.',
+    createdAt: '2025-01-01T10:00:00Z',
+    updatedAt: '2025-01-01T10:00:00Z',
+  },
+]; 
