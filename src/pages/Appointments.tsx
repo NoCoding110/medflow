@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { Link } from "react-router-dom";
@@ -15,7 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockAppointments, getPatientById } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
-import AppointmentForm from "@/components/AppointmentForm";
+import { AppointmentForm } from "@/components/AppointmentForm";
 import {
   PlusCircle,
   Calendar as CalendarIcon,
@@ -156,7 +155,8 @@ const Appointments = () => {
           <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
             <h2 className="mb-4 text-xl font-bold">Schedule New Appointment</h2>
             <AppointmentForm
-              onSubmit={() => setShowForm(false)}
+              doctorId={user?.id || ''}
+              onSuccess={() => setShowForm(false)}
               onCancel={() => setShowForm(false)}
             />
           </div>
