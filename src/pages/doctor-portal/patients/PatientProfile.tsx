@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,72 +25,75 @@ const PatientProfile = () => {
   const { user } = useAuth();
   const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
   const [isVoiceNoteOpen, setIsVoiceNoteOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPatientData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Get the doctor's ID from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user?.id)
+        .eq('role', 'doctor')
+        .single();
+
+      if (userError) throw userError;
+      if (!userData) throw new Error('Doctor profile not found');
+
+      const { data, error } = await supabase
+        .from('patients')
+        .select(`
+          *,
+          users (
+            id,
+            email,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('doctor_id', userData.id)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Patient not found');
+
+      setPatient({
+        id: data.id,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        email: data.users?.email || '',
+        phone: data.phone,
+        address: data.address,
+        dateOfBirth: data.date_of_birth,
+        gender: data.gender,
+        bloodType: data.blood_type,
+        height: data.height,
+        weight: data.weight,
+        allergies: data.allergies || [],
+        medications: data.medications || [],
+        conditions: data.conditions || [],
+        lastVisit: data.last_visit,
+        nextAppointment: data.next_appointment
+      });
+    } catch (error) {
+      console.error('Error fetching patient data:', error);
+      setError('Failed to fetch patient data. Please try again later.');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch patient data. Please try again later.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, id, toast]);
 
   useEffect(() => {
-    const fetchPatientData = async () => {
-      setLoading(true);
-      try {
-        // First get the doctor's ID from the doctors table
-        const { data: doctorData, error: doctorError } = await supabase
-          .from('doctors')
-          .select('id')
-          .eq('user_id', user?.id)
-          .single();
-
-        if (doctorError) throw doctorError;
-        if (!doctorData) throw new Error('Doctor profile not found');
-
-        const { data, error } = await supabase
-          .from('patients')
-          .select(`
-            *,
-            users (
-              id,
-              email,
-              first_name,
-              last_name
-            )
-          `)
-          .eq('doctor_id', doctorData.id)
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
-        if (!data) throw new Error('Patient not found');
-
-        setPatient({
-          id: data.id,
-          userId: data.user_id,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          email: data.users?.email || '',
-          dateOfBirth: data.date_of_birth,
-          gender: data.gender,
-          phone: data.phone,
-          address: data.address,
-          emergencyContact: data.emergency_contact,
-          insurance: data.insurance,
-          medicalHistory: data.medical_history,
-          wearableDevices: data.wearable_devices,
-          preferences: data.preferences,
-          status: data.status || 'active',
-          createdAt: data.created_at,
-          updatedAt: data.updated_at
-        });
-      } catch (error) {
-        console.error('Error fetching patient data:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to fetch patient data. Please try again later.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (id) fetchPatientData();
-  }, [id, user?.id, toast]);
+  }, [id, fetchPatientData]);
 
   useEffect(() => {
     const fetchNotes = async () => {

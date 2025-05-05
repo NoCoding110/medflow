@@ -30,6 +30,7 @@ const PatientNotes = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [newNote, setNewNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -47,21 +48,30 @@ const PatientNotes = () => {
 
   const fetchNotes = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // First get the doctor's ID from the doctors table
-      const { data: doctorData, error: doctorError } = await supabase
-        .from('doctors')
+      // Get the doctor's ID from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('id', user?.id)
+        .eq('role', 'doctor')
         .single();
 
-      if (doctorError) throw doctorError;
-      if (!doctorData) throw new Error('Doctor profile not found');
+      if (userError) throw userError;
+      if (!userData) throw new Error('Doctor profile not found');
 
       const { data, error } = await supabase
         .from('doctor_notes')
-        .select('*')
-        .eq('doctor_id', doctorData.id)
+        .select(`
+          *,
+          patients (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('doctor_id', userData.id)
         .eq('patient_id', id)
         .order('created_at', { ascending: false });
 
@@ -69,6 +79,7 @@ const PatientNotes = () => {
       setNotes(data || []);
     } catch (error) {
       console.error('Error fetching notes:', error);
+      setError('Failed to fetch notes. Please try again later.');
       toast({
         variant: "destructive",
         title: "Error",
@@ -77,7 +88,7 @@ const PatientNotes = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, user?.id, toast]);
+  }, [user?.id, id, toast]);
 
   useEffect(() => {
     if (id) fetchNotes();
@@ -192,26 +203,25 @@ const PatientNotes = () => {
     if (!newNote.trim()) return;
 
     try {
-      // First get the doctor's ID from the doctors table
-      const { data: doctorData, error: doctorError } = await supabase
-        .from('doctors')
+      // Get the doctor's ID from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('id', user?.id)
+        .eq('role', 'doctor')
         .single();
 
-      if (doctorError) throw doctorError;
-      if (!doctorData) throw new Error('Doctor profile not found');
+      if (userError) throw userError;
+      if (!userData) throw new Error('Doctor profile not found');
 
       const { error } = await supabase
         .from('doctor_notes')
-        .insert([
-          {
-            doctor_id: doctorData.id,
-            patient_id: id,
-            content: newNote,
-            created_at: new Date().toISOString()
-          }
-        ]);
+        .insert({
+          doctor_id: userData.id,
+          patient_id: id,
+          content: newNote,
+          created_at: new Date().toISOString()
+        });
 
       if (error) throw error;
 
@@ -219,7 +229,7 @@ const PatientNotes = () => {
       fetchNotes();
       toast({
         title: "Success",
-        description: "Note added successfully.",
+        description: "Note added successfully",
       });
     } catch (error) {
       console.error('Error adding note:', error);

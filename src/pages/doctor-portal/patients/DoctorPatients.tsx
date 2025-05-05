@@ -120,15 +120,16 @@ const DoctorPatients = () => {
     setLoadingPatients(true);
     setErrorPatients(null);
     try {
-      // First get the doctor's ID from the doctors table
-      const { data: doctorData, error: doctorError } = await supabase
-        .from('doctors')
+      // Get the doctor's ID from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('id', user?.id)
+        .eq('role', 'doctor')
         .single();
 
-      if (doctorError) throw doctorError;
-      if (!doctorData) throw new Error('Doctor profile not found');
+      if (userError) throw userError;
+      if (!userData) throw new Error('Doctor profile not found');
 
       // Then fetch patients using the doctor's ID
       const { data, error } = await supabase
@@ -142,7 +143,7 @@ const DoctorPatients = () => {
             last_name
           )
         `)
-        .eq('doctor_id', doctorData.id)
+        .eq('doctor_id', userData.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
