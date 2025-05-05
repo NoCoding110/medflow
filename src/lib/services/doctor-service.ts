@@ -188,6 +188,69 @@ export interface Note {
   visibility?: string;
 }
 
+export interface Visit {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  patient: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Prescription {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  patient: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  startDate: string;
+  endDate: string;
+  instructions: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AIInsight {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  patient: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  type: string;
+  title: string;
+  content: string;
+  severity: string;
+  status: string;
+  metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export async function getDoctorByEmail(email: string): Promise<Doctor | null> {
   try {
     const { data, error } = await supabase
@@ -466,6 +529,100 @@ export const getDoctorAnalytics = async (doctorId: string): Promise<DoctorAnalyt
   }
 };
 
+export const getDoctorVisits = async (doctorId: string): Promise<Visit[]> => {
+  try {
+    const { data: visits, error } = await supabase
+      .from('visits')
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .eq('doctor_id', doctorId)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    return (visits || []).map(visit => ({
+      id: visit.id,
+      doctorId: visit.doctor_id,
+      patientId: visit.patient_id,
+      patient: visit.patient ? {
+        id: visit.patient.id,
+        userId: visit.patient.user.id,
+        firstName: visit.patient.user.first_name,
+        lastName: visit.patient.user.last_name,
+        email: visit.patient.user.email
+      } : null,
+      date: visit.date,
+      time: visit.time,
+      type: visit.type,
+      status: visit.status,
+      notes: visit.notes,
+      createdAt: visit.created_at,
+      updatedAt: visit.updated_at
+    }));
+  } catch (error) {
+    console.error('Error fetching doctor visits:', error);
+    throw error;
+  }
+};
+
+export const getDoctorPrescriptions = async (doctorId: string): Promise<Prescription[]> => {
+  try {
+    const { data: prescriptions, error } = await supabase
+      .from('prescriptions')
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .eq('doctor_id', doctorId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (prescriptions || []).map(prescription => ({
+      id: prescription.id,
+      doctorId: prescription.doctor_id,
+      patientId: prescription.patient_id,
+      patient: prescription.patient ? {
+        id: prescription.patient.id,
+        userId: prescription.patient.user.id,
+        firstName: prescription.patient.user.first_name,
+        lastName: prescription.patient.user.last_name,
+        email: prescription.patient.user.email
+      } : null,
+      medication: prescription.medication,
+      dosage: prescription.dosage,
+      frequency: prescription.frequency,
+      startDate: prescription.start_date,
+      endDate: prescription.end_date,
+      instructions: prescription.instructions,
+      status: prescription.status,
+      createdAt: prescription.created_at,
+      updatedAt: prescription.updated_at
+    }));
+  } catch (error) {
+    console.error('Error fetching doctor prescriptions:', error);
+    throw error;
+  }
+};
+
 export const getDoctorAppointments = async (doctorId: string): Promise<Appointment[]> => {
   try {
     const { data: appointments, error } = await supabase
@@ -483,8 +640,7 @@ export const getDoctorAppointments = async (doctorId: string): Promise<Appointme
         )
       `)
       .eq('doctor_id', doctorId)
-      .order('date', { ascending: true })
-      .order('time', { ascending: true });
+      .order('date', { ascending: false });
 
     if (error) throw error;
 
@@ -503,7 +659,7 @@ export const getDoctorAppointments = async (doctorId: string): Promise<Appointme
       time: appointment.time,
       type: appointment.type,
       status: appointment.status,
-      notes: appointment.notes || '',
+      notes: appointment.notes,
       createdAt: appointment.created_at,
       updatedAt: appointment.updated_at
     }));
@@ -545,18 +701,49 @@ export const getDoctorAlerts = async (doctorId: string): Promise<DoctorAlert[]> 
   }
 };
 
-export const getDoctorAIInsights = async (doctorId: string): Promise<DoctorAlert[]> => {
+export const getDoctorAIInsights = async (doctorId: string): Promise<AIInsight[]> => {
   try {
-    const { data, error } = await supabase
-      .from("ai_insights")
-      .select("*")
-      .eq("doctor_id", doctorId)
-      .order("timestamp", { ascending: false });
+    const { data: insights, error } = await supabase
+      .from('ai_insights')
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .eq('doctor_id', doctorId)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+
+    return (insights || []).map(insight => ({
+      id: insight.id,
+      doctorId: insight.doctor_id,
+      patientId: insight.patient_id,
+      patient: insight.patient ? {
+        id: insight.patient.id,
+        userId: insight.patient.user.id,
+        firstName: insight.patient.user.first_name,
+        lastName: insight.patient.user.last_name,
+        email: insight.patient.user.email
+      } : null,
+      type: insight.type,
+      title: insight.title,
+      content: insight.content,
+      severity: insight.severity,
+      status: insight.status,
+      metadata: insight.metadata,
+      createdAt: insight.created_at,
+      updatedAt: insight.updated_at
+    }));
   } catch (error) {
-    console.error("Error fetching doctor AI insights:", error);
+    console.error('Error fetching doctor AI insights:', error);
     throw error;
   }
 };
