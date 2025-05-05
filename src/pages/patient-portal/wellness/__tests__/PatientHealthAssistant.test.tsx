@@ -16,7 +16,7 @@ jest.mock('@/services/ai-service', () => ({
 // Mock the auth hook
 jest.mock('@/lib/auth', () => ({
   useAuth: () => ({
-    user: { id: 'test-user' },
+    user: { id: '55555555-5555-5555-5555-555555555555' },
   }),
 }));
 

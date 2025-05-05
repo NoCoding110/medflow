@@ -16,8 +16,11 @@ function App() {
   useEffect(() => {
     const initializeDoctorData = async () => {
       try {
-        await ensureDoctorSarahJohnson();
-        console.log('Dr. Sarah Johnson\'s data is ready');
+        const doctor = await ensureDoctorSarahJohnson();
+        if (!doctor) {
+          throw new Error('Failed to initialize doctor data');
+        }
+        console.log('Dr. Sarah Johnson\'s data is ready:', doctor);
       } catch (error) {
         console.error('Error initializing doctor data:', error);
         toast({

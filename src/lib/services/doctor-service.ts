@@ -6,36 +6,22 @@ export interface Doctor {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'doctor';
-  password: string | null;
-  specialization?: string;
-  licenseNumber?: string;
-  phone?: string;
-  address?: string;
-  bio?: string;
-  profileImage?: string;
+  role: string;
+  specialization: string;
+  licenseNumber: string;
+  phone: string;
+  profileImage: string;
+  bio: string;
+  status: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface DoctorAnalytics {
   totalPatients: number;
-  activePatients: number;
-  appointmentsToday: number;
-  revenue: {
-    current: number;
-    previous: number;
-    trend: 'up' | 'down';
-  };
-  patientEngagement: {
-    score: number;
-    trend: 'up' | 'down';
-  };
-  healthOutcomes: {
-    improvement: number;
-    decline: number;
-    stable: number;
-  };
+  totalAppointments: number;
+  totalPrescriptions: number;
+  totalNotes: number;
 }
 
 export interface DoctorAppointment {
@@ -137,94 +123,134 @@ export interface DoctorRegistrationData {
   firstName: string;
   lastName: string;
   specialization: string;
-  npiNumber: string;
   licenseNumber: string;
   phone: string;
-  address: string;
-  bio?: string;
-  profileImage?: string;
+  profileImage: string;
+  bio: string;
 }
 
-export const getDoctorByEmail = async (email: string): Promise<Doctor | null> => {
+export interface Appointment {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  patient: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Reminder {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  patient: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  title: string;
+  description: string;
+  dueDate: string;
+  priority: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Note {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  patient: {
+    id: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getDoctorByEmail(email: string): Promise<Doctor | null> {
   try {
-    // First get the user
-    const { data: userData, error: userError } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
       .eq('role', 'doctor')
       .single();
 
-    if (userError) throw userError;
-    if (!userData) return null;
+    if (error) throw error;
+    if (!data) return null;
 
-    // Then get the doctor profile
-    const { data: doctorData, error: doctorError } = await supabase
-      .from('doctors')
-      .select('*')
-      .eq('user_id', userData.id)
-      .single();
-
-    if (doctorError) throw doctorError;
-    if (!doctorData) return null;
-
-    // Combine the data
     return {
-      id: doctorData.id,
-      email: userData.email,
-      firstName: userData.first_name,
-      lastName: userData.last_name,
-      role: 'doctor',
-      password: userData.password,
-      specialization: doctorData.specialization,
-      licenseNumber: doctorData.license_number,
-      phone: doctorData.phone,
-      address: doctorData.address,
-      bio: doctorData.bio,
-      profileImage: doctorData.profile_image,
-      createdAt: doctorData.created_at,
-      updatedAt: doctorData.updated_at
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      role: data.role,
+      specialization: data.specialization || '',
+      licenseNumber: data.license_number || '',
+      phone: data.phone || '',
+      profileImage: data.profile_image || '',
+      bio: data.bio || '',
+      status: data.status || 'active',
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
     };
   } catch (error) {
-    console.error('Error getting doctor by email:', error);
-    return null;
+    console.error('Error fetching doctor by email:', error);
+    throw error;
   }
-};
+}
 
-export const getDoctorById = async (doctorId: string): Promise<Doctor | null> => {
+export async function getDoctorById(id: string): Promise<Doctor | null> {
   try {
-    // First get the doctor profile
-    const { data: doctorData, error: doctorError } = await supabase
-      .from('doctors')
-      .select('*, users(*)')
-      .eq('id', doctorId)
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .eq('role', 'doctor')
       .single();
 
-    if (doctorError) throw doctorError;
-    if (!doctorData) return null;
+    if (error) throw error;
+    if (!data) return null;
 
-    // Combine the data
     return {
-      id: doctorData.id,
-      email: doctorData.users.email,
-      firstName: doctorData.users.first_name,
-      lastName: doctorData.users.last_name,
-      role: 'doctor',
-      password: doctorData.users.password,
-      specialization: doctorData.specialization,
-      licenseNumber: doctorData.license_number,
-      phone: doctorData.phone,
-      address: doctorData.address,
-      bio: doctorData.bio,
-      profileImage: doctorData.profile_image,
-      createdAt: doctorData.created_at,
-      updatedAt: doctorData.updated_at
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      role: data.role,
+      specialization: data.specialization || '',
+      licenseNumber: data.license_number || '',
+      phone: data.phone || '',
+      profileImage: data.profile_image || '',
+      bio: data.bio || '',
+      status: data.status || 'active',
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
     };
   } catch (error) {
-    console.error('Error getting doctor by ID:', error);
-    return null;
+    console.error('Error fetching doctor by ID:', error);
+    throw error;
   }
-};
+}
 
 export const getDoctors = async (): Promise<Doctor[]> => {
   try {
@@ -261,85 +287,191 @@ export const updateDoctor = async (doctorId: string, updates: Partial<Doctor>): 
 
 export const getDoctorPatients = async (doctorId: string): Promise<Patient[]> => {
   try {
-    const { data, error } = await supabase
+    // First, get the doctor's patients through the doctor_patients table
+    const { data: doctorPatients, error: doctorPatientsError } = await supabase
+      .from('doctor_patients')
+      .select('patient_id')
+      .eq('doctor_id', doctorId);
+
+    if (doctorPatientsError) throw doctorPatientsError;
+
+    if (!doctorPatients || doctorPatients.length === 0) {
+      return [];
+    }
+
+    // Get the patient details from the patients table
+    const patientIds = doctorPatients.map(dp => dp.patient_id);
+    const { data: patients, error: patientsError } = await supabase
       .from('patients')
       .select(`
         *,
-        users (
+        user:user_id (
           id,
           email,
           first_name,
-          last_name
+          last_name,
+          role
         )
       `)
-      .eq('doctor_id', doctorId)
-      .order('created_at', { ascending: false });
+      .in('id', patientIds);
 
-    if (error) throw error;
+    if (patientsError) throw patientsError;
 
-    return data.map(patient => ({
+    return (patients || []).map(patient => ({
       id: patient.id,
       userId: patient.user_id,
-      firstName: patient.first_name,
-      lastName: patient.last_name,
-      email: patient.users?.email || '',
-      dateOfBirth: patient.date_of_birth,
-      gender: patient.gender,
+      firstName: patient.user.first_name,
+      lastName: patient.user.last_name,
+      email: patient.user.email,
       phone: patient.phone,
       address: patient.address,
-      emergencyContact: patient.emergency_contact,
-      insurance: patient.insurance,
-      medicalHistory: patient.medical_history,
-      wearableDevices: patient.wearable_devices,
-      preferences: patient.preferences,
+      dateOfBirth: patient.date_of_birth,
+      gender: patient.gender,
+      emergencyContact: {
+        name: patient.emergency_contact_name,
+        relationship: patient.emergency_contact_relationship,
+        phone: patient.emergency_contact_phone
+      },
+      insurance: {
+        provider: patient.insurance_provider,
+        policyNumber: patient.insurance_policy_number,
+        groupNumber: patient.insurance_group_number,
+        contactNumber: patient.insurance_contact_number
+      },
+      medicalHistory: {
+        allergies: patient.allergies || [],
+        medications: patient.medications || [],
+        conditions: patient.conditions || [],
+        surgeries: patient.surgeries || [],
+        primaryCarePhysician: patient.primary_care_physician || ''
+      },
+      wearableDevices: {
+        appleWatch: patient.wearable_apple_watch || false,
+        fitbit: patient.wearable_fitbit || false,
+        ouraRing: patient.wearable_oura_ring || false,
+        other: patient.wearable_other || []
+      },
+      preferences: {
+        notifications: {
+          email: patient.notifications_email || false,
+          sms: patient.notifications_sms || false,
+          push: patient.notifications_push || false
+        },
+        aiInsights: {
+          fitness: patient.ai_insights_fitness || false,
+          nutrition: patient.ai_insights_nutrition || false,
+          vitals: patient.ai_insights_vitals || false,
+          mentalHealth: patient.ai_insights_mental_health || false,
+          medication: patient.ai_insights_medication || false
+        }
+      },
       status: patient.status || 'active',
       createdAt: patient.created_at,
       updatedAt: patient.updated_at
     }));
   } catch (error) {
-    console.error('Error getting doctor patients:', error);
-    return [];
+    console.error('Error fetching doctor patients:', error);
+    throw error;
   }
 };
 
 export const getDoctorAnalytics = async (doctorId: string): Promise<DoctorAnalytics> => {
   try {
-    const { data, error } = await supabase.rpc('get_doctor_analytics', { doctor_id: doctorId });
-    if (error) throw error;
-    return data;
+    // Get total patients
+    const { data: patients, error: patientsError } = await supabase
+      .from('doctor_patients')
+      .select('patient_id')
+      .eq('doctor_id', doctorId);
+
+    if (patientsError) throw patientsError;
+
+    const totalPatients = patients?.length || 0;
+
+    // Get total appointments
+    const { data: appointments, error: appointmentsError } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('doctor_id', doctorId);
+
+    if (appointmentsError) throw appointmentsError;
+
+    const totalAppointments = appointments?.length || 0;
+
+    // Get total prescriptions
+    const { data: prescriptions, error: prescriptionsError } = await supabase
+      .from('prescriptions')
+      .select('*')
+      .eq('doctor_id', doctorId);
+
+    if (prescriptionsError) throw prescriptionsError;
+
+    const totalPrescriptions = prescriptions?.length || 0;
+
+    // Get total notes
+    const { data: notes, error: notesError } = await supabase
+      .from('doctor_notes')
+      .select('*')
+      .eq('doctor_id', doctorId);
+
+    if (notesError) throw notesError;
+
+    const totalNotes = notes?.length || 0;
+
+    return {
+      totalPatients,
+      totalAppointments,
+      totalPrescriptions,
+      totalNotes
+    };
   } catch (error) {
-    console.error("Error fetching doctor analytics:", error);
+    console.error('Error fetching doctor analytics:', error);
     throw error;
   }
 };
 
-export const getDoctorAppointments = async (doctorId: string, date?: string): Promise<DoctorAppointment[]> => {
+export const getDoctorAppointments = async (doctorId: string): Promise<Appointment[]> => {
   try {
-    let query = supabase
-      .from("appointments")
+    const { data: appointments, error } = await supabase
+      .from('appointments')
       .select(`
         *,
-        patients (
-          *,
-          users (
+        patient:patient_id (
+          id,
+          user:user_id (
             id,
-            email,
             first_name,
-            last_name
+            last_name,
+            email
           )
         )
       `)
-      .eq("doctor_id", doctorId);
+      .eq('doctor_id', doctorId)
+      .order('date', { ascending: true })
+      .order('time', { ascending: true });
 
-    if (date) {
-      query = query.eq("date", date);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
-    return data;
+
+    return (appointments || []).map(appointment => ({
+      id: appointment.id,
+      doctorId: appointment.doctor_id,
+      patientId: appointment.patient_id,
+      patient: appointment.patient ? {
+        id: appointment.patient.id,
+        userId: appointment.patient.user.id,
+        firstName: appointment.patient.user.first_name,
+        lastName: appointment.patient.user.last_name,
+        email: appointment.patient.user.email
+      } : null,
+      date: appointment.date,
+      time: appointment.time,
+      type: appointment.type,
+      status: appointment.status,
+      notes: appointment.notes || '',
+      createdAt: appointment.created_at,
+      updatedAt: appointment.updated_at
+    }));
   } catch (error) {
-    console.error("Error fetching doctor appointments:", error);
+    console.error('Error fetching doctor appointments:', error);
     throw error;
   }
 };
@@ -427,7 +559,8 @@ export const createDoctorSarahJohnson = async () => {
       .from("users")
       .insert([
         {
-          email: "sarah.johnson@medflow.com",
+          id: '11111111-1111-1111-1111-111111111111',
+          email: "sarah@medflow.com",
           first_name: "Sarah",
           last_name: "Johnson",
           role: "doctor",
@@ -466,7 +599,7 @@ export const createDoctorSarahJohnson = async () => {
       .insert([
         {
           doctor_id: doctorData.id,
-          patient_id: "patient_id_1", // Replace with actual patient ID
+          patient_id: "44444444-4444-4444-4444-444444444444", // Using the test patient ID
           date: "2024-03-20",
           time: "09:00",
           type: "checkup",
@@ -475,7 +608,7 @@ export const createDoctorSarahJohnson = async () => {
         },
         {
           doctor_id: doctorData.id,
-          patient_id: "patient_id_2", // Replace with actual patient ID
+          patient_id: "55555555-5555-5555-5555-555555555555", // Using the test patient ID
           date: "2024-03-20",
           time: "10:30",
           type: "follow-up",
@@ -516,14 +649,14 @@ export const createDoctorSarahJohnson = async () => {
       .insert([
         {
           doctor_id: doctorData.id,
-          patient_id: "patient_id_1", // Replace with actual patient ID
+          patient_id: "44444444-4444-4444-4444-444444444444", // Using the test patient ID
           title: "Treatment plan update",
           content: "Patient showing good progress with new medication. Continue current treatment plan.",
           created_at: new Date().toISOString(),
         },
         {
           doctor_id: doctorData.id,
-          patient_id: "patient_id_2", // Replace with actual patient ID
+          patient_id: "55555555-5555-5555-5555-555555555555", // Using the test patient ID
           title: "Follow-up required",
           content: "Patient needs additional testing for diabetes management.",
           created_at: new Date().toISOString(),
@@ -542,160 +675,118 @@ export const createDoctorSarahJohnson = async () => {
   }
 };
 
-export const ensureDoctorSarahJohnson = async () => {
+export async function ensureDoctorSarahJohnson(): Promise<Doctor> {
   try {
-    // Check if user exists
-    const { data: userData, error: userError } = await supabase
+    // Check if Dr. Sarah Johnson exists in the users table
+    const { data: existingDoctor, error: checkError } = await supabase
       .from('users')
       .select('*')
       .eq('email', 'sarah@medflow.com')
       .eq('role', 'doctor')
       .single();
 
-    if (userError && userError.code !== 'PGRST116') throw userError;
+    if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
-    let userId: string;
-    if (!userData) {
-      // Create user if not exists
-      const { data: newUser, error: createUserError } = await supabase
-        .from('users')
-        .insert({
-          email: 'sarah@medflow.com',
-          first_name: 'Sarah',
-          last_name: 'Johnson',
-          role: 'doctor',
-          password: 'password123'
-        })
-        .select()
-        .single();
-
-      if (createUserError) throw createUserError;
-      userId = newUser.id;
-    } else {
-      userId = userData.id;
+    if (existingDoctor) {
+      return {
+        id: existingDoctor.id,
+        email: existingDoctor.email,
+        firstName: existingDoctor.first_name,
+        lastName: existingDoctor.last_name,
+        role: existingDoctor.role,
+        specialization: existingDoctor.specialization || '',
+        licenseNumber: existingDoctor.license_number || '',
+        phone: existingDoctor.phone || '',
+        profileImage: existingDoctor.profile_image || '',
+        bio: existingDoctor.bio || '',
+        status: existingDoctor.status || 'active',
+        createdAt: existingDoctor.created_at,
+        updatedAt: existingDoctor.updated_at
+      };
     }
 
-    // Check if doctor profile exists
-    const { data: doctorData, error: doctorError } = await supabase
-      .from('doctors')
-      .select('*')
-      .eq('user_id', userId)
+    // Create Dr. Sarah Johnson in the users table
+    const { data: newDoctor, error: createError } = await supabase
+      .from('users')
+      .insert({
+        id: '11111111-1111-1111-1111-111111111111',
+        email: 'sarah@medflow.com',
+        first_name: 'Sarah',
+        last_name: 'Johnson',
+        role: 'doctor',
+        specialization: 'Cardiology',
+        license_number: 'MD123456',
+        phone: '+1-555-0123',
+        profile_image: 'https://randomuser.me/api/portraits/women/44.jpg',
+        bio: 'Dr. Sarah Johnson is a board-certified cardiologist with over 15 years of experience.',
+        status: 'active'
+      })
+      .select()
       .single();
 
-    if (doctorError && doctorError.code !== 'PGRST116') throw doctorError;
+    if (createError) throw createError;
+    if (!newDoctor) throw new Error('Failed to create doctor profile');
 
-    if (!doctorData) {
-      // Create doctor profile if not exists
-      const { data: newDoctor, error: createDoctorError } = await supabase
-        .from('doctors')
-        .insert({
-          user_id: userId,
-          specialization: 'Cardiology',
-          license_number: 'MD123456',
-          phone: '+1 (555) 123-4567',
-          address: '123 Medical Center Drive, Suite 456, New York, NY 10001',
-          bio: 'Dr. Sarah Johnson is a board-certified cardiologist with over 15 years of experience in treating cardiovascular diseases. She specializes in preventive cardiology and advanced heart failure management.',
-          profile_image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80'
-        })
-        .select()
-        .single();
-
-      if (createDoctorError) throw createDoctorError;
-      return newDoctor;
-    }
-
-    return doctorData;
+    return {
+      id: newDoctor.id,
+      email: newDoctor.email,
+      firstName: newDoctor.first_name,
+      lastName: newDoctor.last_name,
+      role: newDoctor.role,
+      specialization: newDoctor.specialization || '',
+      licenseNumber: newDoctor.license_number || '',
+      phone: newDoctor.phone || '',
+      profileImage: newDoctor.profile_image || '',
+      bio: newDoctor.bio || '',
+      status: newDoctor.status || 'active',
+      createdAt: newDoctor.created_at,
+      updatedAt: newDoctor.updated_at
+    };
   } catch (error) {
-    console.error("Error ensuring Dr. Sarah Johnson's profile:", error);
+    console.error('Error ensuring Dr. Sarah Johnson\'s profile:', error);
     throw error;
   }
-};
+}
 
 export const createDoctor = async (data: DoctorRegistrationData): Promise<Doctor> => {
   try {
-    // First, create the user record
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .insert([
-        {
-          email: data.email,
-          first_name: data.firstName,
-          last_name: data.lastName,
-          role: "doctor",
-          // Password will be set when the doctor first logs in
-          password: null,
-        },
-      ])
+    const { data: newDoctor, error } = await supabase
+      .from('users')
+      .insert({
+        email: data.email,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        role: 'doctor',
+        specialization: data.specialization,
+        license_number: data.licenseNumber,
+        phone: data.phone,
+        profile_image: data.profileImage,
+        bio: data.bio,
+        status: 'active'
+      })
       .select()
       .single();
 
-    if (userError) throw userError;
-    if (!userData) throw new Error("Failed to create user record");
-
-    // Then, create the doctor profile
-    const { data: doctorData, error: doctorError } = await supabase
-      .from("doctors")
-      .insert([
-        {
-          user_id: userData.id,
-          specialization: data.specialization,
-          npi_number: data.npiNumber,
-          license_number: data.licenseNumber,
-          phone: data.phone,
-          address: data.address,
-          bio: data.bio,
-          profile_image: data.profileImage,
-        },
-      ])
-      .select()
-      .single();
-
-    if (doctorError) throw doctorError;
-    if (!doctorData) throw new Error("Failed to create doctor record");
-
-    // Create default tables for the doctor
-    await Promise.all([
-      // Create appointments table
-      supabase.from("appointments").insert([
-        {
-          doctor_id: doctorData.id,
-          patient_id: null,
-          date: null,
-          time: null,
-          type: "checkup",
-          status: "scheduled",
-          notes: "",
-        },
-      ]),
-      // Create reminders table
-      supabase.from("reminders").insert([
-        {
-          doctor_id: doctorData.id,
-          title: "Welcome to MedFlow",
-          description: "Set up your profile and preferences",
-          due_date: new Date().toISOString(),
-          priority: "medium",
-          status: "pending",
-        },
-      ]),
-      // Create notes table
-      supabase.from("doctor_notes").insert([
-        {
-          doctor_id: doctorData.id,
-          patient_id: null,
-          title: "Welcome Note",
-          content: "Welcome to your new MedFlow account!",
-          created_at: new Date().toISOString(),
-        },
-      ]),
-    ]);
+    if (error) throw error;
+    if (!newDoctor) throw new Error('Failed to create doctor profile');
 
     return {
-      ...userData,
-      ...doctorData,
+      id: newDoctor.id,
+      email: newDoctor.email,
+      firstName: newDoctor.first_name,
+      lastName: newDoctor.last_name,
+      role: newDoctor.role,
+      specialization: newDoctor.specialization || '',
+      licenseNumber: newDoctor.license_number || '',
+      phone: newDoctor.phone || '',
+      profileImage: newDoctor.profile_image || '',
+      bio: newDoctor.bio || '',
+      status: newDoctor.status || 'active',
+      createdAt: newDoctor.created_at,
+      updatedAt: newDoctor.updated_at
     };
   } catch (error) {
-    console.error("Error creating doctor:", error);
+    console.error('Error creating doctor:', error);
     throw error;
   }
 };
@@ -750,6 +841,453 @@ export const setupDoctorPassword = async (email: string, password: string): Prom
     ]);
   } catch (error) {
     console.error("Error setting up doctor password:", error);
+    throw error;
+  }
+};
+
+export const getDoctorReminders = async (doctorId: string): Promise<Reminder[]> => {
+  try {
+    const { data: reminders, error } = await supabase
+      .from('doctor_reminders')
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .eq('doctor_id', doctorId)
+      .order('due_date', { ascending: true });
+
+    if (error) throw error;
+
+    return (reminders || []).map(reminder => ({
+      id: reminder.id,
+      doctorId: reminder.doctor_id,
+      patientId: reminder.patient_id,
+      patient: reminder.patient ? {
+        id: reminder.patient.id,
+        userId: reminder.patient.user.id,
+        firstName: reminder.patient.user.first_name,
+        lastName: reminder.patient.user.last_name,
+        email: reminder.patient.user.email
+      } : null,
+      title: reminder.title,
+      description: reminder.description,
+      dueDate: reminder.due_date,
+      priority: reminder.priority,
+      status: reminder.status,
+      createdAt: reminder.created_at,
+      updatedAt: reminder.updated_at
+    }));
+  } catch (error) {
+    console.error('Error fetching doctor reminders:', error);
+    throw error;
+  }
+};
+
+export const getDoctorNotes = async (doctorId: string): Promise<Note[]> => {
+  try {
+    const { data: notes, error } = await supabase
+      .from('doctor_notes')
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .eq('doctor_id', doctorId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (notes || []).map(note => ({
+      id: note.id,
+      doctorId: note.doctor_id,
+      patientId: note.patient_id,
+      patient: note.patient ? {
+        id: note.patient.id,
+        userId: note.patient.user.id,
+        firstName: note.patient.user.first_name,
+        lastName: note.patient.user.last_name,
+        email: note.patient.user.email
+      } : null,
+      title: note.title,
+      content: note.content,
+      createdAt: note.created_at,
+      updatedAt: note.updated_at
+    }));
+  } catch (error) {
+    console.error('Error fetching doctor notes:', error);
+    throw error;
+  }
+};
+
+export const createDoctorAppointment = async (data: {
+  doctorId: string;
+  patientId: string;
+  date: string;
+  time: string;
+  type: string;
+  notes?: string;
+}): Promise<Appointment> => {
+  try {
+    const { data: appointment, error } = await supabase
+      .from('appointments')
+      .insert({
+        doctor_id: data.doctorId,
+        patient_id: data.patientId,
+        date: data.date,
+        time: data.time,
+        type: data.type,
+        status: 'scheduled',
+        notes: data.notes || ''
+      })
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    if (!appointment) throw new Error('Failed to create appointment');
+
+    return {
+      id: appointment.id,
+      doctorId: appointment.doctor_id,
+      patientId: appointment.patient_id,
+      patient: appointment.patient ? {
+        id: appointment.patient.id,
+        userId: appointment.patient.user.id,
+        firstName: appointment.patient.user.first_name,
+        lastName: appointment.patient.user.last_name,
+        email: appointment.patient.user.email
+      } : null,
+      date: appointment.date,
+      time: appointment.time,
+      type: appointment.type,
+      status: appointment.status,
+      notes: appointment.notes || '',
+      createdAt: appointment.created_at,
+      updatedAt: appointment.updated_at
+    };
+  } catch (error) {
+    console.error('Error creating doctor appointment:', error);
+    throw error;
+  }
+};
+
+export const createDoctorReminder = async (data: {
+  doctorId: string;
+  patientId: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  priority: string;
+}): Promise<Reminder> => {
+  try {
+    const { data: reminder, error } = await supabase
+      .from('doctor_reminders')
+      .insert({
+        doctor_id: data.doctorId,
+        patient_id: data.patientId,
+        title: data.title,
+        description: data.description,
+        due_date: data.dueDate,
+        priority: data.priority,
+        status: 'pending'
+      })
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    if (!reminder) throw new Error('Failed to create reminder');
+
+    return {
+      id: reminder.id,
+      doctorId: reminder.doctor_id,
+      patientId: reminder.patient_id,
+      patient: reminder.patient ? {
+        id: reminder.patient.id,
+        userId: reminder.patient.user.id,
+        firstName: reminder.patient.user.first_name,
+        lastName: reminder.patient.user.last_name,
+        email: reminder.patient.user.email
+      } : null,
+      title: reminder.title,
+      description: reminder.description,
+      dueDate: reminder.due_date,
+      priority: reminder.priority,
+      status: reminder.status,
+      createdAt: reminder.created_at,
+      updatedAt: reminder.updated_at
+    };
+  } catch (error) {
+    console.error('Error creating doctor reminder:', error);
+    throw error;
+  }
+};
+
+export const createDoctorNote = async (data: {
+  doctorId: string;
+  patientId: string;
+  title: string;
+  content: string;
+}): Promise<Note> => {
+  try {
+    const { data: note, error } = await supabase
+      .from('doctor_notes')
+      .insert({
+        doctor_id: data.doctorId,
+        patient_id: data.patientId,
+        title: data.title,
+        content: data.content
+      })
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    if (!note) throw new Error('Failed to create note');
+
+    return {
+      id: note.id,
+      doctorId: note.doctor_id,
+      patientId: note.patient_id,
+      patient: note.patient ? {
+        id: note.patient.id,
+        userId: note.patient.user.id,
+        firstName: note.patient.user.first_name,
+        lastName: note.patient.user.last_name,
+        email: note.patient.user.email
+      } : null,
+      title: note.title,
+      content: note.content,
+      createdAt: note.created_at,
+      updatedAt: note.updated_at
+    };
+  } catch (error) {
+    console.error('Error creating doctor note:', error);
+    throw error;
+  }
+};
+
+export const updateDoctorAppointment = async (
+  appointmentId: string,
+  updates: {
+    date?: string;
+    time?: string;
+    type?: string;
+    status?: string;
+    notes?: string;
+  }
+): Promise<Appointment> => {
+  try {
+    const { data: appointment, error } = await supabase
+      .from('appointments')
+      .update({
+        date: updates.date,
+        time: updates.time,
+        type: updates.type,
+        status: updates.status,
+        notes: updates.notes
+      })
+      .eq('id', appointmentId)
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    if (!appointment) throw new Error('Failed to update appointment');
+
+    return {
+      id: appointment.id,
+      doctorId: appointment.doctor_id,
+      patientId: appointment.patient_id,
+      patient: appointment.patient ? {
+        id: appointment.patient.id,
+        userId: appointment.patient.user.id,
+        firstName: appointment.patient.user.first_name,
+        lastName: appointment.patient.user.last_name,
+        email: appointment.patient.user.email
+      } : null,
+      date: appointment.date,
+      time: appointment.time,
+      type: appointment.type,
+      status: appointment.status,
+      notes: appointment.notes || '',
+      createdAt: appointment.created_at,
+      updatedAt: appointment.updated_at
+    };
+  } catch (error) {
+    console.error('Error updating doctor appointment:', error);
+    throw error;
+  }
+};
+
+export const updateDoctorReminder = async (
+  reminderId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    dueDate?: string;
+    priority?: string;
+    status?: string;
+  }
+): Promise<Reminder> => {
+  try {
+    const { data: reminder, error } = await supabase
+      .from('doctor_reminders')
+      .update({
+        title: updates.title,
+        description: updates.description,
+        due_date: updates.dueDate,
+        priority: updates.priority,
+        status: updates.status
+      })
+      .eq('id', reminderId)
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    if (!reminder) throw new Error('Failed to update reminder');
+
+    return {
+      id: reminder.id,
+      doctorId: reminder.doctor_id,
+      patientId: reminder.patient_id,
+      patient: reminder.patient ? {
+        id: reminder.patient.id,
+        userId: reminder.patient.user.id,
+        firstName: reminder.patient.user.first_name,
+        lastName: reminder.patient.user.last_name,
+        email: reminder.patient.user.email
+      } : null,
+      title: reminder.title,
+      description: reminder.description,
+      dueDate: reminder.due_date,
+      priority: reminder.priority,
+      status: reminder.status,
+      createdAt: reminder.created_at,
+      updatedAt: reminder.updated_at
+    };
+  } catch (error) {
+    console.error('Error updating doctor reminder:', error);
+    throw error;
+  }
+};
+
+export const updateDoctorNote = async (
+  noteId: string,
+  updates: {
+    title?: string;
+    content?: string;
+  }
+): Promise<Note> => {
+  try {
+    const { data: note, error } = await supabase
+      .from('doctor_notes')
+      .update({
+        title: updates.title,
+        content: updates.content
+      })
+      .eq('id', noteId)
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    if (!note) throw new Error('Failed to update note');
+
+    return {
+      id: note.id,
+      doctorId: note.doctor_id,
+      patientId: note.patient_id,
+      patient: note.patient ? {
+        id: note.patient.id,
+        userId: note.patient.user.id,
+        firstName: note.patient.user.first_name,
+        lastName: note.patient.user.last_name,
+        email: note.patient.user.email
+      } : null,
+      title: note.title,
+      content: note.content,
+      createdAt: note.created_at,
+      updatedAt: note.updated_at
+    };
+  } catch (error) {
+    console.error('Error updating doctor note:', error);
     throw error;
   }
 }; 

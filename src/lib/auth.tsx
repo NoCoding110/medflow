@@ -21,7 +21,7 @@ interface AuthContextType {
 // Mock user data
 const mockUsers = [
   {
-    id: '1',
+    id: '11111111-1111-1111-1111-111111111111',
     name: 'Dr. Sarah Johnson',
     email: 'sarah@medflow.com',
     password: 'password123', // In a real app, never store plaintext passwords
@@ -29,7 +29,7 @@ const mockUsers = [
     avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
   },
   {
-    id: '2',
+    id: '22222222-2222-2222-2222-222222222222',
     name: 'Dr. Michael Chen',
     email: 'michael@medflow.com',
     password: 'password123',
@@ -37,7 +37,7 @@ const mockUsers = [
     avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
   },
   {
-    id: '3',
+    id: '33333333-3333-3333-3333-333333333333',
     name: 'Nurse Emma Wilson',
     email: 'emma@medflow.com',
     password: 'password123',
@@ -45,7 +45,7 @@ const mockUsers = [
     avatar: 'https://randomuser.me/api/portraits/women/63.jpg',
   },
   {
-    id: '4',
+    id: '44444444-4444-4444-4444-444444444444',
     name: 'Admin Alex Taylor',
     email: 'admin@medflow.com',
     password: 'admin123',
@@ -53,7 +53,7 @@ const mockUsers = [
     avatar: 'https://randomuser.me/api/portraits/men/4.jpg',
   },
   {
-    id: '5',
+    id: '55555555-5555-5555-5555-555555555555',
     name: 'John Patient',
     email: 'patient@medflow.com',
     password: 'patient123',
