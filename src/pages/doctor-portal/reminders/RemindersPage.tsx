@@ -53,27 +53,26 @@ const RemindersPage = () => {
   const [remindersRefresh, setRemindersRefresh] = useState(0);
 
   useEffect(() => {
-    const resolveUserId = async () => {
+    const resolveDoctorId = async () => {
       if (!user) return;
       if (/^[0-9a-fA-F-]{36}$/.test(user.id)) {
         setDoctorId(user.id);
-      } else if (user.email && user.role) {
+      } else if (user.email) {
         const { data, error } = await supabase
-          .from("users")
+          .from("doctor")
           .select("id")
           .eq("email", user.email)
-          .eq("role", user.role)
           .single();
         if (data?.id) {
           setDoctorId(data.id);
         } else {
-          setError(`Could not resolve ${user.role} profile. Please contact support.`);
+          setError(`Could not resolve doctor profile. Please contact support.`);
         }
       } else {
-        setError('No valid user ID, email, or role found.');
+        setError('No valid user ID or email found.');
       }
     };
-    resolveUserId();
+    resolveDoctorId();
   }, [user]);
 
   useEffect(() => {
