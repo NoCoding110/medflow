@@ -15,6 +15,8 @@ const medicalNoteRoutes = require('./routes/medicalNoteRoutes');
 const medicalRecordRoutes = require('./routes/medicalRecordRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const vitalsRoutes = require('./routes/vitalsRoutes');
+const nutritionRoutes = require('./routes/nutritionRoutes');
+const fitnessRoutes = require('./routes/fitnessRoutes');
 
 // Create Express app
 const app = express();
@@ -43,6 +45,8 @@ app.use('/api/notes', medicalNoteRoutes);
 app.use('/api/records', medicalRecordRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/vitals', vitalsRoutes);
+app.use('/api/nutrition', nutritionRoutes);
+app.use('/api/fitness', fitnessRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
