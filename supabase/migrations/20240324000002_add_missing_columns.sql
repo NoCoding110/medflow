@@ -25,16 +25,34 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_ai_insights_updated_at') THEN
+    EXECUTE 'DROP TRIGGER update_ai_insights_updated_at ON ai_insights;';
+  END IF;
+END$$;
 CREATE TRIGGER update_ai_insights_updated_at
     BEFORE UPDATE ON ai_insights
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_prescriptions_updated_at') THEN
+    EXECUTE 'DROP TRIGGER update_prescriptions_updated_at ON prescriptions;';
+  END IF;
+END$$;
 CREATE TRIGGER update_prescriptions_updated_at
     BEFORE UPDATE ON prescriptions
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_visits_updated_at') THEN
+    EXECUTE 'DROP TRIGGER update_visits_updated_at ON visits;';
+  END IF;
+END$$;
 CREATE TRIGGER update_visits_updated_at
     BEFORE UPDATE ON visits
     FOR EACH ROW
