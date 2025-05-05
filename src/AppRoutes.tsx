@@ -9,6 +9,7 @@ import { adminRoutes } from "@/routes/adminRoutes";
 import NewPatient from "./pages/NewPatient";
 import PatientRegistration from "./pages/patient/registration/PatientRegistration";
 import Appointments from './pages/doctor-portal/appointments/Appointments';
+import Dashboard from './pages/doctor-portal/Dashboard';
 
 const AppRoutes = () => {
   return (
@@ -31,6 +32,7 @@ const AppRoutes = () => {
         {doctorRoutes.children.map((childRoute) => (
           <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} />
         ))}
+        <Route path="/" element={<Dashboard />} />
         <Route path="/appointments" element={<Appointments />} />
       </Route>
       {/* Admin routes */}
