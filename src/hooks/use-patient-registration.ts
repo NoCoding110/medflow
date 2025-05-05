@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -46,6 +45,29 @@ export interface PatientRegistrationFormData {
     treatment: boolean;
     hipaa: boolean;
     marketing: boolean;
+    wearableData: boolean;
+    aiInsights: boolean;
+    telehealth: boolean;
+  };
+  wearableDevices: {
+    appleWatch: boolean;
+    fitbit: boolean;
+    ouraRing: boolean;
+    other: string[];
+  };
+  preferences: {
+    notifications: {
+      email: boolean;
+      sms: boolean;
+      push: boolean;
+    };
+    aiInsights: {
+      fitness: boolean;
+      nutrition: boolean;
+      vitals: boolean;
+      mentalHealth: boolean;
+      medication: boolean;
+    };
   };
 }
 
@@ -92,7 +114,30 @@ export const usePatientRegistration = () => {
     consent: {
       treatment: false,
       hipaa: false,
-      marketing: false
+      marketing: false,
+      wearableData: false,
+      aiInsights: false,
+      telehealth: false
+    },
+    wearableDevices: {
+      appleWatch: false,
+      fitbit: false,
+      ouraRing: false,
+      other: []
+    },
+    preferences: {
+      notifications: {
+        email: false,
+        sms: false,
+        push: false
+      },
+      aiInsights: {
+        fitness: false,
+        nutrition: false,
+        vitals: false,
+        mentalHealth: false,
+        medication: false
+      }
     }
   });
 

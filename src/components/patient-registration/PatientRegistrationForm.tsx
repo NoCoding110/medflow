@@ -1,4 +1,3 @@
-
 import { StepIndicator } from "./StepIndicator";
 import { StepRenderer } from "./StepRenderer";
 import { usePatientRegistration } from "@/hooks/use-patient-registration";
@@ -8,6 +7,7 @@ const steps = [
   "Emergency Contact",
   "Insurance",
   "Medical History",
+  "Wearable Devices",
   "Account",
   "Consent",
   "Verification"
