@@ -554,37 +554,20 @@ export const removePatientFromDoctor = async (doctorId: string, patientId: strin
 
 export const createDoctorSarahJohnson = async () => {
   try {
-    // First, create the user record
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .insert([
-        {
-          id: '11111111-1111-1111-1111-111111111111',
-          email: "sarah@medflow.com",
-          first_name: "Sarah",
-          last_name: "Johnson",
-          role: "doctor",
-          password: "hashed_password_here", // In production, this should be properly hashed
-        },
-      ])
-      .select()
-      .single();
-
-    if (userError) throw userError;
-    if (!userData) throw new Error("Failed to create user record");
-
-    // Then, create the doctor profile
+    // Create the doctor record directly in the doctors table
     const { data: doctorData, error: doctorError } = await supabase
       .from("doctors")
       .insert([
         {
-          user_id: userData.id,
+          email: "sarah@medflow.com",
+          password_hash: "hashed_password_here", // In production, this should be properly hashed
+          first_name: "Sarah",
+          last_name: "Johnson",
           specialization: "Internal Medicine",
           license_number: "MD123456",
-          phone: "+1 (555) 123-4567",
-          address: "123 Medical Center Dr, Suite 200, San Francisco, CA 94102",
-          bio: "Dr. Sarah Johnson is a board-certified internal medicine physician with over 15 years of experience. She specializes in preventive care and chronic disease management.",
+          phone_number: "+1 (555) 123-4567",
           profile_image: "https://example.com/sarah-johnson.jpg",
+          status: "active"
         },
       ])
       .select()
@@ -595,7 +578,7 @@ export const createDoctorSarahJohnson = async () => {
 
     // Create some sample appointments
     const { error: appointmentsError } = await supabase
-      .from("appointments")
+      .from("patient_appointments")
       .insert([
         {
           doctor_id: doctorData.id,
@@ -666,7 +649,6 @@ export const createDoctorSarahJohnson = async () => {
     if (notesError) throw notesError;
 
     return {
-      user: userData,
       doctor: doctorData,
     };
   } catch (error) {
@@ -677,12 +659,11 @@ export const createDoctorSarahJohnson = async () => {
 
 export async function ensureDoctorSarahJohnson(): Promise<Doctor> {
   try {
-    // Check if Dr. Sarah Johnson exists in the users table
+    // Check if Dr. Sarah Johnson exists in the doctors table
     const { data: existingDoctor, error: checkError } = await supabase
-      .from('users')
+      .from('doctors')
       .select('*')
       .eq('email', 'sarah@medflow.com')
-      .eq('role', 'doctor')
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') throw checkError;
@@ -693,32 +674,30 @@ export async function ensureDoctorSarahJohnson(): Promise<Doctor> {
         email: existingDoctor.email,
         firstName: existingDoctor.first_name,
         lastName: existingDoctor.last_name,
-        role: existingDoctor.role,
-        specialization: existingDoctor.specialization || '',
-        licenseNumber: existingDoctor.license_number || '',
-        phone: existingDoctor.phone || '',
+        role: 'doctor',
+        specialization: existingDoctor.specialization,
+        licenseNumber: existingDoctor.license_number,
+        phone: existingDoctor.phone_number,
         profileImage: existingDoctor.profile_image || '',
-        bio: existingDoctor.bio || '',
+        bio: '', // Not stored in the database
         status: existingDoctor.status || 'active',
         createdAt: existingDoctor.created_at,
         updatedAt: existingDoctor.updated_at
       };
     }
 
-    // Create Dr. Sarah Johnson in the users table
+    // Create Dr. Sarah Johnson in the doctors table
     const { data: newDoctor, error: createError } = await supabase
-      .from('users')
+      .from('doctors')
       .insert({
-        id: '11111111-1111-1111-1111-111111111111',
         email: 'sarah@medflow.com',
+        password_hash: 'hashed_password_here', // In production, this should be properly hashed
         first_name: 'Sarah',
         last_name: 'Johnson',
-        role: 'doctor',
         specialization: 'Cardiology',
         license_number: 'MD123456',
-        phone: '+1-555-0123',
+        phone_number: '+1-555-0123',
         profile_image: 'https://randomuser.me/api/portraits/women/44.jpg',
-        bio: 'Dr. Sarah Johnson is a board-certified cardiologist with over 15 years of experience.',
         status: 'active'
       })
       .select()
@@ -732,12 +711,12 @@ export async function ensureDoctorSarahJohnson(): Promise<Doctor> {
       email: newDoctor.email,
       firstName: newDoctor.first_name,
       lastName: newDoctor.last_name,
-      role: newDoctor.role,
-      specialization: newDoctor.specialization || '',
-      licenseNumber: newDoctor.license_number || '',
-      phone: newDoctor.phone || '',
+      role: 'doctor',
+      specialization: newDoctor.specialization,
+      licenseNumber: newDoctor.license_number,
+      phone: newDoctor.phone_number,
       profileImage: newDoctor.profile_image || '',
-      bio: newDoctor.bio || '',
+      bio: '', // Not stored in the database
       status: newDoctor.status || 'active',
       createdAt: newDoctor.created_at,
       updatedAt: newDoctor.updated_at
