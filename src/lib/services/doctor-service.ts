@@ -189,10 +189,9 @@ export interface Note {
 export async function getDoctorByEmail(email: string): Promise<Doctor | null> {
   try {
     const { data, error } = await supabase
-      .from('users')
+      .from('doctors')
       .select('*')
       .eq('email', email)
-      .eq('role', 'doctor')
       .single();
 
     if (error) throw error;
@@ -203,10 +202,10 @@ export async function getDoctorByEmail(email: string): Promise<Doctor | null> {
       email: data.email,
       firstName: data.first_name,
       lastName: data.last_name,
-      role: data.role,
+      role: 'doctor',
       specialization: data.specialization || '',
       licenseNumber: data.license_number || '',
-      phone: data.phone || '',
+      phone: data.phone_number || '',
       profileImage: data.profile_image || '',
       bio: data.bio || '',
       status: data.status || 'active',

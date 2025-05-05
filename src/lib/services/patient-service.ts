@@ -181,15 +181,105 @@ export const createPatient = async (data: Omit<Patient, 'id' | 'status' | 'creat
 export const getPatient = async (patientId: string) => {
   try {
     const { data, error } = await supabase
-      .from("patients")
-      .select("*, users(*)")
-      .eq("id", patientId)
+      .from('patients')
+      .select(`
+        id,
+        user_id,
+        first_name,
+        last_name,
+        date_of_birth,
+        gender,
+        email,
+        phone,
+        address,
+        emergency_contact_name,
+        emergency_contact_relationship,
+        emergency_contact_phone,
+        insurance_provider,
+        insurance_policy_number,
+        insurance_group_number,
+        insurance_contact_number,
+        allergies,
+        medications,
+        conditions,
+        surgeries,
+        primary_care_physician,
+        wearable_apple_watch,
+        wearable_fitbit,
+        wearable_oura_ring,
+        wearable_other,
+        notifications_email,
+        notifications_sms,
+        notifications_push,
+        ai_insights_fitness,
+        ai_insights_nutrition,
+        ai_insights_vitals,
+        ai_insights_mental_health,
+        ai_insights_medication,
+        status,
+        created_at,
+        updated_at
+      `)
+      .eq('id', patientId)
       .single();
 
     if (error) throw error;
-    return data;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      dateOfBirth: data.date_of_birth,
+      gender: data.gender,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      emergencyContact: {
+        name: data.emergency_contact_name,
+        relationship: data.emergency_contact_relationship,
+        phone: data.emergency_contact_phone
+      },
+      insurance: {
+        provider: data.insurance_provider,
+        policyNumber: data.insurance_policy_number,
+        groupNumber: data.insurance_group_number,
+        contactNumber: data.insurance_contact_number
+      },
+      medicalHistory: {
+        allergies: data.allergies || [],
+        medications: data.medications || [],
+        conditions: data.conditions || [],
+        surgeries: data.surgeries || [],
+        primaryCarePhysician: data.primary_care_physician || ''
+      },
+      wearableDevices: {
+        appleWatch: data.wearable_apple_watch || false,
+        fitbit: data.wearable_fitbit || false,
+        ouraRing: data.wearable_oura_ring || false,
+        other: data.wearable_other || []
+      },
+      preferences: {
+        notifications: {
+          email: data.notifications_email || false,
+          sms: data.notifications_sms || false,
+          push: data.notifications_push || false
+        },
+        aiInsights: {
+          fitness: data.ai_insights_fitness || false,
+          nutrition: data.ai_insights_nutrition || false,
+          vitals: data.ai_insights_vitals || false,
+          mentalHealth: data.ai_insights_mental_health || false,
+          medication: data.ai_insights_medication || false
+        }
+      },
+      status: data.status || 'active',
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   } catch (error) {
-    console.error("Error fetching patient:", error);
+    console.error('Error fetching patient:', error);
     throw error;
   }
 };
