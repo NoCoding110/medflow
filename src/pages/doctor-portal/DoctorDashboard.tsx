@@ -286,7 +286,16 @@ const DoctorDashboard = () => {
     try {
       const res = await fetch('/api/alerts', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch alerts');
-      setAlerts(await res.json());
+      const alerts = await res.json();
+      setAlerts(alerts.map((alert: any) => ({
+        id: alert.id,
+        type: alert.type,
+        title: alert.title,
+        description: alert.description,
+        severity: alert.severity,
+        timestamp: alert.created_at,
+        details: { patientName: alert.patient_name, patientId: alert.patient_id || '', data: {} }
+      })));
     } catch (error) {
       toast.error('Failed to load alerts');
     } finally {
@@ -545,24 +554,6 @@ const DoctorDashboard = () => {
         severity: insight.severity,
         timestamp: insight.created_at,
         details: { patientName: insight.patient_name, data: {} }
-      })));
-    }
-  };
-
-  const fetchAlerts = async () => {
-    const { data, error } = await supabase
-      .from('alerts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) {
-      setAlerts(data.map((alert: any) => ({
-        id: alert.id,
-        type: alert.type,
-        title: alert.title,
-        description: alert.description,
-        severity: alert.severity,
-        timestamp: alert.created_at,
-        details: { patientName: alert.patient_name, data: {} }
       })));
     }
   };
