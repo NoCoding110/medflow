@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar, FileText, Pill } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,9 +7,69 @@ import { useAuth } from "@/lib/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HealthChallenges } from "@/components/patient-portal/HealthChallenges";
 import { FuturisticFeatures } from "@/components/patient-portal/FuturisticFeatures";
+import {
+  getPatientAppointments,
+  getPatientPrescriptions,
+  getPatientVisits,
+  getPatientHealthScore,
+  getPatientAIInsights,
+  PatientAppointment,
+  PatientPrescription,
+  PatientVisit,
+  PatientHealthScore,
+  PatientAIInsight,
+  subscribeToPatientUpdates
+} from "@/lib/services/patient-service";
 
 const PatientDashboard = () => {
   const { user } = useAuth();
+  const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PatientPrescription[]>([]);
+  const [visits, setVisits] = useState<PatientVisit[]>([]);
+  const [healthScore, setHealthScore] = useState<PatientHealthScore | null>(null);
+  const [aiInsights, setAiInsights] = useState<PatientAIInsight[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const [appointmentsData, prescriptionsData, visitsData, healthScoreData, aiInsightsData] = await Promise.all([
+          getPatientAppointments(user.id),
+          getPatientPrescriptions(user.id),
+          getPatientVisits(user.id),
+          getPatientHealthScore(user.id),
+          getPatientAIInsights(user.id)
+        ]);
+
+        setAppointments(appointmentsData);
+        setPrescriptions(prescriptionsData);
+        setVisits(visitsData);
+        setHealthScore(healthScoreData);
+        setAiInsights(aiInsightsData);
+      } catch (error) {
+        console.error("Error fetching patient data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    // Subscribe to real-time updates
+    if (user?.id) {
+      const unsubscribe = subscribeToPatientUpdates(user.id, (payload) => {
+        // Handle real-time updates
+        console.log("Real-time update:", payload);
+        fetchData(); // Refresh data when updates occur
+      });
+
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [user?.id]);
 
   // Get time of day for greeting
   const getTimeOfDay = () => {
@@ -19,6 +78,20 @@ const PatientDashboard = () => {
     if (hour < 18) return "afternoon";
     return "evening";
   };
+
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const nextAppointment = appointments.find(app => new Date(app.date) > new Date());
+  const recentVisit = visits[0];
+  const activePrescriptions = prescriptions.filter(p => p.status === 'active');
 
   return (
     <div className="container py-8">
@@ -48,18 +121,26 @@ const PatientDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="text-lg font-medium">Annual Check-up</div>
-                <div className="text-sm text-gray-500">
-                  Dr. Sarah Johnson • May 5, 2025 • 10:00 AM
-                </div>
+                {nextAppointment ? (
+                  <>
+                    <div className="text-lg font-medium">{nextAppointment.type}</div>
+                    <div className="text-sm text-gray-500">
+                      Dr. {nextAppointment.doctor?.firstName} {nextAppointment.doctor?.lastName} • {new Date(nextAppointment.date).toLocaleDateString()} • {nextAppointment.time}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-500">No upcoming appointments</div>
+                )}
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-3">
                 <Button size="sm" variant="outline" asChild>
-                  <Link to="/patient/appointments">Reschedule</Link>
+                  <Link to="/patient/appointments">Schedule</Link>
                 </Button>
-                <Button size="sm" variant="ghost" className="text-red-500">
-                  Cancel
-                </Button>
+                {nextAppointment && (
+                  <Button size="sm" variant="ghost" className="text-red-500">
+                    Cancel
+                  </Button>
+                )}
               </CardFooter>
             </Card>
 
@@ -71,20 +152,20 @@ const PatientDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="space-y-2">
-                  <div>
-                    <div className="font-medium">Lisinopril 10mg</div>
-                    <div className="text-sm text-gray-500">
-                      1 tablet daily • 3 refills remaining
-                    </div>
+                {activePrescriptions.length > 0 ? (
+                  <div className="space-y-2">
+                    {activePrescriptions.map(prescription => (
+                      <div key={prescription.id}>
+                        <div className="font-medium">{prescription.medication}</div>
+                        <div className="text-sm text-gray-500">
+                          {prescription.dosage} • {prescription.frequency} • {prescription.refills} refills remaining
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <div className="font-medium">Atorvastatin 20mg</div>
-                    <div className="text-sm text-gray-500">
-                      1 tablet at bedtime • 2 refills remaining
-                    </div>
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No active prescriptions</div>
+                )}
               </CardContent>
               <CardFooter className="border-t pt-3">
                 <Button size="sm" variant="outline" className="w-full" asChild>
@@ -101,15 +182,19 @@ const PatientDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <div>
-                  <div className="font-medium">Annual Physical Exam</div>
-                  <div className="text-sm text-gray-500">
-                    Dr. Sarah Johnson • February 15, 2025
+                {recentVisit ? (
+                  <div>
+                    <div className="font-medium">{recentVisit.type}</div>
+                    <div className="text-sm text-gray-500">
+                      Dr. {recentVisit.doctor?.firstName} {recentVisit.doctor?.lastName} • {new Date(recentVisit.date).toLocaleDateString()}
+                    </div>
+                    <div className="mt-2 text-sm">
+                      Blood pressure: {recentVisit.vitals.bloodPressure}, Heart rate: {recentVisit.vitals.heartRate} bpm, Weight: {recentVisit.vitals.weight} lbs
+                    </div>
                   </div>
-                  <div className="mt-2 text-sm">
-                    Blood pressure: 120/80, Heart rate: 72 bpm, Weight: 165 lbs
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No recent visits</div>
+                )}
               </CardContent>
               <CardFooter className="border-t pt-3">
                 <Button size="sm" variant="outline" className="w-full" asChild>
@@ -125,14 +210,26 @@ const PatientDashboard = () => {
                 <CardTitle>Health Score</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-center p-4">
-                  <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-8 border-green-500">
-                    <span className="text-3xl font-bold">85</span>
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-center">
-                  Your health score is above average for your age group!
-                </div>
+                {healthScore ? (
+                  <>
+                    <div className="flex items-center justify-center p-4">
+                      <div className={`relative flex h-32 w-32 items-center justify-center rounded-full border-8 ${
+                        healthScore.score >= 80 ? 'border-green-500' :
+                        healthScore.score >= 60 ? 'border-yellow-500' :
+                        'border-red-500'
+                      }`}>
+                        <span className="text-3xl font-bold">{healthScore.score}</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 text-sm text-center">
+                      {healthScore.trend === 'up' ? 'Your health score is improving!' :
+                       healthScore.trend === 'down' ? 'Your health score needs attention.' :
+                       'Your health score is stable.'}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-500 text-center">No health score available</div>
+                )}
               </CardContent>
             </Card>
 
@@ -141,18 +238,18 @@ const PatientDashboard = () => {
                 <CardTitle>AI Wellness Tip</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Based on your recent health data, our AI suggests:
-                  </p>
-                  <div className="rounded-lg bg-blue-50 p-4 text-blue-800">
-                    <p>
-                      <span className="font-medium">Stay Hydrated:</span> Drinking adequate water can
-                      help manage your blood pressure. Aim for 8 glasses daily, especially before and
-                      after exercise.
+                {aiInsights.length > 0 ? (
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      Based on your recent health data, our AI suggests:
                     </p>
+                    <div className="rounded-lg bg-blue-50 p-4 text-blue-800">
+                      <p>{aiInsights[0].message}</p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No AI insights available</div>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -370,4 +370,159 @@ export const removePatientFromDoctor = async (doctorId: string, patientId: strin
     console.error("Error removing patient from doctor:", error);
     throw error;
   }
+};
+
+export const createDoctorSarahJohnson = async () => {
+  try {
+    // First, create the user record
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .insert([
+        {
+          email: "sarah.johnson@medflow.com",
+          first_name: "Sarah",
+          last_name: "Johnson",
+          role: "doctor",
+          password: "hashed_password_here", // In production, this should be properly hashed
+        },
+      ])
+      .select()
+      .single();
+
+    if (userError) throw userError;
+    if (!userData) throw new Error("Failed to create user record");
+
+    // Then, create the doctor profile
+    const { data: doctorData, error: doctorError } = await supabase
+      .from("doctors")
+      .insert([
+        {
+          user_id: userData.id,
+          specialization: "Internal Medicine",
+          license_number: "MD123456",
+          phone: "+1 (555) 123-4567",
+          address: "123 Medical Center Dr, Suite 200, San Francisco, CA 94102",
+          bio: "Dr. Sarah Johnson is a board-certified internal medicine physician with over 15 years of experience. She specializes in preventive care and chronic disease management.",
+          profile_image: "https://example.com/sarah-johnson.jpg",
+        },
+      ])
+      .select()
+      .single();
+
+    if (doctorError) throw doctorError;
+    if (!doctorData) throw new Error("Failed to create doctor record");
+
+    // Create some sample appointments
+    const { error: appointmentsError } = await supabase
+      .from("appointments")
+      .insert([
+        {
+          doctor_id: doctorData.id,
+          patient_id: "patient_id_1", // Replace with actual patient ID
+          date: "2024-03-20",
+          time: "09:00",
+          type: "checkup",
+          status: "scheduled",
+          notes: "Annual physical examination",
+        },
+        {
+          doctor_id: doctorData.id,
+          patient_id: "patient_id_2", // Replace with actual patient ID
+          date: "2024-03-20",
+          time: "10:30",
+          type: "follow-up",
+          status: "scheduled",
+          notes: "Diabetes management follow-up",
+        },
+      ]);
+
+    if (appointmentsError) throw appointmentsError;
+
+    // Create some sample reminders
+    const { error: remindersError } = await supabase
+      .from("reminders")
+      .insert([
+        {
+          doctor_id: doctorData.id,
+          title: "Review lab results",
+          description: "Review and follow up on patient lab results from last week",
+          due_date: "2024-03-19",
+          priority: "high",
+          status: "pending",
+        },
+        {
+          doctor_id: doctorData.id,
+          title: "Update patient records",
+          description: "Update electronic health records for patients seen today",
+          due_date: "2024-03-20",
+          priority: "medium",
+          status: "pending",
+        },
+      ]);
+
+    if (remindersError) throw remindersError;
+
+    // Create some sample notes
+    const { error: notesError } = await supabase
+      .from("doctor_notes")
+      .insert([
+        {
+          doctor_id: doctorData.id,
+          patient_id: "patient_id_1", // Replace with actual patient ID
+          title: "Treatment plan update",
+          content: "Patient showing good progress with new medication. Continue current treatment plan.",
+          created_at: new Date().toISOString(),
+        },
+        {
+          doctor_id: doctorData.id,
+          patient_id: "patient_id_2", // Replace with actual patient ID
+          title: "Follow-up required",
+          content: "Patient needs additional testing for diabetes management.",
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+    if (notesError) throw notesError;
+
+    return {
+      user: userData,
+      doctor: doctorData,
+    };
+  } catch (error) {
+    console.error("Error creating Dr. Sarah Johnson's profile:", error);
+    throw error;
+  }
+};
+
+export const ensureDoctorSarahJohnson = async () => {
+  try {
+    // Check if Dr. Sarah Johnson exists
+    const { data: existingDoctor, error: fetchError } = await supabase
+      .from("users")
+      .select(`
+        *,
+        doctors (*)
+      `)
+      .eq("email", "sarah.johnson@medflow.com")
+      .eq("role", "doctor")
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") { // PGRST116 is "not found" error
+      throw fetchError;
+    }
+
+    if (!existingDoctor) {
+      // Create Dr. Sarah Johnson's profile if it doesn't exist
+      console.log("Creating Dr. Sarah Johnson's profile...");
+      await createDoctorSarahJohnson();
+      console.log("Dr. Sarah Johnson's profile created successfully");
+    } else {
+      console.log("Dr. Sarah Johnson's profile already exists");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error ensuring Dr. Sarah Johnson's profile:", error);
+    throw error;
+  }
 }; 

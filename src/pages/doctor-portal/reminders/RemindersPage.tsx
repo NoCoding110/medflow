@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/auth";
 import { Plus, Trash2, CheckCircle, Circle, Edit2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { ensureDoctorSarahJohnson, getDoctorByEmail } from "@/lib/services/doctor-service";
 
 function isToday(dateStr) {
   if (!dateStr) return false;
@@ -55,21 +56,25 @@ const RemindersPage = () => {
   useEffect(() => {
     const resolveDoctorId = async () => {
       if (!user) return;
-      if (/^[0-9a-fA-F-]{36}$/.test(user.id)) {
-        setDoctorId(user.id);
-      } else if (user.email) {
-        const { data, error } = await supabase
-          .from("doctor")
-          .select("id")
-          .eq("email", user.email)
-          .single();
-        if (data?.id) {
-          setDoctorId(data.id);
+      
+      try {
+        await ensureDoctorSarahJohnson();
+        
+        if (/^[0-9a-fA-F-]{36}$/.test(user.id)) {
+          setDoctorId(user.id);
+        } else if (user.email) {
+          const doctor = await getDoctorByEmail(user.email);
+          if (doctor?.id) {
+            setDoctorId(doctor.id);
+          } else {
+            setError(`Could not resolve doctor profile. Please contact support.`);
+          }
         } else {
-          setError(`Could not resolve doctor profile. Please contact support.`);
+          setError('No valid user ID or email found.');
         }
-      } else {
-        setError('No valid user ID or email found.');
+      } catch (err) {
+        console.error("Error resolving doctor ID:", err);
+        setError("An error occurred while resolving your doctor profile. Please try again later.");
       }
     };
     resolveDoctorId();
