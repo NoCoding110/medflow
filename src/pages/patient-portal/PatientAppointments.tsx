@@ -28,11 +28,12 @@ import {
   cancelAppointment,
   updateAppointment,
   getAvailableTimeSlots,
+  createAppointment,
 } from "@/lib/services/appointment-service";
 import { Appointment } from "@/lib/types/appointment";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { getDoctorById } from "@/lib/services/doctor-service";
+import { getDoctorById, getDoctors } from "@/lib/services/doctor-service";
 import { format } from 'date-fns';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -75,6 +76,17 @@ const PatientAppointments = () => {
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const [rescheduleError, setRescheduleError] = useState<string | null>(null);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
+  // New appointment dialog state
+  const [newApptOpen, setNewApptOpen] = useState(false);
+  const [newApptDoctor, setNewApptDoctor] = useState("");
+  const [newApptDate, setNewApptDate] = useState("");
+  const [newApptTime, setNewApptTime] = useState("");
+  const [newApptType, setNewApptType] = useState("");
+  const [newApptNotes, setNewApptNotes] = useState("");
+  const [newApptLoading, setNewApptLoading] = useState(false);
+  const [newApptError, setNewApptError] = useState<string | null>(null);
+  const [doctorList, setDoctorList] = useState<any[]>([]);
+  const [newApptSlots, setNewApptSlots] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -116,6 +128,30 @@ const PatientAppointments = () => {
     };
     fetchSlots();
   }, [rescheduleDialog.open, rescheduleDialog.appointment, rescheduleDate]);
+
+  // Fetch doctors for new appointment dialog
+  useEffect(() => {
+    if (newApptOpen) {
+      getDoctors().then(setDoctorList).catch(() => setDoctorList([]));
+    }
+  }, [newApptOpen]);
+
+  // Fetch available slots when doctor/date changes
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (newApptDoctor && newApptDate) {
+        try {
+          const slots = await getAvailableTimeSlots(newApptDoctor, new Date(newApptDate));
+          setNewApptSlots(slots);
+        } catch {
+          setNewApptSlots([]);
+        }
+      } else {
+        setNewApptSlots([]);
+      }
+    };
+    fetchSlots();
+  }, [newApptDoctor, newApptDate]);
 
   const filtered = useMemo(() => {
     let data = [...appointments];
@@ -215,7 +251,44 @@ const PatientAppointments = () => {
     setReportDialog({ open: true, appointment });
   };
   const handleNewAppointment = () => {
-    alert("New appointment booking coming soon!");
+    setNewApptOpen(true);
+    setNewApptDoctor("");
+    setNewApptDate("");
+    setNewApptTime("");
+    setNewApptType("");
+    setNewApptNotes("");
+    setNewApptError(null);
+  };
+  const handleNewApptSubmit = async () => {
+    setNewApptLoading(true);
+    setNewApptError(null);
+    if (!newApptDoctor || !newApptDate || !newApptTime || !newApptType) {
+      setNewApptError("Please fill all required fields.");
+      setNewApptLoading(false);
+      return;
+    }
+    try {
+      await createAppointment({
+        patientId: user.id,
+        doctorId: newApptDoctor,
+        date: newApptDate,
+        time: newApptTime,
+        type: newApptType as 'checkup' | 'follow-up' | 'consultation' | 'emergency',
+        notes: newApptNotes,
+      });
+      toast.success("Appointment scheduled successfully!");
+      setNewApptOpen(false);
+      // Refresh appointments
+      setLoading(true);
+      getAppointments(user.id, "patient")
+        .then((data) => setAppointments(data))
+        .finally(() => setLoading(false));
+    } catch (err: any) {
+      setNewApptError(err.message || "Failed to schedule appointment");
+      toast.error(err.message || "Failed to schedule appointment");
+    } finally {
+      setNewApptLoading(false);
+    }
   };
   const handleSort = (key: "date" | "time") => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -459,6 +532,81 @@ const PatientAppointments = () => {
           </div>
           <DialogFooter>
             <Button onClick={() => setReportDialog({ open: false, appointment: null })} variant="outline">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* New Appointment Dialog */}
+      <Dialog open={newApptOpen} onOpenChange={setNewApptOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule New Appointment</DialogTitle>
+          </DialogHeader>
+          <div className="mb-2">
+            <label className="block mb-1 text-sm font-medium">Doctor</label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={newApptDoctor}
+              onChange={e => setNewApptDoctor(e.target.value)}
+            >
+              <option value="">Select a doctor</option>
+              {doctorList.map((doc) => (
+                <option key={doc.id} value={doc.id}>{doc.firstName} {doc.lastName} ({doc.specialization})</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-2">
+            <label className="block mb-1 text-sm font-medium">Date</label>
+            <input
+              type="date"
+              className="w-full border rounded px-2 py-1"
+              value={newApptDate}
+              onChange={e => setNewApptDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+            />
+          </div>
+          <div className="mb-2">
+            <label className="block mb-1 text-sm font-medium">Time</label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={newApptTime}
+              onChange={e => setNewApptTime(e.target.value)}
+              disabled={!newApptDoctor || !newApptDate || newApptSlots.length === 0}
+            >
+              <option value="">Select a time</option>
+              {newApptSlots.map((slot) => (
+                <option key={slot} value={slot}>{slot}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-2">
+            <label className="block mb-1 text-sm font-medium">Type</label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={newApptType}
+              onChange={e => setNewApptType(e.target.value)}
+            >
+              <option value="">Select type</option>
+              <option value="checkup">Checkup</option>
+              <option value="follow-up">Follow-up</option>
+              <option value="consultation">Consultation</option>
+              <option value="emergency">Emergency</option>
+            </select>
+          </div>
+          <div className="mb-2">
+            <label className="block mb-1 text-sm font-medium">Notes (optional)</label>
+            <textarea
+              className="w-full border rounded px-2 py-1"
+              value={newApptNotes}
+              onChange={e => setNewApptNotes(e.target.value)}
+              rows={2}
+            />
+          </div>
+          {newApptError && <div className="text-red-500 text-sm mb-2">{newApptError}</div>}
+          <DialogFooter>
+            <Button onClick={() => setNewApptOpen(false)} variant="outline">Cancel</Button>
+            <Button onClick={handleNewApptSubmit} disabled={newApptLoading}>
+              {newApptLoading ? "Scheduling..." : "Schedule"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
