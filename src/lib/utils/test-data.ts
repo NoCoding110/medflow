@@ -48,7 +48,7 @@ export const createTestDoctorWithSampleData = async (data: TestDoctorData) => {
 
     // Create some sample appointments
     const { error: appointmentsError } = await supabase
-      .from("patient_appointments")
+      .from("appointments")
       .insert([
         {
           doctor_id: doctorData.id,
@@ -74,7 +74,7 @@ export const createTestDoctorWithSampleData = async (data: TestDoctorData) => {
 
     // Create some sample reminders
     const { error: remindersError } = await supabase
-      .from("reminders")
+      .from("doctor_reminders")
       .insert([
         {
           doctor_id: doctorData.id,

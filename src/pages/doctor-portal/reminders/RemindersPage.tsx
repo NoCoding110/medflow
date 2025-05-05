@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/lib/auth";
-import { Plus, Trash2, CheckCircle, Circle, Edit2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { ensureDoctorSarahJohnson, getDoctorByEmail } from "@/lib/services/doctor-service";
+import { Plus, Circle, CheckCircle, Edit2, Trash2 } from "lucide-react";
+import { getDoctorByEmail } from "@/lib/services/doctor-service";
 
 function isToday(dateStr) {
   if (!dateStr) return false;
@@ -57,6 +57,7 @@ const RemindersPage = () => {
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [error, setError] = useState<string | null>(null);
   const [remindersRefresh, setRemindersRefresh] = useState(0);
   const [selectedPatientId, setSelectedPatientId] = useState('');
@@ -127,6 +128,9 @@ const RemindersPage = () => {
     }
     if (filter !== "all") {
       filtered = filtered.filter(r => r.priority === filter);
+    }
+    if (visibilityFilter !== "all") {
+      filtered = filtered.filter(r => r.visibility === visibilityFilter);
     }
     return filtered;
   }
@@ -227,6 +231,15 @@ const RemindersPage = () => {
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
+            </select>
+            <select
+              className="ml-2 border rounded px-2 py-1"
+              value={visibilityFilter}
+              onChange={e => setVisibilityFilter(e.target.value)}
+            >
+              <option value="all">All Visibility</option>
+              <option value="private">Private</option>
+              <option value="shared">Shared</option>
             </select>
           </div>
           <Button onClick={() => setShowAdd(true)} size="sm">
@@ -342,6 +355,9 @@ function ReminderItem({ reminder, onToggleComplete, onDelete, onEdit }) {
           {reminder.title}
           <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${priorityColors[reminder.priority]}`}>{reminder.priority}</span>
           {overdue && <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 animate-pulse">Overdue</span>}
+          <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${reminder.visibility === 'private' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>
+            {reminder.visibility === 'private' ? 'Private' : 'Shared'}
+          </span>
         </div>
         {reminder.description && <div className="text-xs text-navy-500 truncate">{reminder.description}</div>}
         {reminder.due_date && <div className="text-xs text-navy-400">Due: {new Date(reminder.due_date).toLocaleString()}</div>}
@@ -395,11 +411,17 @@ function ReminderDialog({ title, reminder, setReminder, onClose, onSubmit, loadi
             <option value="medium">Medium Priority</option>
             <option value="high">High Priority</option>
           </select>
-          <Input
-            placeholder="Category (optional)"
-            value={reminder.category}
-            onChange={e => setReminder({ ...reminder, category: e.target.value })}
-          />
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Visibility</label>
+            <select
+              className="border rounded px-2 py-1"
+              value={reminder.visibility || 'private'}
+              onChange={e => setReminder({ ...reminder, visibility: e.target.value })}
+            >
+              <option value="private">Private</option>
+              <option value="shared">Shared with Patient</option>
+            </select>
+          </div>
           <Button type="submit" disabled={loading} className="w-full mt-2">
             {loading ? "Saving..." : title}
           </Button>

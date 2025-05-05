@@ -167,6 +167,7 @@ export interface Reminder {
   status: string;
   createdAt: string;
   updatedAt: string;
+  visibility?: string;
 }
 
 export interface Note {
@@ -184,6 +185,7 @@ export interface Note {
   content: string;
   createdAt: string;
   updatedAt: string;
+  visibility?: string;
 }
 
 export async function getDoctorByEmail(email: string): Promise<Doctor | null> {
@@ -683,9 +685,9 @@ export const setupDoctorPassword = async (email: string, password: string): Prom
   }
 };
 
-export const getDoctorReminders = async (doctorId: string): Promise<Reminder[]> => {
+export const getDoctorReminders = async (doctorId: string, visibility?: string): Promise<Reminder[]> => {
   try {
-    const { data: reminders, error } = await supabase
+    let query = supabase
       .from('doctor_reminders')
       .select(`
         *,
@@ -701,6 +703,8 @@ export const getDoctorReminders = async (doctorId: string): Promise<Reminder[]> 
       `)
       .eq('doctor_id', doctorId)
       .order('due_date', { ascending: true });
+    if (visibility) query = query.eq('visibility', visibility);
+    const { data: reminders, error } = await query;
 
     if (error) throw error;
 
@@ -729,9 +733,9 @@ export const getDoctorReminders = async (doctorId: string): Promise<Reminder[]> 
   }
 };
 
-export const getDoctorNotes = async (doctorId: string): Promise<Note[]> => {
+export const getDoctorNotes = async (doctorId: string, visibility?: string): Promise<Note[]> => {
   try {
-    const { data: notes, error } = await supabase
+    let query = supabase
       .from('doctor_notes')
       .select(`
         *,
@@ -747,6 +751,8 @@ export const getDoctorNotes = async (doctorId: string): Promise<Note[]> => {
       `)
       .eq('doctor_id', doctorId)
       .order('created_at', { ascending: false });
+    if (visibility) query = query.eq('visibility', visibility);
+    const { data: notes, error } = await query;
 
     if (error) throw error;
 
@@ -841,6 +847,7 @@ export const createDoctorReminder = async (data: {
   description: string;
   dueDate: string;
   priority: string;
+  visibility?: string;
 }): Promise<Reminder> => {
   try {
     const { data: reminder, error } = await supabase
@@ -852,7 +859,8 @@ export const createDoctorReminder = async (data: {
         description: data.description,
         due_date: data.dueDate,
         priority: data.priority,
-        status: 'pending'
+        status: 'pending',
+        visibility: data.visibility || 'private'
       })
       .select(`
         *,
@@ -901,6 +909,7 @@ export const createDoctorNote = async (data: {
   patientId: string;
   title: string;
   content: string;
+  visibility?: string;
 }): Promise<Note> => {
   try {
     const { data: note, error } = await supabase
@@ -909,7 +918,8 @@ export const createDoctorNote = async (data: {
         doctor_id: data.doctorId,
         patient_id: data.patientId,
         title: data.title,
-        content: data.content
+        content: data.content,
+        visibility: data.visibility || 'private'
       })
       .select(`
         *,
@@ -1021,6 +1031,7 @@ export const updateDoctorReminder = async (
     dueDate?: string;
     priority?: string;
     status?: string;
+    visibility?: string;
   }
 ): Promise<Reminder> => {
   try {
@@ -1031,7 +1042,8 @@ export const updateDoctorReminder = async (
         description: updates.description,
         due_date: updates.dueDate,
         priority: updates.priority,
-        status: updates.status
+        status: updates.status,
+        visibility: updates.visibility
       })
       .eq('id', reminderId)
       .select(`
