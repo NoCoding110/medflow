@@ -778,40 +778,39 @@ export const removePatientFromDoctor = async (doctorId: string, patientId: strin
 
 export const createDoctor = async (data: DoctorRegistrationData): Promise<Doctor> => {
   try {
+    // Check if doctor with same license number exists
+    const { data: existingDoctor, error: checkError } = await supabase
+      .from('doctors')
+      .select('id')
+      .eq('license_number', data.licenseNumber)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+
+    if (existingDoctor) {
+      throw new Error('A doctor with this license number already exists');
+    }
+
     const { data: newDoctor, error } = await supabase
       .from('doctors')
       .insert({
         email: data.email,
-        password_hash: 'hashed_password_here', // In production, this should be properly hashed
         first_name: data.firstName,
         last_name: data.lastName,
         specialization: data.specialization,
         license_number: data.licenseNumber,
         phone_number: data.phone,
-        profile_image: data.profileImage || '',
+        profile_image: data.profileImage,
+        bio: data.bio,
         status: 'active'
       })
       .select()
       .single();
 
     if (error) throw error;
-    if (!newDoctor) throw new Error('Failed to create doctor profile');
-
-    return {
-      id: newDoctor.id,
-      email: newDoctor.email,
-      firstName: newDoctor.first_name,
-      lastName: newDoctor.last_name,
-      role: 'doctor',
-      specialization: newDoctor.specialization,
-      licenseNumber: newDoctor.license_number,
-      phone: newDoctor.phone_number,
-      profileImage: newDoctor.profile_image || '',
-      bio: '', // Not stored in the database
-      status: newDoctor.status || 'active',
-      createdAt: newDoctor.created_at,
-      updatedAt: newDoctor.updated_at
-    };
+    return newDoctor;
   } catch (error) {
     console.error('Error creating doctor:', error);
     throw error;
@@ -1325,6 +1324,147 @@ export const updateDoctorNote = async (
     };
   } catch (error) {
     console.error('Error updating doctor note:', error);
+    throw error;
+  }
+};
+
+export const createAIInsight = async (data: {
+  doctorId: string;
+  patientId: string;
+  type: string;
+  title: string;
+  content: string;
+  message?: string;
+  severity?: string;
+  status?: string;
+  metadata?: Record<string, any>;
+}): Promise<AIInsight> => {
+  try {
+    const { data: insight, error } = await supabase
+      .from('ai_insights')
+      .insert({
+        doctor_id: data.doctorId,
+        patient_id: data.patientId,
+        type: data.type,
+        title: data.title,
+        content: data.content,
+        message: data.message,
+        severity: data.severity || 'low',
+        status: data.status || 'active',
+        metadata: data.metadata || {}
+      })
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    return insight;
+  } catch (error) {
+    console.error('Error creating AI insight:', error);
+    throw error;
+  }
+};
+
+export const createPrescription = async (data: {
+  doctorId: string;
+  patientId: string;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  startDate: string;
+  endDate?: string;
+  instructions?: string;
+  refills?: number;
+  status?: string;
+}): Promise<Prescription> => {
+  try {
+    const { data: prescription, error } = await supabase
+      .from('prescriptions')
+      .insert({
+        doctor_id: data.doctorId,
+        patient_id: data.patientId,
+        medication: data.medication,
+        dosage: data.dosage,
+        frequency: data.frequency,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        instructions: data.instructions,
+        refills: data.refills || 0,
+        status: data.status || 'active'
+      })
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    return prescription;
+  } catch (error) {
+    console.error('Error creating prescription:', error);
+    throw error;
+  }
+};
+
+export const createVisit = async (data: {
+  doctorId: string;
+  patientId: string;
+  date: string;
+  time: string;
+  type: string;
+  status?: string;
+  notes?: string;
+  vitals?: Record<string, any>;
+}): Promise<Visit> => {
+  try {
+    const { data: visit, error } = await supabase
+      .from('visits')
+      .insert({
+        doctor_id: data.doctorId,
+        patient_id: data.patientId,
+        date: data.date,
+        time: data.time,
+        type: data.type,
+        status: data.status || 'scheduled',
+        notes: data.notes,
+        vitals: data.vitals
+      })
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          user:user_id (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    return visit;
+  } catch (error) {
+    console.error('Error creating visit:', error);
     throw error;
   }
 }; 
