@@ -16,6 +16,7 @@ import {
 import { toast } from "react-hot-toast";
 import { PatientSelector } from '@/components/PatientSelector';
 import AIInsightsPanel from '@/components/AIInsightsPanel';
+import { supabase } from '@/lib/supabase';
 
 // Types
 interface Patient {
@@ -32,12 +33,13 @@ interface NutritionEntry {
   id: string;
   patientId: string;
   date: string;
+  mealType: string;
   calories: number;
   protein: number;
   carbs: number;
   fats: number;
   fiber: number;
-  mealType: string;
+  status: 'normal' | 'warning' | 'critical';
   items: string[];
 }
 
@@ -90,6 +92,7 @@ const NutritionTracker = () => {
   const [sortBy, setSortBy] = useState<'date' | 'calories' | 'protein'>('date');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState('');
 
   // Fetch data
   useEffect(() => {
@@ -97,48 +100,32 @@ const NutritionTracker = () => {
       try {
         setLoading(true);
         setError(null);
-        const [patientsRes, nutritionRes, analyticsRes, aiRes, alertsRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/patients`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition?timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition/analytics?timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition/insights/ai?timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/nutrition/alerts?timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          })
-        ]);
-        if (!patientsRes.ok || !nutritionRes.ok || !analyticsRes.ok || !aiRes.ok || !alertsRes.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const [patientsData, nutritionData, analyticsData, aiData, alertsData] = await Promise.all([
-          patientsRes.json(),
-          nutritionRes.json(),
-          analyticsRes.json(),
-          aiRes.json(),
-          alertsRes.json()
-        ]);
+
+        // Fetch patients
+        const { data: patientsData, error: patientsError } = await supabase
+          .from('patients')
+          .select('*');
+
+        if (patientsError) throw patientsError;
+
+        // Fetch nutrition data
+        const { data: nutritionData, error: nutritionError } = await supabase
+          .from('nutrition')
+          .select('*')
+          .eq('type', mealTypeFilter)
+          .gte('recordedAt', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
+
+        if (nutritionError) throw nutritionError;
+
+        // Calculate analytics
+        const analyticsData = calculateAnalytics(nutritionData);
+
+        // Generate AI insights
+        const aiData = generateAIInsights(nutritionData);
+
+        // Generate alerts
+        const alertsData = generateAlerts(nutritionData);
+
         setPatients(patientsData);
         setSelectedPatient(patientsData[0] || null);
         setNutritionData(nutritionData);
@@ -152,31 +139,142 @@ const NutritionTracker = () => {
         setLoading(false);
       }
     };
+
     fetchData();
-  }, [timeRange]);
+  }, [mealTypeFilter, timeRange]);
+
+  // Helper function to convert timeRange to milliseconds
+  const getTimeRangeInMs = (range: string) => {
+    switch (range) {
+      case '24h':
+        return 24 * 60 * 60 * 1000;
+      case '7d':
+        return 7 * 24 * 60 * 60 * 1000;
+      case '30d':
+        return 30 * 24 * 60 * 60 * 1000;
+      case '90d':
+        return 90 * 24 * 60 * 60 * 1000;
+      default:
+        return 7 * 24 * 60 * 60 * 1000;
+    }
+  };
+
+  // Helper function to calculate analytics
+  const calculateAnalytics = (data: NutritionEntry[]): AnalyticsData => {
+    const totalEntries = data.length;
+    const avgCalories = data.reduce((acc, curr) => acc + curr.calories, 0) / totalEntries;
+    const avgProtein = data.reduce((acc, curr) => acc + curr.protein, 0) / totalEntries;
+    const avgCarbs = data.reduce((acc, curr) => acc + curr.carbs, 0) / totalEntries;
+    const avgFats = data.reduce((acc, curr) => acc + curr.fats, 0) / totalEntries;
+    const avgFiber = data.reduce((acc, curr) => acc + curr.fiber, 0) / totalEntries;
+
+    const normalCount = data.filter(v => v.status === 'normal').length;
+    const warningCount = data.filter(v => v.status === 'warning').length;
+    const criticalCount = data.filter(v => v.status === 'critical').length;
+
+    // Calculate trends
+    const trends = data.map(v => ({
+      day: new Date(v.date).toISOString().split('T')[0],
+      calories: v.calories,
+      protein: v.protein,
+      carbs: v.carbs,
+      fats: v.fats,
+    }));
+
+    // Calculate comparison with previous period
+    const currentPeriod = data.slice(0, Math.floor(data.length / 2));
+    const previousPeriod = data.slice(Math.floor(data.length / 2));
+    const currentAvg = currentPeriod.reduce((acc, curr) => acc + curr.calories, 0) / currentPeriod.length;
+    const previousAvg = previousPeriod.reduce((acc, curr) => acc + curr.calories, 0) / previousPeriod.length;
+    const change = ((currentAvg - previousAvg) / previousAvg) * 100;
+
+    const trend: 'improved' | 'declined' | 'stable' = 
+      change > 5 ? 'improved' : 
+      change < -5 ? 'declined' : 
+      'stable';
+
+    return {
+      totalMeals: totalEntries,
+      avgCalories,
+      avgProtein,
+      avgCarbs,
+      avgFats,
+      avgFiber,
+      trends,
+      comparison: {
+        previous: previousAvg,
+        current: currentAvg,
+        change,
+        trend
+      }
+    };
+  };
+
+  // Helper function to generate AI insights
+  const generateAIInsights = (data: NutritionEntry[]): AIInsight[] => {
+    const insights: AIInsight[] = [];
+    const recent = data.slice(0, 10);
+
+    recent.forEach(nutrition => {
+      if (nutrition.calories < 1200) {
+        insights.push({
+          id: `cal-${nutrition.id}`,
+          message: 'Low calorie intake detected. Consider nutritional assessment.',
+          type: 'risk',
+          severity: 'warning',
+          timestamp: nutrition.date
+        });
+      }
+      if (nutrition.protein < 50) {
+        insights.push({
+          id: `prot-${nutrition.id}`,
+          message: 'Low protein intake. Consider protein supplementation.',
+          type: 'risk',
+          severity: 'warning',
+          timestamp: nutrition.date
+        });
+      }
+      if (nutrition.carbs < 1500) {
+        insights.push({
+          id: `carb-${nutrition.id}`,
+          message: 'Low carb intake. Consider carb supplementation.',
+          type: 'risk',
+          severity: 'warning',
+          timestamp: nutrition.date
+        });
+      }
+    });
+
+    return insights;
+  };
+
+  // Helper function to generate alerts
+  const generateAlerts = (data: NutritionEntry[]): Alert[] => {
+    return data
+      .filter(nutrition => nutrition.status === 'warning' || nutrition.status === 'critical')
+      .map(nutrition => ({
+        id: nutrition.id,
+        title: `${nutrition.mealType} Alert`,
+        description: `${nutrition.mealType} is ${nutrition.status}. Current value: ${nutrition.calories} kcal`,
+        severity: nutrition.status === 'normal' ? 'info' : nutrition.status as 'warning' | 'critical',
+        type: nutrition.mealType,
+        timestamp: nutrition.date,
+        patientId: nutrition.patientId
+      }));
+  };
 
   // Filtered and sorted nutrition entries
-  const filteredEntries = useMemo(() => {
-    let filtered = nutritionData;
-    if (selectedPatient) {
-      filtered = filtered.filter(e => e.patientId === selectedPatient.id);
-    }
-    if (mealTypeFilter !== 'all') {
-      filtered = filtered.filter(e => e.mealType === mealTypeFilter);
-    }
-    switch (sortBy) {
-      case 'date':
-        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        break;
-      case 'calories':
-        filtered.sort((a, b) => b.calories - a.calories);
-        break;
-      case 'protein':
-        filtered.sort((a, b) => b.protein - a.protein);
-        break;
-    }
-    return filtered;
-  }, [nutritionData, selectedPatient, mealTypeFilter, sortBy]);
+  const filteredNutrition = useMemo(() => {
+    if (!nutritionData) return [];
+    return nutritionData
+      .filter(entry => {
+        const matchesPatient = !selectedPatient || entry.patientId === selectedPatient.id;
+        const matchesMealType = !mealTypeFilter || entry.mealType === mealTypeFilter;
+        const matchesDate = !dateFilter || entry.date === dateFilter;
+        return matchesPatient && matchesMealType && matchesDate;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [nutritionData, selectedPatient, mealTypeFilter, dateFilter]);
 
   // Helpers
   const getStatusColor = (status: 'optimal' | 'needs-improvement' | 'attention-required') => STATUS_COLORS[status];
@@ -246,7 +344,7 @@ const NutritionTracker = () => {
                 patient={{ id: selectedPatient.id, name: selectedPatient.name }}
                 module="nutrition"
                 data={{
-                  nutritionEntries: filteredEntries,
+                  nutritionEntries: filteredNutrition,
                   analytics,
                   aiInsights,
                   alerts
@@ -444,7 +542,7 @@ const NutritionTracker = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {filteredEntries.map((entry) => (
+                    {filteredNutrition.map((entry) => (
                       <div key={entry.id} className="flex items-center justify-between border-b pb-4 last:border-0">
                         <div className="flex items-center gap-4">
                           <div className="p-2 bg-primary/10 rounded-full">

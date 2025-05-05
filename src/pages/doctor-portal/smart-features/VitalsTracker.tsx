@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PatientSelector } from '@/components/PatientSelector';
 import AIInsightsPanel from '@/components/AIInsightsPanel';
+import { supabase } from '@/lib/supabase';
 
 interface VitalsEntry {
   id: string;
@@ -61,7 +62,7 @@ interface Alert {
   id: string;
   title: string;
   description: string;
-  severity: 'info' | 'warning' | 'critical';
+  severity: 'warning' | 'critical' | 'info';
   type: string;
   timestamp: string;
   patientId: string;
@@ -88,50 +89,31 @@ const VitalsTracker = () => {
       try {
         setLoading(true);
         setError(null);
-        const [patientsRes, vitalsRes, analyticsRes, aiRes, alertsRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/patients`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals?type=${typeFilter}&timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals/analytics?type=${typeFilter}&timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals/insights/ai?type=${typeFilter}&timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vitals/alerts?type=${typeFilter}&timeRange=${timeRange}`, {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            }
-          })
-        ]);
 
-        if (!patientsRes.ok || !vitalsRes.ok || !analyticsRes.ok || !aiRes.ok || !alertsRes.ok) {
-          throw new Error('Failed to fetch data');
-        }
+        // Fetch patients
+        const { data: patientsData, error: patientsError } = await supabase
+          .from('patients')
+          .select('*');
 
-        const [patientsData, vitalsData, analyticsData, aiData, alertsData] = await Promise.all([
-          patientsRes.json(),
-          vitalsRes.json(),
-          analyticsRes.json(),
-          aiRes.json(),
-          alertsRes.json()
-        ]);
+        if (patientsError) throw patientsError;
+
+        // Fetch vitals
+        const { data: vitalsData, error: vitalsError } = await supabase
+          .from('vitals')
+          .select('*')
+          .eq('type', typeFilter)
+          .gte('recordedAt', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
+
+        if (vitalsError) throw vitalsError;
+
+        // Calculate analytics
+        const analyticsData = calculateAnalytics(vitalsData);
+
+        // Generate AI insights
+        const aiData = generateAIInsights(vitalsData);
+
+        // Generate alerts
+        const alertsData = generateAlerts(vitalsData);
 
         setPatients(patientsData);
         setSelectedPatient(patientsData[0] || null);
@@ -149,6 +131,121 @@ const VitalsTracker = () => {
 
     fetchData();
   }, [typeFilter, timeRange]);
+
+  // Helper function to convert timeRange to milliseconds
+  const getTimeRangeInMs = (range: string) => {
+    switch (range) {
+      case '24h':
+        return 24 * 60 * 60 * 1000;
+      case '7d':
+        return 7 * 24 * 60 * 60 * 1000;
+      case '30d':
+        return 30 * 24 * 60 * 60 * 1000;
+      case '90d':
+        return 90 * 24 * 60 * 60 * 1000;
+      default:
+        return 7 * 24 * 60 * 60 * 1000;
+    }
+  };
+
+  // Helper function to calculate analytics
+  const calculateAnalytics = (data: VitalsEntry[]): AnalyticsData => {
+    const totalEntries = data.length;
+    const avgValue = data.reduce((acc, curr) => acc + curr.value, 0) / totalEntries;
+    const minValue = Math.min(...data.map(v => v.value));
+    const maxValue = Math.max(...data.map(v => v.value));
+    const normalCount = data.filter(v => v.status === 'normal').length;
+    const warningCount = data.filter(v => v.status === 'warning').length;
+    const criticalCount = data.filter(v => v.status === 'critical').length;
+
+    // Calculate trends
+    const trends = data.map(v => ({
+      day: new Date(v.recordedAt).toISOString().split('T')[0],
+      value: v.value
+    }));
+
+    // Calculate comparison with previous period
+    const currentPeriod = data.slice(0, Math.floor(data.length / 2));
+    const previousPeriod = data.slice(Math.floor(data.length / 2));
+    const currentAvg = currentPeriod.reduce((acc, curr) => acc + curr.value, 0) / currentPeriod.length;
+    const previousAvg = previousPeriod.reduce((acc, curr) => acc + curr.value, 0) / previousPeriod.length;
+    const change = ((currentAvg - previousAvg) / previousAvg) * 100;
+
+    const trend: 'improved' | 'declined' | 'stable' = 
+      change > 5 ? 'improved' : 
+      change < -5 ? 'declined' : 
+      'stable';
+
+    return {
+      totalEntries,
+      avgValue,
+      minValue,
+      maxValue,
+      normalCount,
+      warningCount,
+      criticalCount,
+      trends,
+      comparison: {
+        previous: previousAvg,
+        current: currentAvg,
+        change,
+        trend
+      }
+    };
+  };
+
+  // Helper function to generate AI insights
+  const generateAIInsights = (data: VitalsEntry[]) => {
+    const insights: AIInsight[] = [];
+    const recent = data.slice(0, 10);
+
+    recent.forEach(vital => {
+      if (vital.type === 'spO2' && vital.value < 92) {
+        insights.push({
+          id: `spO2-${vital.id}`,
+          message: 'Low SpO2 detected. Consider respiratory assessment.',
+          type: 'risk',
+          severity: 'warning',
+          timestamp: vital.recordedAt
+        });
+      }
+      if (vital.type === 'heartRate' && (vital.value < 50 || vital.value > 110)) {
+        insights.push({
+          id: `hr-${vital.id}`,
+          message: 'Abnormal heart rate. Monitor for arrhythmia.',
+          type: 'risk',
+          severity: 'warning',
+          timestamp: vital.recordedAt
+        });
+      }
+      if (vital.type === 'temperature' && vital.value > 37.5) {
+        insights.push({
+          id: `temp-${vital.id}`,
+          message: 'Fever detected. Check for infection.',
+          type: 'risk',
+          severity: 'warning',
+          timestamp: vital.recordedAt
+        });
+      }
+    });
+
+    return insights;
+  };
+
+  // Helper function to generate alerts
+  const generateAlerts = (data: VitalsEntry[]): Alert[] => {
+    return data
+      .filter(vital => vital.status === 'warning' || vital.status === 'critical')
+      .map(vital => ({
+        id: vital.id,
+        title: `${vital.type} Alert`,
+        description: `${vital.type} is ${vital.status}. Current value: ${vital.value}`,
+        severity: vital.status === 'normal' ? 'info' : vital.status as 'warning' | 'critical',
+        type: vital.type,
+        timestamp: vital.recordedAt,
+        patientId: vital.patientId
+      }));
+  };
 
   // Filtered and sorted vitals
   const filteredVitals = useMemo(() => {
