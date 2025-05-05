@@ -17,10 +17,9 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import '@fullcalendar/common/index.css';
-import '@fullcalendar/daygrid/index.css';
-import '@fullcalendar/timegrid/index.css';
-import '@fullcalendar/list/index.css';
+import '@/styles/fullcalendar-daygrid.css';
+import '@/styles/fullcalendar-timegrid.css';
+import '@/styles/fullcalendar-list.css';
 
 interface Appointment {
   id: string;
