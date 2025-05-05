@@ -58,23 +58,16 @@ const RemindersPage = () => {
       if (/^[0-9a-fA-F-]{36}$/.test(user.id)) {
         setDoctorId(user.id);
       } else if (user.email && user.role) {
-        let table = null;
-        if (user.role === 'doctor') table = 'doctor';
-        else if (user.role === 'patient') table = 'patient';
-        else if (user.role === 'admin') table = 'admin';
-        if (table) {
-          const { data, error } = await supabase
-            .from(table)
-            .select('id')
-            .eq('email', user.email)
-            .single();
-          if (data?.id) {
-            setDoctorId(data.id);
-          } else {
-            setError(`Could not resolve ${user.role} profile. Please contact support.`);
-          }
+        const { data, error } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", user.email)
+          .eq("role", user.role)
+          .single();
+        if (data?.id) {
+          setDoctorId(data.id);
         } else {
-          setError('Unrecognized user role.');
+          setError(`Could not resolve ${user.role} profile. Please contact support.`);
         }
       } else {
         setError('No valid user ID, email, or role found.');
