@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { format, addDays, startOfDay, endOfDay } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -16,18 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mockPatients, createAppointment, formatPatientName } from "@/lib/data";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { useNavigate } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
-import { format, addDays, startOfDay, endOfDay } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, AlertCircle } from "lucide-react";
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { getAvailableTimeSlots } from '@/lib/services/appointment-service';
+import { useAuth } from "@/components/AuthProvider";
 import {
   Form,
   FormControl,
@@ -36,6 +23,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { createAppointment, getAvailableTimeSlots } from '@/lib/services/appointment-service';
+import { Appointment } from '@/lib/types/appointment';
 
 const appointmentSchema = z.object({
   date: z.date({
@@ -53,37 +42,14 @@ const appointmentSchema = z.object({
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
 interface AppointmentFormProps {
-  onSubmit: (appointment: any) => void;
-  onCancel: () => void;
-  initialData?: any;
   doctorId: string;
   onSuccess?: () => void;
+  onCancel: () => void;
 }
 
-const AppointmentForm: React.FC<AppointmentFormProps> = ({
-  onSubmit,
-  onCancel,
-  initialData = {},
-  doctorId,
-  onSuccess,
-}) => {
-  const [searchParams] = useSearchParams();
-  const preselectedPatientId = searchParams.get("patientId");
-  
-  const [formData, setFormData] = useState({
-    patientId: initialData.patientId || preselectedPatientId || "",
-    reason: initialData.reason || "",
-    date: initialData.date ? new Date(initialData.date) : new Date(),
-    startTime: initialData.startTime || "09:00",
-    endTime: initialData.endTime || "09:30",
-    notes: initialData.notes || "",
-    status: initialData.status || "Scheduled",
-  });
-  
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const { toast } = useToast();
+export function AppointmentForm({ doctorId, onSuccess, onCancel }: AppointmentFormProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { toast } = useToast();
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -95,66 +61,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   });
 
   const selectedDate = form.watch('date');
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-    
-    // Clear error when field is changed
-    if (errors[e.target.name]) {
-      setErrors({
-        ...errors,
-        [e.target.name]: "",
-      });
-    }
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    
-    // Clear error when field is changed
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: "",
-      });
-    }
-  };
-  
-  // Auto-calculate end time (30 min after start time)
-  useEffect(() => {
-    const startParts = formData.startTime.split(':');
-    if (startParts.length === 2) {
-      const startHour = parseInt(startParts[0], 10);
-      const startMinute = parseInt(startParts[1], 10);
-      
-      let endHour = startHour;
-      let endMinute = startMinute + 30;
-      
-      if (endMinute >= 60) {
-        endHour += 1;
-        endMinute -= 60;
-      }
-      
-      if (endHour >= 24) {
-        endHour -= 24;
-      }
-      
-      const endTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
-      
-      setFormData(prev => ({
-        ...prev,
-        endTime
-      }));
-    }
-  }, [formData.startTime]);
 
   useEffect(() => {
     if (selectedDate) {
@@ -176,97 +82,33 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     }
   }, [selectedDate, doctorId, toast]);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.patientId) {
-      newErrors.patientId = "Patient is required";
-    }
-    
-    if (!formData.reason.trim()) {
-      newErrors.reason = "Reason is required";
-    }
-    
-    if (!formData.date) {
-      newErrors.date = "Date is required";
-    }
-    
-    if (!formData.startTime) {
-      newErrors.startTime = "Start time is required";
-    }
-    
-    if (!formData.endTime) {
-      newErrors.endTime = "End time is required";
-    }
-    
-    // Check if end time is after start time
-    if (formData.startTime && formData.endTime) {
-      const [startHour, startMinute] = formData.startTime.split(':').map(Number);
-      const [endHour, endMinute] = formData.endTime.split(':').map(Number);
-      
-      const startTotalMinutes = startHour * 60 + startMinute;
-      const endTotalMinutes = endHour * 60 + endMinute;
-      
-      if (endTotalMinutes <= startTotalMinutes) {
-        newErrors.endTime = "End time must be after start time";
-      }
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const onSubmit = async (data: AppointmentFormData) => {
+    if (!user) return;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm() || !user) return;
-    
     try {
       setLoading(true);
-      // Get patient name
-      const patient = mockPatients.find(p => p.id === formData.patientId);
-      if (!patient) {
-        toast({
-          title: "Error",
-          description: "Selected patient not found",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const appointmentData = {
-        ...formData,
-        date: format(formData.date, 'yyyy-MM-dd'),
-        doctorId: user.id,
-        doctorName: user.name,
-        patientName: formatPatientName(patient),
-      };
-      
-      // In a real app, this would make an API call
-      const newAppointment = await createAppointment({
+      await createAppointment({
         patientId: user.id,
         doctorId,
-        date: formData.date,
-        time: formData.time,
-        type: formData.type,
-        notes: formData.notes,
+        date: format(data.date, 'yyyy-MM-dd'),
+        time: data.time,
+        type: data.type,
+        notes: data.notes,
       });
-      
+
       toast({
-        title: "Success",
-        description: "Appointment scheduled successfully",
-        variant: "default",
+        title: 'Success',
+        description: 'Appointment scheduled successfully',
       });
-      
+
       form.reset();
       onSuccess?.();
-      
     } catch (error) {
       console.error('Error creating appointment:', error);
       toast({
-        title: "Error",
-        description: "Failed to schedule appointment",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to schedule appointment',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -275,7 +117,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="date"
@@ -380,6 +222,4 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       </form>
     </Form>
   );
-};
-
-export default AppointmentForm;
+}

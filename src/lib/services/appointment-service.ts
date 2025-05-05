@@ -1,26 +1,5 @@
 import { supabase } from "@/lib/supabase";
-
-export interface Appointment {
-  id: string;
-  patientId: string;
-  doctorId: string;
-  date: string;
-  time: string;
-  type: "checkup" | "follow-up" | "consultation" | "emergency";
-  status: "scheduled" | "completed" | "cancelled" | "no-show";
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateAppointmentData {
-  patientId: string;
-  doctorId: string;
-  date: string;
-  time: string;
-  type: Appointment['type'];
-  notes?: string;
-}
+import { Appointment, CreateAppointmentData } from "@/lib/types/appointment";
 
 export async function createAppointment(data: CreateAppointmentData): Promise<Appointment> {
   const { data: appointment, error } = await supabase
