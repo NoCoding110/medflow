@@ -7,6 +7,7 @@ import { ArrowLeft, Calendar, FileText, Pill, Activity, Phone } from "lucide-rea
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/lib/auth";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ const PatientProfile = () => {
   const [noteForm, setNoteForm] = useState({ title: '', content: '', type: 'Progress' });
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -55,9 +57,8 @@ const PatientProfile = () => {
     e.preventDefault();
     setNoteSubmitting(true);
     setNoteError(null);
-    // TODO: Replace with real doctor info from auth context
-    const doctor_id = "doctor-1";
-    const doctor_name = "Dr. Sarah Johnson";
+    const doctor_id = user?.id;
+    const doctor_name = user?.name || user?.email || "Unknown";
     const { error } = await supabase.from("patient_notes").insert({
       patient_id: id,
       doctor_id,
@@ -65,9 +66,10 @@ const PatientProfile = () => {
       title: noteForm.title,
       content: noteForm.content,
       type: noteForm.type,
+      created_at: new Date().toISOString()
     });
     if (error) {
-      setNoteError("Failed to add note");
+      setNoteError(error.message || "Failed to add note");
     } else {
       setNoteForm({ title: '', content: '', type: 'Progress' });
       // Refresh notes

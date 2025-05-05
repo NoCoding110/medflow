@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Line } from "recharts";
 import AIInsightsBox from '@/components/AIInsightsBox';
+import { supabase } from "@/lib/supabaseClient";
 
 interface Task {
   id: string;
@@ -240,6 +241,9 @@ const DoctorDashboard = () => {
   
   // State for data fetching
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [revenue, setRevenue] = useState<{ current: number; previous: number; trend: 'up' | 'down' }>({ current: 0, previous: 0, trend: 'up' });
+  const [engagement, setEngagement] = useState<{ score: number; trend: 'up' | 'down' }>({ score: 0, trend: 'up' });
+  const [healthOutcomes, setHealthOutcomes] = useState<{ improvement: number; stable: number; decline: number }>({ improvement: 0, stable: 0, decline: 0 });
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState({
@@ -430,6 +434,139 @@ const DoctorDashboard = () => {
     setIsAlertDialogOpen(false);
   };
 
+  useEffect(() => {
+    fetchAnalyticsFromSupabase();
+    fetchRevenue();
+    fetchEngagement();
+    fetchHealthOutcomes();
+    fetchAIInsights();
+    fetchAlerts();
+  }, []);
+
+  const fetchAnalyticsFromSupabase = async () => {
+    setLoading(prev => ({ ...prev, analytics: true }));
+    try {
+      // Fetch patients
+      const { data: patientsData, error: patientsError } = await supabase
+        .from('patients')
+        .select('id, status');
+      if (patientsError) throw patientsError;
+      const totalPatients = patientsData?.length || 0;
+      const activePatients = patientsData?.filter(p => p.status === 'active').length || 0;
+
+      // Fetch today's appointments
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const { data: todayAppointments, error: todayAppointmentsError } = await supabase
+        .from('patient_appointments')
+        .select('id')
+        .gte('appointment_date', today.toISOString())
+        .lt('appointment_date', tomorrow.toISOString());
+      if (todayAppointmentsError) throw todayAppointmentsError;
+
+      // Fetch this week's appointments
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const { data: weekAppointments, error: weekAppointmentsError } = await supabase
+        .from('patient_appointments')
+        .select('id')
+        .gte('appointment_date', today.toISOString())
+        .lt('appointment_date', nextWeek.toISOString());
+      if (weekAppointmentsError) throw weekAppointmentsError;
+
+      setAnalytics({
+        totalPatients,
+        activePatients,
+        appointmentsToday: todayAppointments?.length || 0,
+        revenue: { current: 0, previous: 0, trend: 'up' }, // Placeholder
+        patientEngagement: { score: 0, trend: 'up' }, // Placeholder
+        healthOutcomes: { improvement: 0, decline: 0, stable: 0 }, // Placeholder
+      });
+    } catch (error) {
+      toast.error('Failed to load analytics');
+    } finally {
+      setLoading(prev => ({ ...prev, analytics: false }));
+    }
+  };
+
+  const fetchRevenue = async () => {
+    const { data, error } = await supabase
+      .from('revenue')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(2);
+    if (!error && data && data.length > 0) {
+      const current = Number(data[0].amount);
+      const previous = data[1] ? Number(data[1].amount) : current;
+      const trend = current >= previous ? 'up' : 'down';
+      setRevenue({ current, previous, trend });
+    }
+  };
+
+  const fetchEngagement = async () => {
+    const { data, error } = await supabase
+      .from('patient_engagement')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (!error && data && data.length > 0) {
+      setEngagement({ score: data[0].score, trend: data[0].trend });
+    }
+  };
+
+  const fetchHealthOutcomes = async () => {
+    const { data, error } = await supabase
+      .from('health_outcomes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (!error && data && data.length > 0) {
+      setHealthOutcomes({
+        improvement: data[0].improvement,
+        stable: data[0].stable,
+        decline: data[0].decline
+      });
+    }
+  };
+
+  const fetchAIInsights = async () => {
+    const { data, error } = await supabase
+      .from('ai_insights')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setAiInsights(data.map((insight: any) => ({
+        id: insight.id,
+        type: insight.type,
+        title: insight.title,
+        description: insight.description,
+        severity: insight.severity,
+        timestamp: insight.created_at,
+        details: { patientName: insight.patient_name, data: {} }
+      })));
+    }
+  };
+
+  const fetchAlerts = async () => {
+    const { data, error } = await supabase
+      .from('alerts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setAlerts(data.map((alert: any) => ({
+        id: alert.id,
+        type: alert.type,
+        title: alert.title,
+        description: alert.description,
+        severity: alert.severity,
+        timestamp: alert.created_at,
+        details: { patientName: alert.patient_name, data: {} }
+      })));
+    }
+  };
+
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -493,10 +630,10 @@ const DoctorDashboard = () => {
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="text-2xl font-bold">
-                ${analytics?.revenue.current.toLocaleString() || 0}
+                ${revenue.current.toLocaleString()}
               </div>
-              <Badge variant={analytics?.revenue.trend === 'up' ? 'default' : 'destructive'}>
-                {analytics?.revenue.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              <Badge variant={revenue.trend === 'up' ? 'default' : 'destructive'}>
+                {revenue.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
               </Badge>
             </div>
           </CardContent>
@@ -513,12 +650,12 @@ const DoctorDashboard = () => {
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{analytics?.patientEngagement.score || 0}%</div>
-                <Badge variant={analytics?.patientEngagement.trend === 'up' ? 'default' : 'destructive'}>
-                  {analytics?.patientEngagement.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                <div className="text-2xl font-bold">{engagement.score || 0}%</div>
+                <Badge variant={engagement.trend === 'up' ? 'default' : 'destructive'}>
+                  {engagement.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 </Badge>
               </div>
-              <Progress value={analytics?.patientEngagement.score || 0} className="h-2" />
+              <Progress value={engagement.score || 0} className="h-2" />
             </div>
           </CardContent>
         </Card>
@@ -613,15 +750,15 @@ const DoctorDashboard = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{analytics?.healthOutcomes.improvement || 0}%</div>
+                  <div className="text-2xl font-bold text-green-600">{healthOutcomes.improvement || 0}%</div>
                   <p className="text-sm text-muted-foreground">Improving</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{analytics?.healthOutcomes.stable || 0}%</div>
+                  <div className="text-2xl font-bold text-yellow-600">{healthOutcomes.stable || 0}%</div>
                   <p className="text-sm text-muted-foreground">Stable</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{analytics?.healthOutcomes.decline || 0}%</div>
+                  <div className="text-2xl font-bold text-red-600">{healthOutcomes.decline || 0}%</div>
                   <p className="text-sm text-muted-foreground">Declining</p>
                 </div>
               </div>
