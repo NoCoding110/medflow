@@ -98,11 +98,17 @@ const VitalsTracker = () => {
         if (patientsError) throw patientsError;
 
         // Fetch vitals
-        const { data: vitalsData, error: vitalsError } = await supabase
+        let vitalsQuery = supabase
           .from('vitals')
           .select('*')
-          .eq('type', typeFilter)
           .gte('recordedAt', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
+
+        // Only add type filter if not 'all'
+        if (typeFilter !== 'all') {
+          vitalsQuery = vitalsQuery.eq('type', typeFilter);
+        }
+
+        const { data: vitalsData, error: vitalsError } = await vitalsQuery;
 
         if (vitalsError) throw vitalsError;
 

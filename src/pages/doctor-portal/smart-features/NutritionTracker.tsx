@@ -109,11 +109,17 @@ const NutritionTracker = () => {
         if (patientsError) throw patientsError;
 
         // Fetch nutrition data
-        const { data: nutritionData, error: nutritionError } = await supabase
+        let nutritionQuery = supabase
           .from('nutrition')
           .select('*')
-          .eq('type', mealTypeFilter)
-          .gte('recordedAt', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
+          .gte('date', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
+
+        // Only add meal type filter if not 'all'
+        if (mealTypeFilter !== 'all') {
+          nutritionQuery = nutritionQuery.eq('meal_type', mealTypeFilter);
+        }
+
+        const { data: nutritionData, error: nutritionError } = await nutritionQuery;
 
         if (nutritionError) throw nutritionError;
 

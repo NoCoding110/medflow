@@ -160,11 +160,17 @@ const FitnessTracking = () => {
         }));
 
         // Fetch fitness data
-        const { data: fitnessData, error: fitnessError } = await supabase
+        let fitnessQuery = supabase
           .from('fitness')
           .select('*')
-          .eq('type', typeFilter)
           .gte('recordedAt', new Date(Date.now() - getTimeRangeInMs(timeRange)).toISOString());
+
+        // Only add type filter if not 'all'
+        if (typeFilter !== 'all') {
+          fitnessQuery = fitnessQuery.eq('type', typeFilter);
+        }
+
+        const { data: fitnessData, error: fitnessError } = await fitnessQuery;
 
         if (fitnessError) throw fitnessError;
 
