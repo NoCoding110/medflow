@@ -8,6 +8,7 @@ import QuickNoteDialog from "../notes/QuickNoteDialog";
 import NewNoteDialog from "../notes/NewNoteDialog";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
+import AudioRecorderComponent from '@/components/AudioRecorder';
 
 const PatientNotes = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,12 @@ const PatientNotes = () => {
   const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [transcribedText, setTranscribedText] = useState('');
+  const [transcribing, setTranscribing] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -124,6 +131,47 @@ const PatientNotes = () => {
     }
   };
 
+  const handleTranscribeAudio = async () => {
+    if (!audioBlob) return;
+    setTranscribing(true);
+    setNoteError(null);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) throw new Error('Failed to transcribe audio');
+      const data = await response.json();
+      setTranscribedText(data.transcript || '');
+      setTranscribing(false);
+    } catch (err: any) {
+      setNoteError('Failed to transcribe audio');
+      setTranscribing(false);
+    }
+  };
+
+  const handleGetAISuggestions = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    setAiSuggestions(null);
+    try {
+      const response = await fetch('/api/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: transcribedText }),
+      });
+      if (!response.ok) throw new Error('Failed to get AI suggestions');
+      const data = await response.json();
+      setAiSuggestions(data);
+    } catch (err: any) {
+      setAiError('Failed to get AI suggestions');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <div className="container py-8">
       <div className="mb-6">
@@ -171,6 +219,44 @@ const PatientNotes = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Record Conversation (AI-powered)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AudioRecorderComponent onRecordingComplete={setAudioBlob} />
+          {audioBlob && (
+            <div className="mt-4 space-y-2">
+              <Button onClick={handleTranscribeAudio} disabled={transcribing}>
+                {transcribing ? 'Transcribing...' : 'Transcribe Audio'}
+              </Button>
+              {transcribedText && (
+                <div className="mt-2 space-y-2">
+                  <label className="block text-sm font-medium mb-1">Transcribed Text (editable)</label>
+                  <textarea
+                    className="w-full border rounded p-2"
+                    rows={4}
+                    value={transcribedText}
+                    onChange={e => setTranscribedText(e.target.value)}
+                  />
+                  <Button onClick={handleGetAISuggestions} disabled={aiLoading || !transcribedText}>
+                    {aiLoading ? 'Getting AI Suggestions...' : 'Get AI Suggestions'}
+                  </Button>
+                  {aiError && <div className="text-red-600 text-sm">{aiError}</div>}
+                  {aiSuggestions && (
+                    <div className="mt-4 p-3 border rounded bg-muted">
+                      <div className="mb-2"><strong>Summary:</strong> {aiSuggestions.summary}</div>
+                      <div className="mb-2"><strong>Possible Diagnoses:</strong> {aiSuggestions.diagnoses?.join(', ')}</div>
+                      <div className="mb-2"><strong>Recommendations:</strong> {aiSuggestions.recommendations?.join(', ')}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
