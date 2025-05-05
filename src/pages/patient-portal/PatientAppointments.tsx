@@ -27,11 +27,16 @@ import {
   getAppointments,
   cancelAppointment,
   updateAppointment,
+  getAvailableTimeSlots,
 } from "@/lib/services/appointment-service";
 import { Appointment } from "@/lib/types/appointment";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getDoctorById } from "@/lib/services/doctor-service";
+import { format } from 'date-fns';
+import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { toast } from 'sonner';
 
 const statusOptions = [
   { value: "all", label: "All" },
@@ -64,6 +69,12 @@ const PatientAppointments = () => {
   const [rescheduleDialog, setRescheduleDialog] = useState<{ open: boolean; appointment: Appointment | null }>({ open: false, appointment: null });
   const [telehealthDialog, setTelehealthDialog] = useState<{ open: boolean; appointment: Appointment | null }>({ open: false, appointment: null });
   const [reportDialog, setReportDialog] = useState<{ open: boolean; appointment: Appointment | null }>({ open: false, appointment: null });
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+  const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -88,6 +99,23 @@ const PatientAppointments = () => {
       })
       .finally(() => setLoading(false));
   }, [user]);
+
+  // Fetch available time slots when date or doctor changes in reschedule dialog
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (rescheduleDialog.open && rescheduleDialog.appointment && rescheduleDate) {
+        try {
+          const slots = await getAvailableTimeSlots(rescheduleDialog.appointment.doctorId, new Date(rescheduleDate));
+          setAvailableSlots(slots);
+        } catch (err: any) {
+          setAvailableSlots([]);
+        }
+      } else {
+        setAvailableSlots([]);
+      }
+    };
+    fetchSlots();
+  }, [rescheduleDialog.open, rescheduleDialog.appointment, rescheduleDate]);
 
   const filtered = useMemo(() => {
     let data = [...appointments];
@@ -126,10 +154,62 @@ const PatientAppointments = () => {
     }
   };
   const handleReschedule = (appointment: Appointment) => {
+    setRescheduleDate(appointment.date);
+    setRescheduleTime(appointment.time);
+    setRescheduleError(null);
     setRescheduleDialog({ open: true, appointment });
+  };
+  const handleRescheduleSubmit = async () => {
+    if (!rescheduleDialog.appointment) return;
+    setRescheduleLoading(true);
+    setRescheduleError(null);
+    // Validation
+    if (!rescheduleDate || !rescheduleTime) {
+      setRescheduleError("Please select a date and time.");
+      setRescheduleLoading(false);
+      return;
+    }
+    const now = new Date();
+    const selectedDateTime = new Date(`${rescheduleDate}T${rescheduleTime}`);
+    if (selectedDateTime <= now) {
+      setRescheduleError("Please select a future date and time.");
+      setRescheduleLoading(false);
+      return;
+    }
+    if (!availableSlots.includes(rescheduleTime)) {
+      setRescheduleError("Selected time slot is not available.");
+      setRescheduleLoading(false);
+      return;
+    }
+    try {
+      await updateAppointment(rescheduleDialog.appointment.id, {
+        date: rescheduleDate,
+        time: rescheduleTime,
+      });
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === rescheduleDialog.appointment!.id
+            ? { ...a, date: rescheduleDate, time: rescheduleTime }
+            : a
+        )
+      );
+      setRescheduleDialog({ open: false, appointment: null });
+      setShowRescheduleConfirm(true);
+      toast.success('Appointment rescheduled successfully!');
+    } catch (err: any) {
+      setRescheduleError(err.message || "Failed to reschedule appointment");
+      toast.error(rescheduleError || 'Failed to reschedule appointment');
+    } finally {
+      setRescheduleLoading(false);
+    }
   };
   const handleTelehealth = (appointment: Appointment) => {
     setTelehealthDialog({ open: true, appointment });
+  };
+  const handleJoinTelehealth = () => {
+    if (telehealthDialog.appointment && (telehealthDialog.appointment as any).telehealthLink) {
+      window.open((telehealthDialog.appointment as any).telehealthLink, '_blank');
+    }
   };
   const handleViewReport = (appointment: Appointment) => {
     setReportDialog({ open: true, appointment });
@@ -272,15 +352,63 @@ const PatientAppointments = () => {
                 <div className="mb-2">Doctor: {doctorMap[rescheduleDialog.appointment.doctorId]?.name || rescheduleDialog.appointment.doctorId}</div>
                 <div className="mb-2">Current Date: {rescheduleDialog.appointment.date}</div>
                 <div className="mb-2">Current Time: {rescheduleDialog.appointment.time}</div>
-                {/* Add form fields for new date/time here */}
-                <Input placeholder="New date (YYYY-MM-DD)" className="mb-2" />
-                <Input placeholder="New time (HH:MM)" className="mb-2" />
+                <div className="mb-2">
+                  <label className="block mb-1 text-sm font-medium">New Date:</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        {rescheduleDate ? format(new Date(rescheduleDate), 'PPP') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <DatePickerCalendar
+                        mode="single"
+                        selected={rescheduleDate ? new Date(rescheduleDate) : undefined}
+                        onSelect={date => setRescheduleDate(date ? format(date, 'yyyy-MM-dd') : "")}
+                        disabled={date => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="mb-2">
+                  <label className="block mb-1 text-sm font-medium">Available Time Slots:</label>
+                  {availableSlots.length === 0 && rescheduleDate ? (
+                    <div className="text-muted-foreground text-sm">No available slots for this date.</div>
+                  ) : (
+                    <select
+                      className="w-full border rounded px-2 py-1"
+                      value={rescheduleTime}
+                      onChange={e => setRescheduleTime(e.target.value)}
+                    >
+                      <option value="">Select a time</option>
+                      {availableSlots.map((slot) => (
+                        <option key={slot} value={slot}>{slot}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                {rescheduleError && <div className="text-red-500 text-sm mb-2">{rescheduleError}</div>}
               </>
             )}
           </div>
           <DialogFooter>
             <Button onClick={() => setRescheduleDialog({ open: false, appointment: null })} variant="outline">Cancel</Button>
-            <Button disabled>Reschedule (Coming Soon)</Button>
+            <Button onClick={handleRescheduleSubmit} disabled={rescheduleLoading || !rescheduleDate || !rescheduleTime}>
+              {rescheduleLoading ? "Rescheduling..." : "Reschedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Reschedule Confirmation Modal */}
+      <Dialog open={showRescheduleConfirm} onOpenChange={setShowRescheduleConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Appointment Rescheduled</DialogTitle>
+          </DialogHeader>
+          <div className="mb-4">Your appointment has been successfully rescheduled.</div>
+          <DialogFooter>
+            <Button onClick={() => setShowRescheduleConfirm(false)} autoFocus>OK</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -296,13 +424,16 @@ const PatientAppointments = () => {
                 <div className="mb-2">Doctor: {doctorMap[telehealthDialog.appointment.doctorId]?.name || telehealthDialog.appointment.doctorId}</div>
                 <div className="mb-2">Date: {telehealthDialog.appointment.date}</div>
                 <div className="mb-2">Time: {telehealthDialog.appointment.time}</div>
-                <div className="mb-2">(Telehealth link coming soon)</div>
+                {((telehealthDialog.appointment as any).telehealthLink) ? (
+                  <Button onClick={handleJoinTelehealth} className="mt-2">Join Telehealth Call</Button>
+                ) : (
+                  <div className="mb-2">No telehealth link available for this appointment.</div>
+                )}
               </>
             )}
           </div>
           <DialogFooter>
             <Button onClick={() => setTelehealthDialog({ open: false, appointment: null })} variant="outline">Close</Button>
-            <Button disabled>Join Call (Coming Soon)</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -318,8 +449,11 @@ const PatientAppointments = () => {
                 <div className="mb-2">Doctor: {doctorMap[reportDialog.appointment.doctorId]?.name || reportDialog.appointment.doctorId}</div>
                 <div className="mb-2">Date: {reportDialog.appointment.date}</div>
                 <div className="mb-2">Time: {reportDialog.appointment.time}</div>
+                <div className="mb-2">Type: {reportDialog.appointment.type}</div>
+                <div className="mb-2">Status: {reportDialog.appointment.status}</div>
                 <div className="mb-2">Notes: {reportDialog.appointment.notes || "No notes available."}</div>
-                <div className="mb-2">(Full report details coming soon)</div>
+                <div className="mb-2">Created: {format(new Date(reportDialog.appointment.createdAt), 'PPpp')}</div>
+                <div className="mb-2">Last Updated: {format(new Date(reportDialog.appointment.updatedAt), 'PPpp')}</div>
               </>
             )}
           </div>
