@@ -9,7 +9,8 @@ import {
   Receipt, 
   Pill, 
   Stethoscope,
-  ClipboardList
+  ClipboardList,
+  Bell
 } from "lucide-react";
 import { NavItem } from "./NavItem";
 
@@ -53,6 +54,9 @@ export const MainMenuSection = ({ closeMenu, searchQuery = "", notifications = {
     },
     {
       icon: <Calendar className="h-5 w-5" />, label: "Appointments", to: "/doctor/appointments", notificationCount: notifications.appointments, aiFeature: "AI appointment optimization", tooltip: "AI-powered appointment scheduling", onClick: () => { navigate("/doctor/appointments"); closeMenu(); }
+    },
+    {
+      icon: <Bell className="h-5 w-5" />, label: "Reminders", to: "/doctor/reminders", tooltip: "Your reminders and to-dos", onClick: () => { navigate("/doctor/reminders"); closeMenu(); }
     },
     {
       icon: <ClipboardList className="h-5 w-5" />, label: "Clinical Notes", to: "/doctor/notes", notificationCount: notifications.notes, aiFeature: "AI note summarization", tooltip: "AI-powered clinical note summaries", onClick: () => { navigate("/doctor/notes"); closeMenu(); }

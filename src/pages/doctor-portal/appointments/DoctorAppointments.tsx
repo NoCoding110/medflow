@@ -12,6 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list';
+import '@fullcalendar/common/main.css';
+import '@fullcalendar/daygrid/main.css';
+import '@fullcalendar/timegrid/main.css';
+import '@fullcalendar/list/main.css';
 
 interface Appointment {
   id: string;
@@ -275,10 +284,62 @@ const DoctorAppointments = () => {
     );
   };
 
+  // Map appointments to FullCalendar events
+  const calendarEvents = appointments.map(a => ({
+    id: a.id,
+    title: a.patientName + (a.reason ? `: ${a.reason}` : ""),
+    start: a.date,
+    end: a.date, // For now, assume 30 min, can extend
+    extendedProps: a,
+    color:
+      a.status === 'completed' ? '#22c55e' :
+      a.status === 'cancelled' ? '#ef4444' :
+      a.status === 'overdue' ? '#f59e42' :
+      a.status === 'in-progress' ? '#3b82f6' :
+      undefined
+  }));
+
   return (
     <div className="container py-6">
       <h1 className="text-2xl font-bold tracking-tight mb-4">Appointments</h1>
       
+      {/* Calendar Section */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <Calendar className="mr-2 h-5 w-5 text-purple-600" />
+            Calendar View
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+            initialView="dayGridMonth"
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            }}
+            height="auto"
+            events={calendarEvents}
+            eventClick={info => {
+              // Placeholder for edit modal
+              alert(`Edit appointment: ${info.event.title}`);
+            }}
+            dateClick={info => {
+              // Placeholder for create modal
+              alert(`Create new appointment on ${info.dateStr}`);
+            }}
+            selectable={true}
+            editable={false}
+            eventColor="#2563eb"
+            dayMaxEvents={3}
+            nowIndicator={true}
+            aspectRatio={2}
+          />
+        </CardContent>
+      </Card>
+
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>

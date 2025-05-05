@@ -49,6 +49,7 @@ import LabIntegration from "@/pages/doctor-portal/lab-integration/LabIntegration
 import OncologyModule from "@/pages/doctor-portal/ai-features/OncologyModule";
 import NeurologyDashboard from "@/pages/doctor/neurology-module/NeurologyDashboard";
 import DoctorRecords from "@/pages/doctor-portal/records/DoctorRecords";
+import RemindersPage from "@/pages/doctor-portal/reminders/RemindersPage";
 
 interface DoctorRouteProps {
   children: React.ReactNode;
@@ -95,6 +96,7 @@ export const doctorRoutes = {
     { path: "notes", element: <DoctorNotes /> },
     { path: "appointments", element: <DoctorAppointments /> },
     { path: "appointments/new", element: <DoctorAppointments /> },
+    { path: "reminders", element: <RemindersPage /> },
     { path: "prescriptions", element: <DoctorPrescriptions /> },
     { path: "billing", element: <DoctorBilling /> },
     { path: "lab", element: <DoctorLab /> },
