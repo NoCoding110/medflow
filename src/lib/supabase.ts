@@ -19,5 +19,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'Accept': 'application/json',
       'Prefer': 'return=representation'
     }
+  },
+  db: {
+    schema: 'public'
   }
 }); 
