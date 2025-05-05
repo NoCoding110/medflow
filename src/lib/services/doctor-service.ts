@@ -304,29 +304,65 @@ export const getDoctorPatients = async (doctorId: string): Promise<Patient[]> =>
     const { data: patients, error: patientsError } = await supabase
       .from('patients')
       .select(`
-        *,
-        user:user_id (
-          id,
-          email,
-          first_name,
-          last_name,
-          role
-        )
+        id,
+        user_id,
+        first_name,
+        last_name,
+        date_of_birth,
+        gender,
+        email,
+        phone,
+        address,
+        emergency_contact_name,
+        emergency_contact_relationship,
+        emergency_contact_phone,
+        insurance_provider,
+        insurance_policy_number,
+        insurance_group_number,
+        insurance_contact_number,
+        allergies,
+        medications,
+        conditions,
+        surgeries,
+        primary_care_physician,
+        wearable_apple_watch,
+        wearable_fitbit,
+        wearable_oura_ring,
+        wearable_other,
+        notifications_email,
+        notifications_sms,
+        notifications_push,
+        ai_insights_fitness,
+        ai_insights_nutrition,
+        ai_insights_vitals,
+        ai_insights_mental_health,
+        ai_insights_medication,
+        status,
+        created_at,
+        updated_at
       `)
       .in('id', patientIds);
 
-    if (patientsError) throw patientsError;
+    if (patientsError) {
+      console.error('Error fetching patients:', patientsError);
+      throw patientsError;
+    }
 
-    return (patients || []).map(patient => ({
+    if (!patients) {
+      console.warn('No patients found for doctor:', doctorId);
+      return [];
+    }
+
+    return patients.map(patient => ({
       id: patient.id,
       userId: patient.user_id,
-      firstName: patient.user.first_name,
-      lastName: patient.user.last_name,
-      email: patient.user.email,
-      phone: patient.phone,
-      address: patient.address,
+      firstName: patient.first_name,
+      lastName: patient.last_name,
       dateOfBirth: patient.date_of_birth,
       gender: patient.gender,
+      email: patient.email,
+      phone: patient.phone,
+      address: patient.address,
       emergencyContact: {
         name: patient.emergency_contact_name,
         relationship: patient.emergency_contact_relationship,
