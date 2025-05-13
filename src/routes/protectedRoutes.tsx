@@ -1,11 +1,11 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import Dashboard from "@/pages/Dashboard";
-import Patients from "@/pages/Patients";
-import PatientProfile from "@/pages/PatientProfile";
-import Appointments from "@/pages/Appointments";
-import Documents from "@/pages/Documents";
-import Settings from "@/pages/Settings";
+import Dashboard from "@/pages/doctor-portal/Dashboard";
+import Patients from "@/pages/doctor-portal/Patients";
+import PatientProfile from "@/pages/doctor-portal/patients/PatientProfile";
+import Appointments from "@/pages/doctor-portal/Appointments";
+import Documents from "@/pages/doctor-portal/Records";
+import Settings from "@/pages/doctor-portal/Settings";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
