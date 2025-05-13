@@ -1,134 +1,158 @@
 import { v4 as uuidv4 } from 'uuid';
+import { VitalsRecord, FitnessRecord, NutritionRecord } from '@/types';
 
-export interface VitalsRecord {
-  id: string;
-  patient_id: string;
-  recorded_at: string;
-  heart_rate: number;
-  blood_pressure_systolic: number;
-  blood_pressure_diastolic: number;
-  temperature: number;
-  oxygen_saturation: number;
-}
-
-export interface FitnessRecord {
-  id: string;
-  patient_id: string;
-  recorded_at: string;
-  steps: number;
-  distance: number;
-  calories_burned: number;
-  activity_type: string;
-  duration: number;
-}
-
-export interface NutritionRecord {
-  id: string;
-  patient_id: string;
-  date: string;
-  meal_type: string;
-  food_items: {
-    name: string;
-    quantity: number;
-    unit: string;
-  }[];
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-}
-
-// Mock vitals data
 export const mockVitals: VitalsRecord[] = [
   {
-    id: uuidv4(),
-    patient_id: 'patient1',
-    recorded_at: new Date().toISOString(),
-    heart_rate: 72,
-    blood_pressure_systolic: 120,
-    blood_pressure_diastolic: 80,
+    id: '1',
+    patientId: '1',
+    recordedAt: '2024-01-20T08:00:00Z',
+    heartRate: 75,
+    bloodPressure: {
+      systolic: 120,
+      diastolic: 80
+    },
     temperature: 98.6,
-    oxygen_saturation: 98
+    oxygenSaturation: 98,
+    respiratoryRate: 16
   },
   {
-    id: uuidv4(),
-    patient_id: 'patient1',
-    recorded_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    heart_rate: 75,
-    blood_pressure_systolic: 118,
-    blood_pressure_diastolic: 78,
+    id: '2',
+    patientId: '1',
+    recordedAt: '2024-01-20T12:00:00Z',
+    heartRate: 82,
+    bloodPressure: {
+      systolic: 125,
+      diastolic: 85
+    },
     temperature: 98.4,
-    oxygen_saturation: 99
+    oxygenSaturation: 97,
+    respiratoryRate: 18
   }
 ];
 
-// Mock fitness data
 export const mockFitness: FitnessRecord[] = [
   {
-    id: uuidv4(),
-    patient_id: 'patient1',
-    recorded_at: new Date().toISOString(),
+    id: '1',
+    patientId: '1',
+    recordedAt: '2024-01-20T00:00:00Z',
     steps: 8500,
     distance: 4.2,
-    calories_burned: 320,
-    activity_type: 'Walking',
-    duration: 45
+    caloriesBurned: 450,
+    activeMinutes: 45,
+    heartRateZones: {
+      peak: 15,
+      cardio: 30,
+      fatBurn: 45,
+      rest: 10
+    }
   },
   {
-    id: uuidv4(),
-    patient_id: 'patient1',
-    recorded_at: new Date(Date.now() - 86400000).toISOString(),
-    steps: 10200,
-    distance: 5.1,
-    calories_burned: 380,
-    activity_type: 'Running',
-    duration: 30
+    id: '2',
+    patientId: '1',
+    recordedAt: '2024-01-19T00:00:00Z',
+    steps: 7200,
+    distance: 3.6,
+    caloriesBurned: 380,
+    activeMinutes: 35,
+    heartRateZones: {
+      peak: 10,
+      cardio: 25,
+      fatBurn: 40,
+      rest: 15
+    }
   }
 ];
 
-// Mock nutrition data
 export const mockNutrition: NutritionRecord[] = [
   {
-    id: uuidv4(),
-    patient_id: 'patient1',
-    date: new Date().toISOString(),
-    meal_type: 'Breakfast',
-    food_items: [
-      { name: 'Oatmeal', quantity: 1, unit: 'cup' },
-      { name: 'Banana', quantity: 1, unit: 'medium' },
-      { name: 'Greek Yogurt', quantity: 1, unit: 'cup' }
-    ],
-    calories: 450,
-    protein: 20,
-    carbs: 65,
-    fat: 12
+    id: '1',
+    patientId: '1',
+    recordedAt: '2024-01-20T00:00:00Z',
+    calories: 2200,
+    protein: 120,
+    carbs: 250,
+    fat: 75,
+    water: 2000,
+    meals: [
+      {
+        name: 'Breakfast',
+        calories: 500,
+        protein: 30,
+        carbs: 60,
+        fat: 20
+      },
+      {
+        name: 'Lunch',
+        calories: 700,
+        protein: 40,
+        carbs: 80,
+        fat: 25
+      },
+      {
+        name: 'Dinner',
+        calories: 800,
+        protein: 50,
+        carbs: 90,
+        fat: 30
+      }
+    ]
   },
   {
-    id: uuidv4(),
-    patient_id: 'patient1',
-    date: new Date(Date.now() - 86400000).toISOString(),
-    meal_type: 'Lunch',
-    food_items: [
-      { name: 'Grilled Chicken Salad', quantity: 1, unit: 'bowl' },
-      { name: 'Whole Grain Bread', quantity: 2, unit: 'slices' },
-      { name: 'Apple', quantity: 1, unit: 'medium' }
-    ],
-    calories: 550,
-    protein: 35,
-    carbs: 45,
-    fat: 18
+    id: '2',
+    patientId: '1',
+    recordedAt: '2024-01-19T00:00:00Z',
+    calories: 2100,
+    protein: 110,
+    carbs: 240,
+    fat: 70,
+    water: 2200,
+    meals: [
+      {
+        name: 'Breakfast',
+        calories: 450,
+        protein: 25,
+        carbs: 55,
+        fat: 18
+      },
+      {
+        name: 'Lunch',
+        calories: 650,
+        protein: 35,
+        carbs: 75,
+        fat: 22
+      },
+      {
+        name: 'Dinner',
+        calories: 750,
+        protein: 45,
+        carbs: 85,
+        fat: 28
+      }
+    ]
   }
 ];
 
-// Mock functions to simulate API calls
-export const getVitals = async (patientId: string): Promise<VitalsRecord[]> => {
-  return mockVitals.filter(vital => vital.patient_id === patientId);
+// Mock functions
+export const getVitals = (patientId: string, startDate?: string) => {
+  let filtered = mockVitals.filter(v => v.patientId === patientId);
+  if (startDate) {
+    filtered = filtered.filter(v => new Date(v.recordedAt) >= new Date(startDate));
+  }
+  return filtered;
 };
 
-export const getFitness = async (patientId: string): Promise<FitnessRecord[]> => {
-  return mockFitness.filter(fitness => fitness.patient_id === patientId);
+export const getFitness = (patientId: string, startDate?: string) => {
+  let filtered = mockFitness.filter(f => f.patientId === patientId);
+  if (startDate) {
+    filtered = filtered.filter(f => new Date(f.recordedAt) >= new Date(startDate));
+  }
+  return filtered;
 };
 
-export const getNutrition = async (patientId: string): Promise<NutritionRecord[]> => {
-  return mockNutrition.filter(nutrition => nutrition.patient_id === patientId);
+export const getNutrition = (patientId: string, startDate?: string) => {
+  let filtered = mockNutrition.filter(n => n.patientId === patientId);
+  if (startDate) {
+    filtered = filtered.filter(n => new Date(n.recordedAt) >= new Date(startDate));
+  }
+  return filtered;
 }; 

@@ -1,36 +1,39 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Route } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import DoctorPortal from "@/pages/doctor-portal/DoctorPortal";
-import DoctorDashboard from "@/pages/doctor-portal/Dashboard";
-import DoctorAppointments from "@/pages/doctor-portal/appointments/DoctorAppointments";
-import DoctorPatients from "@/pages/doctor-portal/Patients";
-import DoctorPrescriptions from "@/pages/doctor-portal/prescriptions/DoctorPrescriptions";
-import DoctorBilling from "@/pages/doctor-portal/Billing";
-import DoctorLab from "@/pages/doctor-portal/Lab";
-import DoctorTelehealth from "@/pages/doctor-portal/telehealth/DoctorTelehealth";
-import { SmartVisitPrep } from "@/pages/doctor-portal/smart-features/SmartVisitPrep";
-import SmartDifferential from "@/pages/doctor-portal/smart-features/SmartDifferential";
-import WellnessDashboard from "@/pages/doctor-portal/smart-features/WellnessDashboard";
-import VitalsTracker from "@/pages/doctor-portal/smart-features/VitalsTracker";
-import FitnessTracking from "@/pages/doctor-portal/smart-features/FitnessTracking";
-import NutritionTracker from "@/pages/doctor-portal/smart-features/NutritionTracker";
-import SymptomTracker from "@/pages/doctor-portal/smart-features/SymptomTracker";
-import MedicationAdherence from "@/pages/doctor-portal/smart-features/MedicationAdherence";
-import MentalHealthTracker from "@/pages/doctor-portal/smart-features/MentalHealthTracker";
-import PreventiveCare from "@/pages/doctor-portal/smart-features/PreventiveCare";
-import PatientGoals from "@/pages/doctor-portal/smart-features/PatientGoals";
-import WellnessAlerts from "@/pages/doctor-portal/smart-features/WellnessAlerts";
-import VisitComparison from "@/pages/doctor-portal/smart-features/VisitComparison";
-import LifestyleAssistant from "@/pages/doctor-portal/smart-features/LifestyleAssistant";
-import { PredictiveAnalysis } from "@/pages/doctor-portal/ai-features/PredictiveAnalysis";
-import { ConversationalAI } from "@/pages/doctor-portal/ai-features/ConversationalAI";
-import LabIntegration from "@/pages/doctor-portal/lab-integration/LabIntegration";
-import NeurologyDashboard from "@/pages/doctor-portal/neurology/NeurologyDashboard";
-import TreatmentMonitoring from "@/pages/doctor-portal/neurology/TreatmentMonitoring";
-import CognitiveAssessment from "@/pages/doctor-portal/neurology/CognitiveAssessment";
-import PatientMonitoring from "@/pages/doctor-portal/neurology/PatientMonitoring";
-import TreatmentPlan from "@/pages/doctor-portal/neurology/TreatmentPlan";
-import RemindersPage from "@/pages/doctor-portal/reminders/RemindersPage";
+import {
+  Dashboard,
+  Patients,
+  Appointments,
+  PatientProfile,
+  PatientNotes,
+  NewPatientDialog,
+  WellnessDashboard,
+  VitalsTracker,
+  NutritionTracker,
+  FitnessTracking,
+  MedicationAdherence,
+  MentalHealthTracker,
+  PreventiveCare,
+  SmartVisitPrep,
+  SymptomsTracker,
+  PatientGoals,
+  WellnessAlerts,
+  DoctorAIAssistant,
+  PredictiveAnalysis,
+  GenerativeAI,
+  ConversationalAI,
+  AIPathologyAnalysis,
+  CarePathwayMonitor,
+  RealWorldDataPlatform,
+  NeurologyModule,
+  OncologyModule,
+  CardiologyModule,
+  PsychiatryModule,
+  ECGAIAnalysis,
+  SpecializedModules,
+  SecureMessaging,
+  PatientMessaging,
+} from "@/pages/doctor-portal";
 
 interface DoctorRouteProps {
   children: React.ReactNode;
@@ -61,43 +64,35 @@ export const DoctorRoute = ({ children }: DoctorRouteProps) => {
   return <>{children}</>;
 };
 
-export const doctorRoutes = {
-  path: "/doctor",
-  element: (
-    <DoctorRoute>
-      <DoctorPortal />
-    </DoctorRoute>
-  ),
-  children: [
-    { path: "", element: <DoctorDashboard /> },
-    { path: "appointments", element: <DoctorAppointments /> },
-    { path: "patients", element: <DoctorPatients /> },
-    { path: "prescriptions", element: <DoctorPrescriptions /> },
-    { path: "billing", element: <DoctorBilling /> },
-    { path: "lab", element: <DoctorLab /> },
-    { path: "telehealth", element: <DoctorTelehealth /> },
-    { path: "smart-visit-prep", element: <SmartVisitPrep /> },
-    { path: "smart-differential", element: <SmartDifferential /> },
-    { path: "wellness-dashboard", element: <WellnessDashboard /> },
-    { path: "vitals", element: <VitalsTracker /> },
-    { path: "fitness", element: <FitnessTracking /> },
-    { path: "nutrition", element: <NutritionTracker /> },
-    { path: "symptoms", element: <SymptomTracker /> },
-    { path: "medication-adherence", element: <MedicationAdherence /> },
-    { path: "mental-health", element: <MentalHealthTracker /> },
-    { path: "preventive-care", element: <PreventiveCare /> },
-    { path: "patient-goals", element: <PatientGoals /> },
-    { path: "wellness-alerts", element: <WellnessAlerts /> },
-    { path: "visit-comparison", element: <VisitComparison /> },
-    { path: "lifestyle", element: <LifestyleAssistant /> },
-    { path: "predictive-analysis", element: <PredictiveAnalysis /> },
-    { path: "conversational-ai", element: <ConversationalAI /> },
-    { path: "lab-integration", element: <LabIntegration /> },
-    { path: "neurology", element: <NeurologyDashboard /> },
-    { path: "neurology/treatment-monitoring", element: <TreatmentMonitoring /> },
-    { path: "neurology/cognitive-assessment", element: <CognitiveAssessment /> },
-    { path: "neurology/patient-monitoring", element: <PatientMonitoring /> },
-    { path: "neurology/treatment-plan", element: <TreatmentPlan /> },
-    { path: "reminders", element: <RemindersPage /> },
-  ],
-};
+export const doctorRoutes = [
+  <Route key="dashboard" path="/doctor" element={<Dashboard />} />,
+  <Route key="patients" path="/doctor/patients" element={<Patients />} />,
+  <Route key="patient-profile" path="/doctor/patients/:patientId" element={<PatientProfile />} />,
+  <Route key="appointments" path="/doctor/appointments" element={<Appointments />} />,
+  <Route key="wellness" path="/doctor/wellness" element={<WellnessDashboard />} />,
+  <Route key="vitals" path="/doctor/vitals" element={<VitalsTracker />} />,
+  <Route key="nutrition" path="/doctor/nutrition" element={<NutritionTracker />} />,
+  <Route key="fitness" path="/doctor/fitness" element={<FitnessTracking />} />,
+  <Route key="medication" path="/doctor/medication" element={<MedicationAdherence />} />,
+  <Route key="mental-health" path="/doctor/mental-health" element={<MentalHealthTracker />} />,
+  <Route key="preventive-care" path="/doctor/preventive-care" element={<PreventiveCare />} />,
+  <Route key="visit-prep" path="/doctor/visit-prep" element={<SmartVisitPrep />} />,
+  <Route key="symptoms" path="/doctor/symptoms" element={<SymptomsTracker />} />,
+  <Route key="goals" path="/doctor/goals" element={<PatientGoals />} />,
+  <Route key="alerts" path="/doctor/alerts" element={<WellnessAlerts />} />,
+  <Route key="ai-assistant" path="/doctor/ai-assistant" element={<DoctorAIAssistant />} />,
+  <Route key="predictive-analysis" path="/doctor/predictive-analysis" element={<PredictiveAnalysis />} />,
+  <Route key="generative-ai" path="/doctor/generative-ai" element={<GenerativeAI />} />,
+  <Route key="conversational-ai" path="/doctor/conversational-ai" element={<ConversationalAI />} />,
+  <Route key="pathology-analysis" path="/doctor/pathology-analysis" element={<AIPathologyAnalysis />} />,
+  <Route key="care-pathway" path="/doctor/care-pathway" element={<CarePathwayMonitor />} />,
+  <Route key="real-world-data" path="/doctor/real-world-data" element={<RealWorldDataPlatform />} />,
+  <Route key="neurology" path="/doctor/neurology" element={<NeurologyModule />} />,
+  <Route key="oncology" path="/doctor/oncology" element={<OncologyModule />} />,
+  <Route key="cardiology" path="/doctor/cardiology" element={<CardiologyModule />} />,
+  <Route key="psychiatry" path="/doctor/psychiatry" element={<PsychiatryModule />} />,
+  <Route key="ecg-analysis" path="/doctor/ecg-analysis" element={<ECGAIAnalysis />} />,
+  <Route key="specialized-modules" path="/doctor/specialized-modules" element={<SpecializedModules />} />,
+  <Route key="secure-messaging" path="/doctor/secure-messaging" element={<SecureMessaging />} />,
+  <Route key="patient-messaging" path="/doctor/patient-messaging" element={<PatientMessaging />} />,
+];
