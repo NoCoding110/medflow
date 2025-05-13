@@ -1,224 +1,346 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Grid, Card, CardContent, Typography, CircularProgress, Alert } from '@mui/material';
-import { supabase } from '../../lib/supabaseClient';
-import { format } from 'date-fns';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  IconButton,
+  Tooltip,
+  CircularProgress,
+  Alert,
+  Stack,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  Badge,
+  Avatar
+} from '@mui/material';
+import {
+  People as PeopleIcon,
+  Event as EventIcon,
+  LocalHospital as HospitalIcon,
+  Assignment as AssignmentIcon,
+  Receipt as ReceiptIcon,
+  Science as ScienceIcon,
+  VideoCall as VideoCallIcon,
+  Notifications as NotificationsIcon,
+  Refresh as RefreshIcon,
+  TrendingUp as TrendingUpIcon,
+  Schedule as ScheduleIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { getDoctorAnalytics, getRecentActivity } from '../../lib/services/mockDoctorService';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
-interface PatientStats {
+interface Analytics {
   totalPatients: number;
   activePatients: number;
-  appointmentsToday: number;
-  appointmentsThisWeek: number;
+  totalAppointments: number;
+  upcomingAppointments: number;
+  totalPrescriptions: number;
+  activePrescriptions: number;
+  totalNotes: number;
+  pendingLabResults: number;
+  totalBilling: number;
+  pendingBilling: number;
+  patientTrend: { date: string; count: number }[];
+  appointmentTrend: { date: string; count: number }[];
 }
 
-interface RecentActivity {
+interface Activity {
   id: string;
-  patient_id: string;
-  type: 'appointment' | 'vital' | 'fitness' | 'nutrition';
-  description: string;
-  created_at: string;
-  patient: {
-    first_name: string;
-    last_name: string;
-  };
-}
-
-interface AppointmentWithPatient {
-  id: string;
-  patient_id: string;
-  appointment_type: string;
-  created_at: string;
-  patients: {
-    first_name: string;
-    last_name: string;
-  }[];
+  type: 'appointment' | 'prescription' | 'lab' | 'note' | 'billing';
+  title: string;
+  timestamp: string;
+  status: 'completed' | 'pending' | 'warning';
+  patientName: string;
 }
 
 const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<PatientStats>({
-    totalPatients: 0,
-    activePatients: 0,
-    appointmentsToday: 0,
-    appointmentsThisWeek: 0
-  });
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const navigate = useNavigate();
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-
-      // Fetch patient statistics
-      const { data: patientsData, error: patientsError } = await supabase
-        .from('patients')
-        .select('id, status, first_name, last_name');
-
-      if (patientsError) throw patientsError;
-
-      // Fetch today's appointments
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const { data: todayAppointments, error: todayAppointmentsError } = await supabase
-        .from('patient_appointments')
-        .select('id')
-        .gte('appointment_date', today.toISOString())
-        .lt('appointment_date', tomorrow.toISOString());
-
-      if (todayAppointmentsError) throw todayAppointmentsError;
-
-      // Fetch this week's appointments
-      const nextWeek = new Date(today);
-      nextWeek.setDate(nextWeek.getDate() + 7);
-
-      const { data: weekAppointments, error: weekAppointmentsError } = await supabase
-        .from('patient_appointments')
-        .select('id')
-        .gte('appointment_date', today.toISOString())
-        .lt('appointment_date', nextWeek.toISOString());
-
-      if (weekAppointmentsError) throw weekAppointmentsError;
-
-      // Calculate statistics
-      setStats({
-        totalPatients: patientsData?.length || 0,
-        activePatients: patientsData?.filter(p => p.status === 'active').length || 0,
-        appointmentsToday: todayAppointments?.length || 0,
-        appointmentsThisWeek: weekAppointments?.length || 0
-      });
-
-      // Fetch recent activities with patient data
-      const { data: activities, error: activitiesError } = await supabase
-        .from('patient_appointments')
-        .select(`
-          id,
-          patient_id,
-          appointment_type,
-          created_at,
-          patients!patient_id (
-            first_name,
-            last_name
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (activitiesError) throw activitiesError;
-
-      // Transform activities data
-      const transformedActivities = (activities || []).map(activity => ({
-        id: activity.id,
-        patient_id: activity.patient_id,
-        type: 'appointment',
-        description: activity.appointment_type,
-        created_at: activity.created_at,
-        patient: Array.isArray(activity.patients) && activity.patients.length > 0
-          ? activity.patients[0]
-          : { first_name: 'Unknown', last_name: 'Patient' }
-      }));
-
-      setRecentActivities(transformedActivities);
-
+      const [analyticsData, activitiesData] = await Promise.all([
+        getDoctorAnalytics(),
+        getRecentActivity()
+      ]);
+      setAnalytics(analyticsData);
+      setActivities(activitiesData);
+      setLastUpdated(new Date());
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    // Set up polling every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const statCards = [
+    {
+      title: 'Patients',
+      value: analytics?.totalPatients || 0,
+      icon: <PeopleIcon />,
+      color: '#2196f3',
+      tooltip: 'Total number of registered patients',
+      onClick: () => navigate('/doctor/patients')
+    },
+    {
+      title: 'Appointments',
+      value: analytics?.upcomingAppointments || 0,
+      icon: <EventIcon />,
+      color: '#4caf50',
+      tooltip: 'Upcoming appointments',
+      onClick: () => navigate('/doctor/appointments')
+    },
+    {
+      title: 'Prescriptions',
+      value: analytics?.activePrescriptions || 0,
+      icon: <HospitalIcon />,
+      color: '#f44336',
+      tooltip: 'Active prescriptions',
+      onClick: () => navigate('/doctor/prescriptions')
+    },
+    {
+      title: 'Clinical Notes',
+      value: analytics?.totalNotes || 0,
+      icon: <AssignmentIcon />,
+      color: '#ff9800',
+      tooltip: 'Total clinical notes',
+      onClick: () => navigate('/doctor/notes')
+    },
+    {
+      title: 'Lab Results',
+      value: analytics?.pendingLabResults || 0,
+      icon: <ScienceIcon />,
+      color: '#9c27b0',
+      tooltip: 'Pending lab results',
+      onClick: () => navigate('/doctor/lab')
+    },
+    {
+      title: 'Billing',
+      value: `$${analytics?.totalBilling.toLocaleString() || 0}`,
+      icon: <ReceiptIcon />,
+      color: '#795548',
+      tooltip: 'Total billing amount',
+      onClick: () => navigate('/doctor/billing')
+    }
+  ];
+
+  const quickActions = [
+    {
+      title: 'New Appointment',
+      icon: <EventIcon />,
+      onClick: () => navigate('/doctor/appointments/new'),
+      tooltip: 'Schedule a new appointment'
+    },
+    {
+      title: 'Start Telehealth',
+      icon: <VideoCallIcon />,
+      onClick: () => navigate('/doctor/telehealth'),
+      tooltip: 'Start a telehealth session'
+    },
+    {
+      title: 'View Reminders',
+      icon: <NotificationsIcon />,
+      onClick: () => navigate('/doctor/reminders'),
+      tooltip: 'View and manage reminders'
+    }
+  ];
+
+  const getActivityIcon = (type: Activity['type']) => {
+    switch (type) {
+      case 'appointment':
+        return <EventIcon />;
+      case 'prescription':
+        return <HospitalIcon />;
+      case 'lab':
+        return <ScienceIcon />;
+      case 'note':
+        return <AssignmentIcon />;
+      case 'billing':
+        return <ReceiptIcon />;
+    }
   };
 
-  if (loading) return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <CircularProgress />
-    </Box>
-  );
+  const getStatusColor = (status: Activity['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'warning':
+        return 'error';
+    }
+  };
 
-  if (error) return (
-    <Box sx={{ p: 3 }}>
-      <Alert severity="error">{error}</Alert>
-    </Box>
-  );
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" sx={{ mb: 4 }}>
-        Doctor Dashboard
-      </Typography>
-
-      {/* Statistics Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3, mb: 4 }}>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
-              Total Patients
-            </Typography>
-            <Typography variant="h4">
-              {stats.totalPatients}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
-              Active Patients
-            </Typography>
-            <Typography variant="h4">
-              {stats.activePatients}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
-              Today's Appointments
-            </Typography>
-            <Typography variant="h4">
-              {stats.appointmentsToday}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary" gutterBottom>
-              This Week's Appointments
-            </Typography>
-            <Typography variant="h4">
-              {stats.appointmentsThisWeek}
-            </Typography>
-          </CardContent>
-        </Card>
+    <Box p={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1">
+          Doctor Dashboard
+        </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="body2" color="text.secondary">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </Typography>
+          <Tooltip title="Refresh Dashboard">
+            <IconButton onClick={fetchData}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
-      {/* Recent Activities */}
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Recent Activities
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {recentActivities.map((activity) => (
-          <Card key={activity.id}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+        {statCards.map((card, index) => (
+          <Box key={index}>
+            <Tooltip title={card.tooltip}>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)'
+                  }
+                }}
+                onClick={card.onClick}
+              >
+                <CardContent>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Box
+                      sx={{
+                        backgroundColor: `${card.color}20`,
+                        borderRadius: '50%',
+                        p: 1,
+                        mr: 2
+                      }}
+                    >
+                      {React.cloneElement(card.icon, { sx: { color: card.color } })}
+                    </Box>
+                    <Typography variant="h6" component="div">
+                      {card.title}
+                    </Typography>
+                  </Box>
+                  <Typography variant="h4" component="div" sx={{ color: card.color }}>
+                    {card.value}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Tooltip>
+          </Box>
+        ))}
+      </Box>
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mt: 2 }}>
+        <Box>
+          <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="h6">
-                    {activity.patient.first_name} {activity.patient.last_name}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    {activity.description}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  {format(new Date(activity.created_at), 'PPp')}
-                </Typography>
+              <Typography variant="h6" gutterBottom>
+                Patient Growth Trend
+              </Typography>
+              <Box sx={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={analytics?.patientTrend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Line type="monotone" dataKey="count" stroke="#2196f3" />
+                  </LineChart>
+                </ResponsiveContainer>
               </Box>
             </CardContent>
           </Card>
-        ))}
+        </Box>
+        <Box>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Recent Activity
+              </Typography>
+              <List>
+                {activities.map((activity) => (
+                  <React.Fragment key={activity.id}>
+                    <ListItem>
+                      <ListItemIcon>
+                        <Badge
+                          color={getStatusColor(activity.status)}
+                          variant="dot"
+                          overlap="circular"
+                        >
+                          {getActivityIcon(activity.type)}
+                        </Badge>
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={activity.title}
+                        secondary={`${activity.patientName} • ${new Date(activity.timestamp).toLocaleString()}`}
+                      />
+                    </ListItem>
+                    <Divider />
+                  </React.Fragment>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        </Box>
       </Box>
+
+      <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
+        Quick Actions
+      </Typography>
+      <Stack direction="row" spacing={2}>
+        {quickActions.map((action, index) => (
+          <Tooltip key={index} title={action.tooltip}>
+            <Button
+              variant="contained"
+              startIcon={action.icon}
+              onClick={action.onClick}
+              sx={{
+                minWidth: 200,
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
+              {action.title}
+            </Button>
+          </Tooltip>
+        ))}
+      </Stack>
     </Box>
   );
 };
