@@ -1,11 +1,10 @@
 import React, { useEffect } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
-import { DoctorPortalSidebar } from "@/components/doctor-portal/DoctorPortalSidebar";
+import DoctorPortalSidebar from "@/components/doctor-portal/DoctorPortalSidebar";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LayoutDashboard, Calendar, Users, Video, TestTube2, MessageSquare, Settings } from "lucide-react";
-import AIInsightsBox from '@/components/AIInsightsBox';
 
 const navigation = [
   { name: "Dashboard", href: "/doctor", icon: LayoutDashboard },
@@ -19,14 +18,14 @@ const navigation = [
 
 const DoctorPortal = () => {
   const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
   useEffect(() => {
     if (isAuthenticated && user?.role !== "doctor") {
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Access Denied",
         description: "Only doctors can access the doctor portal.",
       });
@@ -38,7 +37,7 @@ const DoctorPortal = () => {
         navigate("/dashboard");
       }
     }
-  }, [isAuthenticated, user, navigate, toast]);
+  }, [isAuthenticated, user, navigate, addToast]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
