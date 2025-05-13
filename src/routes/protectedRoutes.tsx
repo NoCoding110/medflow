@@ -4,7 +4,6 @@ import {
   Dashboard,
   Patients,
   Appointments,
-  Settings,
   PatientProfile,
   PatientNotes,
   NewPatientDialog,
@@ -102,14 +101,6 @@ export const protectedRoutes = [
     element: (
       <ProtectedRoute>
         <Appointments />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/settings",
-    element: (
-      <ProtectedRoute>
-        <Settings />
       </ProtectedRoute>
     ),
   },

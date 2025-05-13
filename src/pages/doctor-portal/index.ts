@@ -2,7 +2,6 @@
 export { default as Dashboard } from './Dashboard';
 export { default as Patients } from './Patients';
 export { default as Appointments } from './appointments/DoctorAppointments';
-export { default as Settings } from './settings/DoctorSettings';
 export { default as Notes } from './notes/DoctorNotes';
 export { default as Telehealth } from './telehealth/DoctorTelehealth';
 export { default as Lab } from './Lab';
@@ -21,7 +20,7 @@ export { default as FitnessTracking } from './smart-features/FitnessTracking';
 export { default as MedicationAdherence } from './smart-features/MedicationAdherence';
 export { default as MentalHealthTracker } from './smart-features/MentalHealthTracker';
 export { default as PreventiveCare } from './smart-features/PreventiveCare';
-export { default as SmartVisitPrep } from './smart-features/SmartVisitPrep';
+export { SmartVisitPrep } from './smart-features/SmartVisitPrep';
 export { default as SymptomsTracker } from './smart-features/SymptomsTracker';
 export { default as PatientGoals } from './smart-features/PatientGoals';
 export { default as WellnessAlerts } from './smart-features/WellnessAlerts';

@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import { protectedRoutes } from "@/routes/protectedRoutes";
@@ -11,7 +11,7 @@ import PatientRegistration from "./pages/patient-portal/registration";
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/patient/register" element={<PatientRegistration />} />
       {protectedRoutes.map((route) => (
