@@ -87,4 +87,5 @@ const AdminPortalSidebar: React.FC = () => {
   );
 };
 
-export default AdminPortalSidebar; 
+export default AdminPortalSidebar;
+export { AdminPortalSidebar }; 

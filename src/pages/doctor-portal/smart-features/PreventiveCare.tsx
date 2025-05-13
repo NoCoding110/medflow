@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
-import AIInsightsBox from '@/components/AIInsightsBox';
 
 // Test data for screenings
 const screenings = [
@@ -171,7 +170,6 @@ const PreventiveCare = () => {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold tracking-tight mb-6">Preventive Care</h1>
-      <AIInsightsBox />
       
       {/* Filters */}
       <div className="flex gap-4 mb-6">

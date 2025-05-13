@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { HealthChallenges } from "@/components/patient-portal/HealthChallenges";
+import HealthChallenges from "@/components/patient-portal/HealthChallenges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Check, Calendar } from "lucide-react";

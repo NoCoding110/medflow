@@ -9,4 +9,5 @@ const HealthChallenges: React.FC = () => {
   );
 };
 
-export default HealthChallenges; 
+export default HealthChallenges;
+export { HealthChallenges }; 

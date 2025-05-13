@@ -9,4 +9,5 @@ const AddFamilyMemberCard: React.FC = () => {
   );
 };
 
-export default AddFamilyMemberCard; 
+export default AddFamilyMemberCard;
+export { AddFamilyMemberCard }; 

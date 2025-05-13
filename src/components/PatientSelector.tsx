@@ -33,4 +33,5 @@ const PatientSelector: React.FC<PatientSelectorProps> = ({ patients, selectedPat
   );
 };
 
-export default PatientSelector; 
+export default PatientSelector;
+export { PatientSelector }; 

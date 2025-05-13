@@ -29,4 +29,20 @@ export { default as Telehealth } from './telehealth/DoctorTelehealth';
 
 // Feature Modules
 export * from './neurology';
-export * from './documents'; 
+export * from './documents';
+export { default as WellnessDashboard } from './smart-features/WellnessDashboard';
+export { default as MentalHealthTracker } from './smart-features/MentalHealthTracker';
+export { default as PreventiveCare } from './smart-features/PreventiveCare';
+export { SmartVisitPrep } from './smart-features/SmartVisitPrep';
+export { default as SymptomsTracker } from './smart-features/SymptomsTracker';
+export { default as PatientGoals } from './smart-features/PatientGoals';
+export { default as WellnessAlerts } from './smart-features/WellnessAlerts';
+export { GenerativeAI } from './ai-features/GenerativeAI';
+export { ConversationalAI } from './ai-features/ConversationalAI';
+export { default as AIPathologyAnalysis } from './ai-features/AIPathologyAnalysis';
+export { default as RealWorldDataPlatform } from './ai-features/RealWorldDataPlatform';
+export { default as NeurologyModule } from './ai-features/NeurologyModule';
+export { default as OncologyModule } from './ai-features/OncologyModule';
+export { default as CardiologyModule } from './ai-features/CardiologyModule';
+export { default as PsychiatryModule } from './ai-features/PsychiatryModule';
+export { default as ECGAIAnalysis } from './ai-features/ECGAIAnalysis'; 

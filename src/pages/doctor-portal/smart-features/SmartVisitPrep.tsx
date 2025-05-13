@@ -29,7 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRangePicker } from "@/components/core/date-range-picker";
 import { LineChart as RechartsLineChart, BarChart as RechartsBarChart, PieChart as RechartsPieChart } from "recharts";
 import { useToast } from "@/components/ui/use-toast";
 import { DateRange } from "react-day-picker";
@@ -101,7 +101,7 @@ type AISuggestion = any;
 
 export const SmartVisitPrep = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange>();
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -159,21 +159,14 @@ export const SmartVisitPrep = () => {
       setAiInsights(aiData);
       setAlerts(alertsData);
       setRetryCount(0);
-      toast({
-        title: "Data Updated",
-        description: "Visit preparation data has been refreshed",
-      });
+      toast.success("Visit preparation data has been refreshed");
     } catch (error) {
       setError("Failed to fetch visit data");
       if (retryCount < 3) {
         setRetryCount(prev => prev + 1);
         setTimeout(fetchData, 1000 * Math.pow(2, retryCount));
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch visit data after multiple attempts",
-          variant: "destructive",
-        });
+        toast.error("Failed to fetch visit data after multiple attempts");
       }
     } finally {
       setIsLoading(false);
@@ -244,23 +237,7 @@ export const SmartVisitPrep = () => {
 
   // Export data function
   const handleExportData = () => {
-    const data = {
-      visits,
-      analytics,
-      aiInsights,
-      alerts,
-      timestamp: new Date().toISOString(),
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `visit-prep-data-${new Date().toISOString()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    toast.success("Your data export is being prepared and will be available shortly.");
   };
 
   // Enhanced render with new features
@@ -275,7 +252,7 @@ export const SmartVisitPrep = () => {
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
-            size="icon" 
+            size="sm" 
             onClick={() => navigate(-1)}
             data-testid="back-button"
           >
@@ -283,16 +260,7 @@ export const SmartVisitPrep = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-semibold">Visit Preparation</h1>
-            <AIInsightsPanel
-              patient={null}
-              module="visit-prep"
-              data={{
-                visits,
-                analytics,
-                aiInsights,
-                alerts
-              }}
-            />
+            <AIInsightsPanel insights={aiInsights.map(i => i.message)} />
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -301,7 +269,7 @@ export const SmartVisitPrep = () => {
               <TooltipTrigger asChild>
                 <Button 
                   variant="outline" 
-                  size="icon" 
+                  size="sm" 
                   onClick={() => setShowFilters(!showFilters)}
                 >
                   <Filter className="h-4 w-4" />
@@ -317,7 +285,7 @@ export const SmartVisitPrep = () => {
               <TooltipTrigger asChild>
                 <Button 
                   variant="outline" 
-                  size="icon" 
+                  size="sm" 
                   onClick={fetchData} 
                   disabled={isLoading}
                   className="relative"

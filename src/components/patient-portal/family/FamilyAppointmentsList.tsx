@@ -9,4 +9,5 @@ const FamilyAppointmentsList: React.FC = () => {
   );
 };
 
-export default FamilyAppointmentsList; 
+export default FamilyAppointmentsList;
+export { FamilyAppointmentsList }; 
