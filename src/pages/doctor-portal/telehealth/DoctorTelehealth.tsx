@@ -44,6 +44,9 @@ import type {
   IMicrophoneAudioTrack,
 } from "agora-rtc-sdk-ng";
 
+import { getTelehealthSessions } from "@/lib/services/mockDoctorService";
+import { mockPatients } from "@/lib/mock/doctorMockData";
+
 interface SystemStatus {
   camera: boolean;
   microphone: boolean;
@@ -53,10 +56,15 @@ interface SystemStatus {
 
 interface Session {
   id: string;
-  patientName: string;
-  startTime: string;
-  duration: string;
+  patientId: string;
+  date: string;
+  time: string;
   type: string;
+  status: string;
+  notes: string;
+  duration: number;
+  platform: string;
+  meetingLink: string;
 }
 
 const DoctorTelehealth = () => {
@@ -76,39 +84,31 @@ const DoctorTelehealth = () => {
   });
 
   // Today's sessions
-  const [sessions] = useState<Session[]>([
-    {
-      id: "1",
-      patientName: "Alice Johnson",
-      startTime: "10:00 AM",
-      duration: "30 min",
-      type: "Follow-up",
-    },
-    {
-      id: "2",
-      patientName: "Bob Smith",
-      startTime: "11:30 AM",
-      duration: "45 min",
-      type: "Initial Consultation",
-    },
-    {
-      id: "3",
-      patientName: "Carol White",
-      startTime: "2:00 PM",
-      duration: "30 min",
-      type: "Review",
-    },
-  ]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Active patients in waiting room
   const [activePatients] = useState([
-    { id: "1", name: "Alice Johnson", waitTime: "2 min" },
-    { id: "2", name: "Bob Smith", waitTime: "5 min" },
+    { id: mockPatients[0].id, name: `${mockPatients[0].firstName} ${mockPatients[0].lastName}`, waitTime: "2 min" },
+    { id: mockPatients[1].id, name: `${mockPatients[1].firstName} ${mockPatients[1].lastName}`, waitTime: "5 min" },
   ]);
 
   const agoraClient = useRef(createClient());
 
   useEffect(() => {
+    // Load telehealth sessions
+    const loadSessions = async () => {
+      try {
+        const data = await getTelehealthSessions();
+        setSessions(data);
+      } catch (error) {
+        console.error("Error loading telehealth sessions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSessions();
+
     // Check system status
     checkSystemStatus();
     
@@ -251,7 +251,7 @@ const DoctorTelehealth = () => {
                   <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-navy-800/80 px-6 py-3 rounded-full">
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="default"
                       className={`rounded-full ${!isAudioEnabled ? 'bg-red-500 hover:bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}
                       onClick={toggleAudio}
                     >
@@ -263,7 +263,7 @@ const DoctorTelehealth = () => {
                     </Button>
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="default"
                       className={`rounded-full ${!isVideoEnabled ? 'bg-red-500 hover:bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}
                       onClick={toggleVideo}
                     >
@@ -275,7 +275,7 @@ const DoctorTelehealth = () => {
                     </Button>
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="default"
                       className="rounded-full bg-red-500 hover:bg-red-600"
                       onClick={endCall}
                     >
@@ -297,7 +297,7 @@ const DoctorTelehealth = () => {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium">System Status</CardTitle>
               <div className="flex items-center gap-2">
-                <Badge variant={systemStatus.serverStatus === "Online" ? "success" : "destructive"}>
+                <Badge variant={systemStatus.serverStatus === "Online" ? "default" : "destructive"}>
                   {systemStatus.serverStatus}
                 </Badge>
               </div>
@@ -307,13 +307,13 @@ const DoctorTelehealth = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Camera</span>
-                    <Badge variant={systemStatus.camera ? "success" : "destructive"}>
+                    <Badge variant={systemStatus.camera ? "default" : "destructive"}>
                       {systemStatus.camera ? "Connected" : "Not Connected"}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Microphone</span>
-                    <Badge variant={systemStatus.microphone ? "success" : "destructive"}>
+                    <Badge variant={systemStatus.microphone ? "default" : "destructive"}>
                       {systemStatus.microphone ? "Connected" : "Not Connected"}
                     </Badge>
                   </div>
@@ -321,14 +321,8 @@ const DoctorTelehealth = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Network Speed</span>
-                    <Badge variant={systemStatus.networkSpeed > 2 ? "success" : "warning"}>
+                    <Badge variant={systemStatus.networkSpeed > 2 ? "default" : "destructive"}>
                       {systemStatus.networkSpeed} Mbps
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Connection Quality</span>
-                    <Badge variant={systemStatus.networkSpeed > 2 ? "success" : "warning"}>
-                      {systemStatus.networkSpeed > 2 ? "Good" : "Fair"}
                     </Badge>
                   </div>
                 </div>
@@ -346,29 +340,36 @@ const DoctorTelehealth = () => {
               <Calendar className="h-4 w-4 text-navy-600" />
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-navy-100 hover:bg-navy-50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium">{session.patientName}</p>
-                      <p className="text-sm text-navy-600">
-                        {session.startTime} · {session.duration} · {session.type}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => startCall(session.id)}
-                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-                    >
-                      Join
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              {loading ? (
+                <div className="text-center py-4">Loading sessions...</div>
+              ) : (
+                <div className="space-y-4">
+                  {sessions.map((session) => {
+                    const patient = mockPatients.find(p => p.id === session.patientId);
+                    return (
+                      <div
+                        key={session.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-navy-100 hover:bg-navy-50 transition-colors"
+                      >
+                        <div>
+                          <p className="font-medium">{patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown Patient'}</p>
+                          <p className="text-sm text-navy-600">
+                            {session.time} · {session.duration} min · {session.type}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startCall(session.id)}
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                        >
+                          Join
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

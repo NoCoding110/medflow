@@ -272,75 +272,58 @@ export const createTelehealthSession = async (session: any) => {
 
 // Analytics
 export const getDoctorAnalytics = async () => {
-  await simulateApiDelay();
+  await delay(500);
   return {
     totalPatients: 150,
-    activePatients: 120,
+    newPatients: 12,
     totalAppointments: 45,
-    upcomingAppointments: 12,
-    totalPrescriptions: 85,
-    activePrescriptions: 30,
-    totalNotes: 200,
-    pendingLabResults: 5,
-    totalBilling: 25000,
-    pendingBilling: 5000,
-    patientTrend: [
-      { date: '2024-01', count: 120 },
-      { date: '2024-02', count: 130 },
-      { date: '2024-03', count: 140 },
-      { date: '2024-04', count: 150 }
-    ],
-    appointmentTrend: [
-      { date: '2024-01', count: 35 },
-      { date: '2024-02', count: 40 },
-      { date: '2024-03', count: 42 },
-      { date: '2024-04', count: 45 }
-    ]
+    upcomingAppointments: 8,
+    avgWaitTime: 15,
+    waitTimeTrend: '-5%',
+    satisfaction: 95,
+    satisfactionTrend: '+2%',
+    monthlyStats: {
+      appointments: [30, 35, 40, 45],
+      patients: [120, 125, 135, 150],
+      satisfaction: [92, 93, 94, 95]
+    }
   };
 };
 
 export const getRecentActivity = async (): Promise<Activity[]> => {
-  await simulateApiDelay();
+  await delay(500);
   return [
     {
       id: '1',
       type: 'appointment',
-      title: 'New appointment scheduled',
+      title: 'Completed Appointment',
       timestamp: new Date().toISOString(),
-      status: 'pending',
-      patientName: 'John Doe'
+      status: 'completed',
+      patientName: 'Alice Johnson'
     },
     {
       id: '2',
       type: 'prescription',
-      title: 'Prescription updated',
+      title: 'New Prescription',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      status: 'completed',
-      patientName: 'Jane Smith'
+      status: 'pending',
+      patientName: 'Bob Wilson'
     },
     {
       id: '3',
       type: 'lab',
-      title: 'Lab results received',
+      title: 'Lab Results Received',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      status: 'warning',
-      patientName: 'Mike Johnson'
+      status: 'completed',
+      patientName: 'Carol Davis'
     },
     {
       id: '4',
       type: 'note',
-      title: 'Clinical note added',
+      title: 'Clinical Note Added',
       timestamp: new Date(Date.now() - 10800000).toISOString(),
       status: 'completed',
-      patientName: 'Sarah Williams'
-    },
-    {
-      id: '5',
-      type: 'billing',
-      title: 'Payment received',
-      timestamp: new Date(Date.now() - 14400000).toISOString(),
-      status: 'completed',
-      patientName: 'Robert Brown'
+      patientName: 'David Miller'
     }
   ];
 }; 
