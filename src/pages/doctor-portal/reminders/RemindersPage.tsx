@@ -39,8 +39,7 @@ interface Reminder {
   created_at: string;
   patients?: {
     id: string;
-    first_name: string;
-    last_name: string;
+    name: string;
   };
 }
 
@@ -82,8 +81,7 @@ const RemindersPage = () => {
           *,
           patients (
             id,
-            first_name,
-            last_name
+            name
           )
         `)
         .eq('doctor_id', userData.id)

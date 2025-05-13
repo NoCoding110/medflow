@@ -2,10 +2,6 @@
 export { default as Dashboard } from './Dashboard';
 export { default as Patients } from './Patients';
 export { default as Appointments } from './appointments/DoctorAppointments';
-export { default as Notes } from './notes/DoctorNotes';
-export { default as Telehealth } from './telehealth/DoctorTelehealth';
-export { default as Lab } from './Lab';
-export { default as Billing } from './Billing';
 
 // Patient Components
 export { default as PatientProfile } from './patients/PatientProfile';
