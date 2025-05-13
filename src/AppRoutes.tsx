@@ -24,11 +24,7 @@ const AppRoutes = () => {
         ))}
       </Route>
       {/* Doctor routes */}
-      <Route path={doctorRoutes.path} element={doctorRoutes.element}>
-        {doctorRoutes.children.map((childRoute) => (
-          <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} />
-        ))}
-      </Route>
+      {doctorRoutes}
       {/* Admin routes */}
       <Route path={adminRoutes.path} element={adminRoutes.element}>
         {adminRoutes.children.map((childRoute) => (
