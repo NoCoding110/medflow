@@ -1,6 +1,4 @@
 import {
-  mockPatients,
-  mockAppointments,
   mockClinicalNotes,
   mockMedicalRecords,
   mockLabResults,
@@ -26,29 +24,109 @@ const simulateApiDelay = async () => {
   await new Promise(resolve => setTimeout(resolve, 500));
 };
 
+export interface Doctor {
+  id: string;
+  name: string;
+  specialization: string;
+  patients: number;
+  appointments: number;
+  rating: number;
+}
+
+export interface Appointment {
+  id: string;
+  patientName: string;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+}
+
+export interface Patient {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  lastVisit: string;
+  nextAppointment: string;
+  firstName: string;
+  lastName: string;
+}
+
+export const mockDoctor: Doctor = {
+  id: "1",
+  name: "Dr. John Smith",
+  specialization: "General Medicine",
+  patients: 150,
+  appointments: 25,
+  rating: 4.8,
+};
+
+export const mockAppointments: Appointment[] = [
+  {
+    id: "1",
+    patientName: "Alice Johnson",
+    date: "2024-03-20",
+    time: "09:00 AM",
+    type: "Check-up",
+    status: "Scheduled",
+  },
+  {
+    id: "2",
+    patientName: "Bob Wilson",
+    date: "2024-03-20",
+    time: "10:30 AM",
+    type: "Follow-up",
+    status: "Scheduled",
+  },
+];
+
+export const mockPatients: Patient[] = [
+  {
+    id: "1",
+    name: "Alice Johnson",
+    firstName: "Alice",
+    lastName: "Johnson",
+    age: 35,
+    gender: "Female",
+    lastVisit: "2024-02-15",
+    nextAppointment: "2024-03-20",
+  },
+  {
+    id: "2",
+    name: "Bob Wilson",
+    firstName: "Bob",
+    lastName: "Wilson",
+    age: 45,
+    gender: "Male",
+    lastVisit: "2024-02-20",
+    nextAppointment: "2024-03-20",
+  },
+];
+
 // Patients
-export const getPatients = async () => {
+export const getPatients = async (): Promise<Patient[]> => {
   await delay(500);
   return mockPatients;
 };
 
-export const getPatientById = async (id: string) => {
+export const getPatientById = async (id: string): Promise<Patient | undefined> => {
   await delay(300);
   return mockPatients.find(p => p.id === id);
 };
 
 // Appointments
-export const getAppointments = async () => {
+export const getAppointments = async (): Promise<Appointment[]> => {
   await delay(500);
   return mockAppointments;
 };
 
-export const getAppointmentById = async (id: string) => {
+export const getAppointmentById = async (id: string): Promise<Appointment | undefined> => {
   await delay(300);
   return mockAppointments.find(a => a.id === id);
 };
 
-export const createAppointment = async (appointment: any) => {
+export const createAppointment = async (appointment: Omit<Appointment, 'id'>): Promise<Appointment> => {
   await delay(500);
   const newAppointment = {
     id: Math.random().toString(36).substr(2, 9),

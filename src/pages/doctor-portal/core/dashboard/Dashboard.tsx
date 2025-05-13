@@ -34,7 +34,7 @@ import {
   Warning as WarningIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getDoctorAnalytics, getRecentActivity } from '../../lib/services/mockDoctorService';
+import { getDoctorAnalytics, getRecentActivity } from '../../../lib/services/mockDoctorService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 interface Analytics {

@@ -45,8 +45,7 @@ import {
   Assessment as AssessmentIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getLabResults } from '../../lib/services/mockDoctorService';
-import { getPatients } from '../../lib/services/mockDoctorService';
+import { getLabResults, getPatients } from '../../../lib/services/mockDoctorService';
 
 interface LabResult {
   id: string;
@@ -67,6 +66,11 @@ interface LabResult {
 
 interface Patient {
   id: string;
+  name: string;
+  age: number;
+  gender: string;
+  lastVisit: string;
+  nextAppointment: string;
   firstName: string;
   lastName: string;
 }

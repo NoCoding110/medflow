@@ -69,182 +69,163 @@ export const mockAppointments = [
 // Mock data for clinical notes
 export const mockClinicalNotes = [
   {
-    id: uuidv4(),
-    patientId: mockPatients[0].id,
-    date: "2024-03-01",
-    type: "Follow-up",
-    content: "Patient reports improved blood pressure control. Continue current medication regimen.",
-    attachments: ["blood_pressure_chart.pdf"],
-    tags: ["Hypertension", "Follow-up"]
+    id: '1',
+    patientId: '1',
+    date: '2024-03-15',
+    content: 'Regular checkup completed. Patient is in good health.',
+    type: 'checkup',
+    status: 'completed'
   },
   {
-    id: uuidv4(),
-    patientId: mockPatients[1].id,
-    date: "2024-02-28",
-    type: "Initial",
-    content: "New patient consultation. Discussed asthma management plan.",
-    attachments: ["asthma_action_plan.pdf"],
-    tags: ["Asthma", "New Patient"]
-  },
-  // Add more mock notes...
+    id: '2',
+    patientId: '2',
+    date: '2024-03-16',
+    content: 'Follow-up appointment. Patient reported improvement in symptoms.',
+    type: 'followup',
+    status: 'completed'
+  }
 ];
 
 // Mock data for medical records
 export const mockMedicalRecords = [
   {
-    id: uuidv4(),
-    patientId: mockPatients[0].id,
-    type: "Lab Result",
-    date: "2024-03-01",
-    title: "Blood Work Results",
-    content: "Complete blood count and metabolic panel results",
-    attachments: ["lab_results_20240301.pdf"],
-    status: "reviewed"
+    id: '1',
+    patientId: '1',
+    date: '2024-03-15',
+    type: 'general',
+    diagnosis: 'Healthy',
+    treatment: 'None required',
+    status: 'active'
   },
   {
-    id: uuidv4(),
-    patientId: mockPatients[1].id,
-    type: "Imaging",
-    date: "2024-02-28",
-    title: "Chest X-Ray",
-    content: "Routine chest X-ray results",
-    attachments: ["chest_xray_20240228.pdf"],
-    status: "pending"
-  },
-  // Add more mock records...
+    id: '2',
+    patientId: '2',
+    date: '2024-03-16',
+    type: 'followup',
+    diagnosis: 'Recovering',
+    treatment: 'Continue medication',
+    status: 'active'
+  }
 ];
 
 // Mock data for lab results
 export const mockLabResults = [
   {
-    id: uuidv4(),
-    patientId: mockPatients[0].id,
-    date: "2024-03-01",
-    type: "Blood Work",
+    id: '1',
+    patientId: '1',
+    date: '2024-03-15',
+    type: 'blood',
     tests: [
-      { name: "Hemoglobin", value: "14.2", unit: "g/dL", range: "13.5-17.5" },
-      { name: "Glucose", value: "95", unit: "mg/dL", range: "70-100" }
+      {
+        name: 'Complete Blood Count',
+        value: 'Normal',
+        unit: 'N/A',
+        range: 'Normal Range'
+      }
     ],
-    status: "completed",
-    notes: "All values within normal range"
+    status: 'completed',
+    notes: 'All values within normal range'
   },
   {
-    id: uuidv4(),
-    patientId: mockPatients[1].id,
-    date: "2024-02-28",
-    type: "Urinalysis",
+    id: '2',
+    patientId: '2',
+    date: '2024-03-16',
+    type: 'urine',
     tests: [
-      { name: "pH", value: "6.0", unit: "", range: "5.0-7.0" },
-      { name: "Protein", value: "Negative", unit: "", range: "Negative" }
+      {
+        name: 'Urinalysis',
+        value: 'Normal',
+        unit: 'N/A',
+        range: 'Normal Range'
+      }
     ],
-    status: "completed",
-    notes: "Normal results"
-  },
-  // Add more mock lab results...
+    status: 'completed',
+    notes: 'No abnormalities detected'
+  }
 ];
 
 // Mock data for billing
 export const mockBilling = [
   {
-    id: uuidv4(),
-    patientId: mockPatients[0].id,
-    date: "2024-03-01",
-    type: "Consultation",
-    amount: 150.00,
-    status: "paid",
-    insurance: "Blue Cross",
-    claimNumber: "BC123456"
+    id: '1',
+    patientId: '1',
+    date: '2024-03-15',
+    type: 'consultation',
+    amount: 150,
+    status: 'paid',
+    insurance: 'Blue Cross',
+    claimNumber: 'BC123456'
   },
   {
-    id: uuidv4(),
-    patientId: mockPatients[1].id,
-    date: "2024-02-28",
-    type: "New Patient Visit",
-    amount: 200.00,
-    status: "pending",
-    insurance: "Aetna",
-    claimNumber: "AE789012"
-  },
-  // Add more mock billing records...
+    id: '2',
+    patientId: '2',
+    date: '2024-03-16',
+    type: 'procedure',
+    amount: 300,
+    status: 'pending',
+    insurance: 'Aetna',
+    claimNumber: 'AE789012'
+  }
 ];
 
 // Mock data for prescriptions
 export const mockPrescriptions = [
   {
-    id: uuidv4(),
-    patientId: mockPatients[0].id,
-    date: "2024-03-01",
-    medication: "Lisinopril",
-    dosage: "10mg",
-    frequency: "Once daily",
-    duration: "30 days",
-    status: "active",
-    refills: 2,
-    pharmacy: "CVS Pharmacy"
+    id: '1',
+    patientId: '1',
+    date: '2024-03-15',
+    medication: 'Vitamin D',
+    dosage: '1000 IU',
+    frequency: 'Daily',
+    status: 'active'
   },
   {
-    id: uuidv4(),
-    patientId: mockPatients[1].id,
-    date: "2024-02-28",
-    medication: "Albuterol",
-    dosage: "90mcg",
-    frequency: "As needed",
-    duration: "90 days",
-    status: "active",
-    refills: 1,
-    pharmacy: "Walgreens"
-  },
-  // Add more mock prescriptions...
+    id: '2',
+    patientId: '2',
+    date: '2024-03-16',
+    medication: 'Amoxicillin',
+    dosage: '500mg',
+    frequency: 'Twice daily',
+    status: 'active'
+  }
 ];
 
 // Mock data for reminders
 export const mockReminders = [
   {
-    id: uuidv4(),
-    title: "Follow up with John Smith",
-    date: "2024-03-15",
-    time: "09:00",
-    type: "Patient Follow-up",
-    status: "pending",
-    priority: "high",
-    notes: "Check blood pressure control"
+    id: '1',
+    patientId: '1',
+    date: '2024-03-20',
+    type: 'appointment',
+    message: 'Follow-up appointment scheduled',
+    status: 'pending'
   },
   {
-    id: uuidv4(),
-    title: "Review Sarah Johnson's lab results",
-    date: "2024-03-20",
-    time: "10:30",
-    type: "Lab Review",
-    status: "pending",
-    priority: "medium",
-    notes: "New patient lab work review"
-  },
-  // Add more mock reminders...
+    id: '2',
+    patientId: '2',
+    date: '2024-03-21',
+    type: 'medication',
+    message: 'Refill prescription',
+    status: 'pending'
+  }
 ];
 
 // Mock data for telehealth sessions
 export const mockTelehealthSessions = [
   {
-    id: uuidv4(),
-    patientId: mockPatients[0].id,
-    date: "2024-03-15",
-    time: "09:00",
-    duration: 30,
-    status: "scheduled",
-    type: "Follow-up",
-    link: "https://meet.example.com/123",
-    notes: "Regular check-up via telehealth"
+    id: '1',
+    patientId: '1',
+    date: '2024-03-20',
+    time: '10:00 AM',
+    type: 'consultation',
+    status: 'scheduled'
   },
   {
-    id: uuidv4(),
-    patientId: mockPatients[1].id,
-    date: "2024-03-20",
-    time: "10:30",
-    duration: 45,
-    status: "scheduled",
-    type: "New Patient",
-    link: "https://meet.example.com/124",
-    notes: "Initial consultation via telehealth"
-  },
-  // Add more mock telehealth sessions...
+    id: '2',
+    patientId: '2',
+    date: '2024-03-21',
+    time: '2:00 PM',
+    type: 'followup',
+    status: 'scheduled'
+  }
 ]; 
