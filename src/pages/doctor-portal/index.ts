@@ -2,12 +2,10 @@
 export { default as Dashboard } from './Dashboard';
 export { default as Patients } from './Patients';
 export { default as Appointments } from './appointments/DoctorAppointments';
-export { default as Records } from './records/Records';
 export { default as Lab } from './lab-integration/LabIntegration';
 export { default as Billing } from './billing/DoctorBilling';
-export { default as Notes } from './notes/DoctorNotes';
+export { default as DoctorNotes } from './notes/DoctorNotes';
 export { default as Telehealth } from './telehealth/DoctorTelehealth';
-export { default as Settings } from './settings/Settings';
 
 // Smart Features
 export { default as WellnessDashboard } from './smart-features/WellnessDashboard';
