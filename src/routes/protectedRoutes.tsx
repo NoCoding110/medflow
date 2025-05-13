@@ -1,11 +1,13 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import Dashboard from "@/pages/doctor-portal/Dashboard";
-import Patients from "@/pages/doctor-portal/Patients";
-import PatientProfile from "@/pages/doctor-portal/patients/PatientProfile";
-import Appointments from "@/pages/doctor-portal/Appointments";
-import Documents from "@/pages/doctor-portal/Records";
-import Settings from "@/pages/doctor-portal/Settings";
+import {
+  Dashboard,
+  Patients,
+  Appointments,
+  Records,
+  Settings,
+  PatientProfile
+} from "@/pages/doctor-portal";
 import {
   NeurologyDashboard,
   TreatmentMonitoring,
@@ -76,7 +78,7 @@ export const protectedRoutes = [
     path: "/documents",
     element: (
       <ProtectedRoute>
-        <Documents />
+        <Records />
       </ProtectedRoute>
     ),
   },
