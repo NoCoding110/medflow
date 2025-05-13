@@ -60,7 +60,7 @@ interface EmergencyContact {
 
 const PatientHealthAssistant = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -159,15 +159,11 @@ const PatientHealthAssistant = () => {
     } catch (error) {
       // Revert optimistic update on error
       setMessages(prev => prev.filter(msg => msg !== userMessage));
-      toast({
-        title: "Error",
-        description: "Failed to get response from AI assistant. Please try again.",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: 'Failed to get response from AI assistant. Please try again.' });
     } finally {
       setIsLoading(false);
     }
-  }, [inputMessage, setMessages, toast]);
+  }, [inputMessage, setMessages, addToast]);
 
   // Memoize handlers to prevent unnecessary re-renders
   const handleTabChange = useCallback((value: string) => {
@@ -191,23 +187,15 @@ const PatientHealthAssistant = () => {
       setAnalysisResult(result);
       handleTabChange('analysis');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to analyze the file. Please try again.",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: 'Failed to analyze the file. Please try again.' });
     } finally {
       setIsLoading(false);
     }
-  }, [handleTabChange, toast]);
+  }, [handleTabChange, addToast]);
 
   const handleVoiceInput = async () => {
     if (!('webkitSpeechRecognition' in window)) {
-      toast({
-        title: "Error",
-        description: "Voice input is not supported in your browser.",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: 'Voice input is not supported in your browser.' });
       return;
     }
 
@@ -226,11 +214,7 @@ const PatientHealthAssistant = () => {
     };
 
     recognition.onerror = (event: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to recognize speech. Please try again.",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: 'Failed to recognize speech. Please try again.' });
     };
 
     recognition.onend = () => {
@@ -247,11 +231,7 @@ const PatientHealthAssistant = () => {
       setLiteratureResults(results);
       handleTabChange('literature');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to search medical literature. Please try again.",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: 'Failed to search medical literature. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -266,11 +246,7 @@ const PatientHealthAssistant = () => {
       setCarePathway(result);
       handleTabChange('care-pathway');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to analyze care pathway. Please try again.",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: 'Failed to analyze care pathway. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -312,11 +288,7 @@ const PatientHealthAssistant = () => {
     setShowAddMetric(false);
 
     if (status === 'critical') {
-      toast({
-        title: "Critical Health Metric",
-        description: `Your ${metric.type} reading is critical. Please consult a healthcare provider.`,
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Critical Health Metric', description: `Your ${metric.type} reading is critical. Please consult a healthcare provider.` });
     }
   };
 
@@ -329,10 +301,7 @@ const PatientHealthAssistant = () => {
     const timeUntilNextDose = medication.nextDose.getTime() - Date.now();
     if (timeUntilNextDose > 0) {
       setTimeout(() => {
-        toast({
-          title: "Medication Reminder",
-          description: `Time to take ${medication.name} (${medication.dosage})`,
-        });
+        addToast({ type: 'success', title: 'Medication Reminder', description: `Time to take ${medication.name} (${medication.dosage})` });
       }, timeUntilNextDose);
     }
   };
@@ -344,11 +313,7 @@ const PatientHealthAssistant = () => {
     setShowAddSymptom(false);
 
     if (symptom.severity === 'severe') {
-      toast({
-        title: "Severe Symptom Alert",
-        description: `Your symptom "${symptom.name}" is severe. Please seek medical attention.`,
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Severe Symptom Alert', description: `Your symptom "${symptom.name}" is severe. Please seek medical attention.` });
     }
   };
 
@@ -393,17 +358,14 @@ const PatientHealthAssistant = () => {
       medications.forEach(med => {
         const timeUntilNext = med.nextDose.getTime() - now.getTime();
         if (timeUntilNext > 0 && timeUntilNext <= 1800000) { // 30 minutes
-          toast({
-            title: "Upcoming Medication",
-            description: `${med.name} (${med.dosage}) is due in ${Math.round(timeUntilNext / 60000)} minutes`,
-          });
+          addToast({ type: 'success', title: 'Upcoming Medication', description: `${med.name} (${med.dosage}) is due in ${Math.round(timeUntilNext / 60000)} minutes` });
         }
       });
     };
 
     const interval = setInterval(checkMedications, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [medications, toast]);
+  }, [medications, addToast]);
 
   // Effect to clean up old health metrics (keep last 30 days)
   useEffect(() => {
@@ -439,18 +401,11 @@ const PatientHealthAssistant = () => {
 
     const result = await importData(file);
     if (result.success) {
-      toast({
-        title: "Success",
-        description: "Data imported successfully",
-      });
+      addToast({ type: 'success', title: 'Success', description: 'Data imported successfully' });
       // Refresh the page to show imported data
       window.location.reload();
     } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to import data",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: result.error || 'Failed to import data' });
     }
   };
 
@@ -462,34 +417,20 @@ const PatientHealthAssistant = () => {
     setIsBackingUp(false);
 
     if (result.success) {
-      toast({
-        title: "Success",
-        description: "Backup created successfully",
-      });
+      addToast({ type: 'success', title: 'Success', description: 'Backup created successfully' });
     } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to create backup",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: result.error || 'Failed to create backup' });
     }
   };
 
   const handleRestoreBackup = async (backupId: string) => {
     const result = await restoreBackup(backupId);
     if (result.success) {
-      toast({
-        title: "Success",
-        description: "Backup restored successfully",
-      });
+      addToast({ type: 'success', title: 'Success', description: 'Backup restored successfully' });
       // Refresh the page to show restored data
       window.location.reload();
     } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to restore backup",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: result.error || 'Failed to restore backup' });
     }
   };
 
@@ -501,18 +442,11 @@ const PatientHealthAssistant = () => {
     setIsSyncing(false);
 
     if (result.success) {
-      toast({
-        title: "Success",
-        description: "Data synchronized successfully",
-      });
+      addToast({ type: 'success', title: 'Success', description: 'Data synchronized successfully' });
       // Refresh the page to show synced data
       window.location.reload();
     } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to sync data",
-        variant: "destructive",
-      });
+      addToast({ type: 'error', title: 'Error', description: result.error || 'Failed to sync data' });
     }
   };
 
@@ -520,7 +454,7 @@ const PatientHealthAssistant = () => {
     <div className="container py-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">AI Health Assistant</h1>
-        <p className="text-muted-foreground">Your personal AI-powered health companion</p>
+        <p className="text-muted-foreground">Get instant answers to your health questions, 24/7</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[1fr_300px]">
@@ -603,7 +537,7 @@ const PatientHealthAssistant = () => {
                   <div className="flex w-full gap-2">
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => fileInputRef.current?.click()}
                       title="Upload medical file for analysis"
                     >
@@ -611,7 +545,7 @@ const PatientHealthAssistant = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleVoiceInput()}
                       disabled={isRecording}
                       title="Voice input"
@@ -619,7 +553,7 @@ const PatientHealthAssistant = () => {
                       <Mic className={`h-4 w-4 ${isRecording ? "text-red-500" : ""}`} />
                     </Button>
                     <Input
-                      placeholder="Type your message..."
+                      placeholder="Type your health question here..."
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
@@ -843,30 +777,16 @@ const PatientHealthAssistant = () => {
                 <Button
                   variant="outline"
                   className="w-full justify-start text-left"
-                  onClick={() => handleSendMessage("What do my recent lab results mean?")}
+                  onClick={() => handleSendMessage("What does my blood pressure reading mean?")}
                 >
-                  What do my recent lab results mean?
+                  What does my blood pressure reading mean?
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full justify-start text-left"
-                  onClick={() => handleSendMessage("What are the side effects of my medications?")}
+                  onClick={() => handleSendMessage("When is my next appointment?")}
                 >
-                  What are the side effects of my medications?
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left"
-                  onClick={() => handleSendMessage("How can I improve my sleep quality?")}
-                >
-                  How can I improve my sleep quality?
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left"
-                  onClick={() => handleSendMessage("What exercises are safe for my condition?")}
-                >
-                  What exercises are safe for my condition?
+                  When is my next appointment?
                 </Button>
               </div>
             </CardContent>
@@ -879,20 +799,13 @@ const PatientHealthAssistant = () => {
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <Upload className="h-4 w-4 text-blue-600" />
-                  <span>Upload medical files for analysis</span>
+                  <span>Answer health questions</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Mic className="h-4 w-4 text-blue-600" />
-                  <span>Voice input support</span>
+                  <span>Interpret lab results</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <BookOpen className="h-4 w-4 text-blue-600" />
-                  <span>Medical literature search</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Save className="h-4 w-4 text-blue-600" />
-                  <span>Data backup and sync</span>
+                  <span>Explain medical conditions</span>
                 </div>
               </div>
             </CardContent>
