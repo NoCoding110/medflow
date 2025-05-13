@@ -1,11 +1,10 @@
-
 import React, { useState, FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/core/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/core/card";
+import { Input } from "@/components/core/input";
+import { Label } from "@/components/core/label";
+import { useToast } from "@/components/core/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Stethoscope, User, Shield } from "lucide-react";
 

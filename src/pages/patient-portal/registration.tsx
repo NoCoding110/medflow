@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/core/card";
+import { Input } from "@/components/core/input";
+import { Button } from "@/components/core/button";
+import { Label } from "@/components/core/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/core/select";
+import { Textarea } from "@/components/core/textarea";
 import { toast } from "react-hot-toast";
 import { supabase } from '@/lib/supabase';
 

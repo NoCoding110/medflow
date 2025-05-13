@@ -1,14 +1,10 @@
-// UI Components
-export * from './ui';
-
-// Shared Components
-export * from './shared';
+// Core UI Components
+export * from './core';
 
 // Feature-specific Components
-export * from './doctor-portal';
-export * from './patient-portal';
-export * from './admin-portal';
-export * from './auth';
+export * from './features/auth';
+export * from './features/patient';
+export * from './features/ai';
 
 // Form Components
 export * from './forms';
@@ -16,5 +12,5 @@ export * from './forms';
 // Dialog Components
 export * from './dialogs';
 
-// AI Components
-export * from './ai'; 
+// Layout Components
+export * from './layout'; 

@@ -4,10 +4,9 @@ import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "sonner";
 import AppRoutes from "./AppRoutes";
 import { useVersionCheck } from './hooks/useVersionCheck';
-import { TooltipProvider } from "@/components/ui/tooltip";
-import PatientRegistration from './pages/patient/registration/PatientRegistration';
+import { TooltipProvider } from "@/components/core/tooltip";
 import { ensureTestDoctor } from '@/lib/utils/test-data';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/core/use-toast';
 
 function App() {
   const { toast } = useToast();
