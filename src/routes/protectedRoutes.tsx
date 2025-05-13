@@ -4,9 +4,40 @@ import {
   Dashboard,
   Patients,
   Appointments,
-  Records,
   Settings,
-  PatientProfile
+  PatientProfile,
+  PatientNotes,
+  NewPatientDialog,
+  Notes,
+  Telehealth,
+  Lab,
+  Billing,
+  WellnessDashboard,
+  VitalsTracker,
+  NutritionTracker,
+  FitnessTracking,
+  MedicationAdherence,
+  MentalHealthTracker,
+  PreventiveCare,
+  SmartVisitPrep,
+  SymptomsTracker,
+  PatientGoals,
+  WellnessAlerts,
+  DoctorAIAssistant,
+  PredictiveAnalysis,
+  GenerativeAI,
+  ConversationalAI,
+  AIPathologyAnalysis,
+  CarePathwayMonitor,
+  RealWorldDataPlatform,
+  NeurologyModule,
+  OncologyModule,
+  CardiologyModule,
+  PsychiatryModule,
+  ECGAIAnalysis,
+  SpecializedModules,
+  SecureMessaging,
+  PatientMessaging,
 } from "@/pages/doctor-portal";
 import {
   NeurologyDashboard,
@@ -71,14 +102,6 @@ export const protectedRoutes = [
     element: (
       <ProtectedRoute>
         <Appointments />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/documents",
-    element: (
-      <ProtectedRoute>
-        <Records />
       </ProtectedRoute>
     ),
   },

@@ -1,4 +1,3 @@
-
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import PatientPortal from "@/pages/patient-portal/PatientPortal";
@@ -10,7 +9,7 @@ import PatientMessages from "@/pages/patient-portal/PatientMessages";
 import PatientBilling from "@/pages/patient-portal/PatientBilling";
 import PatientSettings from "@/pages/patient-portal/PatientSettings";
 import PatientChallenges from "@/pages/patient-portal/PatientChallenges";
-import PatientMentalHealth from "@/pages/patient-portal/PatientMentalHealth";
+import PatientMentalHealth from "@/pages/patient-portal/mental-health/PatientMentalHealth";
 import PatientTelehealth from "@/pages/patient-portal/PatientTelehealth";
 import PatientRiskScores from "@/pages/patient-portal/PatientRiskScores";
 import PatientLeaderboard from "@/pages/patient-portal/PatientLeaderboard";

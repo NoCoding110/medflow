@@ -6,7 +6,7 @@ import { protectedRoutes } from "@/routes/protectedRoutes";
 import { patientRoutes } from "@/routes/patientRoutes";
 import { doctorRoutes } from "@/routes/doctorRoutes";
 import { adminRoutes } from "@/routes/adminRoutes";
-import PatientRegistration from "./pages/patient/registration/PatientRegistration";
+import PatientRegistration from "./pages/patient-portal/registration";
 
 const AppRoutes = () => {
   return (
