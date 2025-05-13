@@ -21,6 +21,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "target": "ESNext"
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "noFallthroughCasesInSwitch": true
   }
 }

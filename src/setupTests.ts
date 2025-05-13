@@ -1,5 +1,19 @@
 import '@testing-library/jest-dom';
 
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+  length: 0,
+  key: jest.fn(),
+  [Symbol.iterator]: function* () {
+    yield* Object.entries(this);
+  }
+};
+global.localStorage = localStorageMock;
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
