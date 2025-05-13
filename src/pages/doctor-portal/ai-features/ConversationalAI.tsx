@@ -16,8 +16,8 @@ interface Message {
   type?: 'text' | 'symptom' | 'treatment' | 'general';
 }
 
-export const ConversationalAI = () => {
-  const { toast } = useToast();
+const ConversationalAI = () => {
+  const { addToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +69,7 @@ export const ConversationalAI = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      toast({
+      addToast({
         variant: "destructive",
         title: "Error",
         description: "Failed to get response. Please try again."
@@ -83,7 +83,8 @@ export const ConversationalAI = () => {
     const file = event.target.files?.[0];
     if (file) {
       // Simulate file processing
-      toast({
+      addToast({
+        type: "info",
         title: "File Uploaded",
         description: "Processing your medical document..."
       });
@@ -92,7 +93,8 @@ export const ConversationalAI = () => {
 
   const handleVoiceInput = () => {
     // Simulate voice input
-    toast({
+    addToast({
+      type: "info",
       title: "Voice Input",
       description: "Starting voice recognition..."
     });
@@ -196,17 +198,15 @@ export const ConversationalAI = () => {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="icon"
+                size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                title="Upload medical document"
               >
                 <Upload className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
-                size="icon"
+                size="sm"
                 onClick={handleVoiceInput}
-                title="Voice input"
               >
                 <Mic className="h-4 w-4" />
               </Button>
@@ -267,4 +267,6 @@ export const ConversationalAI = () => {
       </Card>
     </div>
   );
-}; 
+};
+
+export default ConversationalAI; 

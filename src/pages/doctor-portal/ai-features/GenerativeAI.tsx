@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { FileText, Download, Loader2 } from "lucide-react";
 
-export const GenerativeAI = () => {
-  const { toast } = useToast();
+const GenerativeAI = () => {
+  const { addToast } = useToast();
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
@@ -16,8 +16,8 @@ export const GenerativeAI = () => {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Prompt required",
         description: "Please enter a prompt to generate content."
       });
@@ -38,13 +38,14 @@ export const GenerativeAI = () => {
 
       setGeneratedContent(mockResponses[contentType as keyof typeof mockResponses]);
       
-      toast({
+      addToast({
+        type: "info",
         title: "Content Generated",
         description: "The AI has generated the requested content."
       });
     } catch (error) {
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Generation Failed",
         description: "Failed to generate content. Please try again."
       });
@@ -145,4 +146,6 @@ export const GenerativeAI = () => {
       </Card>
     </div>
   );
-}; 
+};
+
+export default GenerativeAI; 

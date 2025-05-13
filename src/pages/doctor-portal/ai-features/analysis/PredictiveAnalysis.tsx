@@ -7,8 +7,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { LineChart, BarChart, PieChart, Loader2, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-export const PredictiveAnalysis = () => {
-  const { toast } = useToast();
+const PredictiveAnalysis = () => {
+  const { addToast } = useToast();
   const [analysisType, setAnalysisType] = useState('outcome');
   const [patientData, setPatientData] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
@@ -16,8 +16,8 @@ export const PredictiveAnalysis = () => {
 
   const handleAnalyze = async () => {
     if (!patientData.trim()) {
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Data required",
         description: "Please enter patient data for analysis."
       });
@@ -76,13 +76,13 @@ export const PredictiveAnalysis = () => {
 
       setResults(mockResponses[analysisType as keyof typeof mockResponses]);
       
-      toast({
+      addToast({
         title: "Analysis Complete",
         description: "The AI has completed the predictive analysis."
       });
     } catch (error) {
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Analysis Failed",
         description: "Failed to complete the analysis. Please try again."
       });
@@ -270,4 +270,6 @@ export const PredictiveAnalysis = () => {
       </Card>
     </div>
   );
-}; 
+};
+
+export default PredictiveAnalysis; 

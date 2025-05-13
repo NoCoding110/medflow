@@ -99,7 +99,7 @@ interface AnalyticsFilter {
 // Add placeholder type for AISuggestion
 type AISuggestion = any;
 
-export const SmartVisitPrep = () => {
+const SmartVisitPrep = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -529,6 +529,8 @@ export const SmartVisitPrep = () => {
     </div>
   );
 };
+
+export default SmartVisitPrep;
 
 // Helper functions
 const calculateVisitTypeDistribution = (visits: VisitData[]) => {
