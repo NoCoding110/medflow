@@ -6,7 +6,6 @@ import { protectedRoutes } from "@/routes/protectedRoutes";
 import { patientRoutes } from "@/routes/patientRoutes";
 import { doctorRoutes } from "@/routes/doctorRoutes";
 import { adminRoutes } from "@/routes/adminRoutes";
-import NewPatient from "./pages/NewPatient";
 import PatientRegistration from "./pages/patient/registration/PatientRegistration";
 
 const AppRoutes = () => {
@@ -14,7 +13,6 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/patients/new" element={<NewPatient />} />
       <Route path="/patient/register" element={<PatientRegistration />} />
       {protectedRoutes.map((route) => (
         <Route key={route.path} {...route} />
