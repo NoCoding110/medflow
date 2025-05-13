@@ -6,6 +6,13 @@ import PatientProfile from "@/pages/doctor-portal/patients/PatientProfile";
 import Appointments from "@/pages/doctor-portal/Appointments";
 import Documents from "@/pages/doctor-portal/Records";
 import Settings from "@/pages/doctor-portal/Settings";
+import {
+  NeurologyDashboard,
+  TreatmentMonitoring,
+  CognitiveAssessment,
+  PatientMonitoring,
+  TreatmentPlan
+} from "@/pages/doctor-portal/neurology";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -78,6 +85,46 @@ export const protectedRoutes = [
     element: (
       <ProtectedRoute>
         <Settings />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/neurology",
+    element: (
+      <ProtectedRoute>
+        <NeurologyDashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/neurology/treatment-monitoring",
+    element: (
+      <ProtectedRoute>
+        <TreatmentMonitoring />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/neurology/cognitive-assessment",
+    element: (
+      <ProtectedRoute>
+        <CognitiveAssessment />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/neurology/patient-monitoring",
+    element: (
+      <ProtectedRoute>
+        <PatientMonitoring />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/neurology/treatment-plan",
+    element: (
+      <ProtectedRoute>
+        <TreatmentPlan />
       </ProtectedRoute>
     ),
   },
