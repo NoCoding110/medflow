@@ -15,7 +15,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { PatientSelector } from '@/components/PatientSelector';
+import PatientSelector from '@/components/PatientSelector';
 import AIInsightsPanel from '@/components/AIInsightsPanel';
 import { getVitals, VitalsRecord } from '@/lib/mock/healthMockData';
 

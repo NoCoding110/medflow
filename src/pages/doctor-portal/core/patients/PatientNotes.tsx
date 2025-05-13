@@ -9,7 +9,7 @@ import NewNoteDialog from "../notes/NewNoteDialog";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
 import AudioRecorderComponent from '@/components/AudioRecorder';
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 const PatientNotes = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +31,7 @@ const PatientNotes = () => {
   const [aiError, setAiError] = useState<string | null>(null);
   const [newNote, setNewNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -80,15 +81,15 @@ const PatientNotes = () => {
     } catch (error) {
       console.error('Error fetching notes:', error);
       setError('Failed to fetch notes. Please try again later.');
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Error",
         description: "Failed to fetch notes. Please try again later.",
       });
     } finally {
       setLoading(false);
     }
-  }, [user?.id, id, toast]);
+  }, [user?.id, id, addToast]);
 
   useEffect(() => {
     if (id) fetchNotes();
@@ -227,14 +228,14 @@ const PatientNotes = () => {
 
       setNewNote('');
       fetchNotes();
-      toast({
+      addToast({
         title: "Success",
         description: "Note added successfully",
       });
     } catch (error) {
       console.error('Error adding note:', error);
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Error",
         description: "Failed to add note. Please try again later.",
       });

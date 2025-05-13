@@ -49,7 +49,7 @@ import {
   ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getPatients } from '../../lib/services/mockDoctorService';
+import { getPatients } from '@/lib/services/mockDoctorService';
 
 interface Patient {
   id: string;

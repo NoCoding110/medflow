@@ -1,6 +1,4 @@
-
-import { toast } from "@/components/ui/use-toast";
-
+// NOTE: To show toasts, use the useToast hook in your React component after calling this function.
 export const handleActionWithToast = async (
   action: () => Promise<void>,
   successMessage: string,
@@ -8,20 +6,12 @@ export const handleActionWithToast = async (
 ) => {
   try {
     await action();
-    toast({
-      title: "Success",
-      description: successMessage,
-      variant: "default",
-    });
-    return true;
+    // Show success toast in your component
+    return { success: true, message: successMessage };
   } catch (error) {
     console.error(error);
-    toast({
-      title: "Error",
-      description: errorMessage,
-      variant: "destructive",
-    });
-    return false;
+    // Show error toast in your component
+    return { success: false, message: errorMessage };
   }
 };
 

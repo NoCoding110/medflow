@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import AIInsightsPanel from '@/components/AIInsightsPanel';
-import { PatientSelector } from '@/components/PatientSelector';
+import PatientSelector from '@/components/PatientSelector';
 
 // Types
 interface Patient {

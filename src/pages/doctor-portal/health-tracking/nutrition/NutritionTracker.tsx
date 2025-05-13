@@ -14,7 +14,7 @@ import {
   Apple, Utensils, Clock, Search, User, ChevronRight, AlertTriangle, CheckCircle2, Scale, Leaf, Fish, Milk, Beef, Cookie, TrendingUp, TrendingDown, Minus, BarChart2, Sparkles
 } from 'lucide-react';
 import { toast } from "react-hot-toast";
-import { PatientSelector } from '@/components/PatientSelector';
+import PatientSelector from '@/components/PatientSelector';
 import AIInsightsPanel from '@/components/AIInsightsPanel';
 import { supabase } from '@/lib/supabase';
 

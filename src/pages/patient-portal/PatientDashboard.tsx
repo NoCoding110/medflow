@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HealthChallenges } from "@/components/patient-portal/HealthChallenges";
-import { FuturisticFeatures } from "@/components/patient-portal/FuturisticFeatures";
+import HealthChallenges from "@/components/patient-portal/HealthChallenges";
+import FuturisticFeatures from "@/components/patient-portal/FuturisticFeatures";
 import {
   getPatientAppointments,
   getPatientPrescriptions,

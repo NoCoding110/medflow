@@ -1,7 +1,6 @@
-
 import React, { useEffect } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
-import { PatientPortalSidebar } from "@/components/patient-portal/PatientPortalSidebar";
+import PatientPortalSidebar from "@/components/patient-portal/PatientPortalSidebar";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";

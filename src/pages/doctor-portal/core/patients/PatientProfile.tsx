@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import QuickNoteDialog from '../notes/QuickNoteDialog';
 import AudioRecorderComponent from '@/components/AudioRecorder';
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +26,7 @@ const PatientProfile = () => {
   const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false);
   const [isVoiceNoteOpen, setIsVoiceNoteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const fetchPatientData = useCallback(async () => {
     setLoading(true);
@@ -81,15 +82,15 @@ const PatientProfile = () => {
     } catch (error) {
       console.error('Error fetching patient data:', error);
       setError('Failed to fetch patient data. Please try again later.');
-      toast({
-        variant: "destructive",
+      addToast({
+        type: "error",
         title: "Error",
         description: "Failed to fetch patient data. Please try again later.",
       });
     } finally {
       setLoading(false);
     }
-  }, [user?.id, id, toast]);
+  }, [user?.id, id, addToast]);
 
   useEffect(() => {
     if (id) fetchPatientData();

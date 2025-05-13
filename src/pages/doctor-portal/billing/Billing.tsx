@@ -45,7 +45,7 @@ import {
   AccountBalance as AccountBalanceIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getBillingRecords, createBillingRecord, getPatients } from '../../../lib/services/mockDoctorService';
+import { getBillingRecords, createBillingRecord, getPatients } from '@/lib/services/mockDoctorService';
 
 interface BillingRecord {
   id: string;

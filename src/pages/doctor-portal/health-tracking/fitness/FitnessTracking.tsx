@@ -39,7 +39,7 @@ import {
   AlertTriangle,
   Sparkles
 } from 'lucide-react';
-import { PatientSelector } from '@/components/PatientSelector';
+import PatientSelector from '@/components/PatientSelector';
 import AIInsightsPanel from '@/components/AIInsightsPanel';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';

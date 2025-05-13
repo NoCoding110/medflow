@@ -35,7 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getDoctorById, getDoctors } from "@/lib/services/doctor-service";
 import { format } from 'date-fns';
-import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
+import Calendar from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 
@@ -434,7 +434,7 @@ const PatientAppointments = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <DatePickerCalendar
+                      <Calendar
                         mode="single"
                         selected={rescheduleDate ? new Date(rescheduleDate) : undefined}
                         onSelect={date => setRescheduleDate(date ? format(date, 'yyyy-MM-dd') : "")}

@@ -1,0 +1,1 @@
+import { getPatients } from '@/lib/services/mockDoctorService'; 

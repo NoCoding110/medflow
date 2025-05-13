@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FamilyMemberCard } from "@/components/patient-portal/family/FamilyMemberCard";
 import { AddFamilyMemberCard } from "@/components/patient-portal/family/AddFamilyMemberCard";
 import { FamilyAppointmentsList } from "@/components/patient-portal/family/FamilyAppointmentsList";
-import { FamilyMedicalRecords } from "@/components/patient-portal/family/FamilyMedicalRecords";
+import { FamilyMedicalRecords } from '@/components/features/patient/family/FamilyMedicalRecords';
 
 const PatientFamily = () => {
   return (
