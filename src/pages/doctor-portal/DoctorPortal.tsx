@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
-import DoctorPortalSidebar from "@/components/doctor-portal/DoctorPortalSidebar";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -57,13 +56,10 @@ const DoctorPortal = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen overflow-hidden">
-      <DoctorPortalSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <main className="flex-1 overflow-auto">
-          <Outlet />
-        </main>
-      </div>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex-1 overflow-auto">
+        <Outlet />
+      </main>
     </div>
   );
 };

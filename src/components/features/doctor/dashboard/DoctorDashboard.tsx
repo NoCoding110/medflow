@@ -19,8 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { LineChart, BarChart, PieChart } from "@/components/ui/charts";
+import { DateRangePicker } from "@/components/core/date-range-picker";
+import { LineChart, BarChart, PieChart } from "@/components/core/charts";
 import { useToast } from "@/components/ui/use-toast";
 
 interface DashboardData {
@@ -53,7 +53,7 @@ interface DashboardData {
 
 export const DoctorDashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedPatient, setSelectedPatient] = useState("all");
@@ -70,10 +70,10 @@ export const DoctorDashboard = () => {
         const data = await simulateDataFetch();
         setDashboardData(data);
       } catch (error) {
-        toast({
+        addToast({
+          type: "error",
           title: "Error",
           description: "Failed to fetch dashboard data",
-          variant: "destructive",
         });
       }
       setIsLoading(false);
@@ -94,7 +94,8 @@ export const DoctorDashboard = () => {
     // Simulate refresh
     setTimeout(() => {
       setIsLoading(false);
-      toast({
+      addToast({
+        type: "success",
         title: "Success",
         description: "Dashboard data refreshed",
       });
@@ -106,7 +107,7 @@ export const DoctorDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="ghost" size="sm" onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -121,7 +122,7 @@ export const DoctorDashboard = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
