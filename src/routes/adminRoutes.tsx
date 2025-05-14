@@ -1,8 +1,6 @@
-
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import AdminPortal from "@/pages/admin-portal/AdminPortal";
 import AdminDashboard from "@/pages/admin-portal/AdminDashboard";
 import UserManagement from "@/pages/admin-portal/UserManagement";
 import ClinicSettings from "@/pages/admin-portal/ClinicSettings";
@@ -54,7 +52,7 @@ export const adminRoutes = {
   path: "/admin",
   element: (
     <AdminGuard>
-      <AdminPortal />
+      <Outlet />
     </AdminGuard>
   ),
   children: [

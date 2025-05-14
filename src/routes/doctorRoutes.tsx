@@ -1,6 +1,5 @@
-import { Navigate, Route } from "react-router-dom";
+import { Navigate, Route, Outlet } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import DoctorPortal from '@/pages/doctor-portal/DoctorPortal';
 import {
   Dashboard,
   Patients,
@@ -66,7 +65,7 @@ export const DoctorRoute = ({ children }: DoctorRouteProps) => {
 };
 
 export const doctorRoutes = (
-  <Route path="/doctor" element={<DoctorPortal />}>
+  <Route path="/doctor" element={<DoctorRoute><Outlet /></DoctorRoute>}>
     <Route index element={<Dashboard />} />
     <Route path="patients" element={<Patients />} />
     <Route path="patients/:patientId" element={<PatientProfile />} />

@@ -1,6 +1,5 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import PatientPortal from "@/pages/patient-portal/PatientPortal";
 import PatientDashboard from "@/pages/patient-portal/PatientDashboard";
 import PatientAppointments from "@/pages/patient-portal/PatientAppointments";
 import PatientRecords from "@/pages/patient-portal/PatientRecords";
@@ -55,7 +54,7 @@ export const patientRoutes = {
   path: "/patient",
   element: (
     <PatientRoute>
-      <PatientPortal />
+      <Outlet />
     </PatientRoute>
   ),
   children: [
