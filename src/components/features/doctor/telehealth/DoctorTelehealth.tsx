@@ -45,7 +45,7 @@ import type {
 } from "agora-rtc-sdk-ng";
 
 import { getTelehealthSessions } from "@/lib/services/mockDoctorService";
-import { mockPatients } from "@/lib/mock/doctorMockData";
+import { patients } from "@/lib/mock/shared/users";
 
 interface SystemStatus {
   camera: boolean;
@@ -89,8 +89,8 @@ const DoctorTelehealth = () => {
 
   // Active patients in waiting room
   const [activePatients] = useState([
-    { id: mockPatients[0].id, name: `${mockPatients[0].firstName} ${mockPatients[0].lastName}`, waitTime: "2 min" },
-    { id: mockPatients[1].id, name: `${mockPatients[1].firstName} ${mockPatients[1].lastName}`, waitTime: "5 min" },
+    { id: patients[0].id, name: `${patients[0].firstName} ${patients[0].lastName}`, waitTime: "2 min" },
+    { id: patients[1].id, name: `${patients[1].firstName} ${patients[1].lastName}`, waitTime: "5 min" },
   ]);
 
   const agoraClient = useRef(createClient());
@@ -345,7 +345,7 @@ const DoctorTelehealth = () => {
               ) : (
                 <div className="space-y-4">
                   {sessions.map((session) => {
-                    const patient = mockPatients.find(p => p.id === session.patientId);
+                    const patient = patients.find(p => p.id === session.patientId);
                     return (
                       <div
                         key={session.id}

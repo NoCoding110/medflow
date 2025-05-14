@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
@@ -7,83 +6,87 @@
 
 @layer base {
   :root {
-    --background: 36 30% 94%; /* beige background */
-    --foreground: 198 100% 13%; /* navy text */
+    /* Light Theme - Updated with Soft Sage Green accent */
+    --background: 220 30% 98%; /* Ivory / Warm White: #F9FAFB or #FAFDFB */
+    --foreground: 222 47% 18%; /* Deep navy for readability: #1E293B */
 
-    --card: 0 0% 100%;
-    --card-foreground: 198 100% 13%;
+    --card: 0 0% 100%; /* Pure white with subtle shadows */
+    --card-foreground: 222 47% 18%; /* Deep navy */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 198 100% 13%;
+    --popover-foreground: 222 47% 18%;
 
-    --primary: 201 65% 55%; /* light blue */
-    --primary-foreground: 0 0% 100%;
+    --primary: 139 31% 48%; /* Soft Sage Green: #7FB77E */
+    --primary-foreground: 0 0% 100%; /* White text on sage */
 
-    --secondary: 36 100% 71%; /* orange */
-    --secondary-foreground: 198 100% 13%;
+    --secondary: 109 60% 67%; /* Secondary Accent: #B4E197 */
+    --secondary-foreground: 222 47% 18%;
 
-    --muted: 36 30% 90%; /* lighter beige */
-    --muted-foreground: 198 70% 20%;
+    --muted: 222 13% 94%; /* Very light gray */
+    --muted-foreground: 215 25% 31%; /* Cool gray for subtitles: #475569 */
 
-    --accent: 36 100% 71%; /* orange */
-    --accent-foreground: 198 100% 13%;
+    --accent: 139 31% 48%; /* Soft Sage Green accent */
+    --accent-foreground: 222 47% 18%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 36 30% 94%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 220 30% 98%;
 
-    --border: 198 20% 80%;
-    --input: 198 20% 80%;
-    --ring: 201 65% 55%;
+    --border: 220 13% 95%; /* Soft, translucent: rgba(0, 0, 0, 0.05) */
+    --input: 220 13% 95%;
+    --ring: 139 31% 48%; /* Matches primary */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 198 100% 13%; /* navy */
-    --sidebar-foreground: 36 30% 94%; /* beige */
-    --sidebar-primary: 201 65% 55%; /* light blue */
-    --sidebar-primary-foreground: 0 0% 100%; /* white */
-    --sidebar-accent: 36 100% 71%; /* orange */
-    --sidebar-accent-foreground: 198 100% 13%; /* navy */
-    --sidebar-border: 198 70% 20%;
-    --sidebar-ring: 201 65% 55%;
+    /* Light Theme Sidebar */
+    --sidebar-background: 0 0% 100%; /* White sidebar */
+    --sidebar-foreground: 222 47% 18%; /* Deep navy text */
+    --sidebar-primary: 139 31% 48%; /* Soft Sage Green */
+    --sidebar-primary-foreground: 0 0% 100%; /* White */
+    --sidebar-accent: 109 60% 67%; /* Secondary accent */
+    --sidebar-accent-foreground: 222 47% 18%; /* Deep navy */
+    --sidebar-border: 220 13% 95%;
+    --sidebar-ring: 139 31% 48%;
   }
 
   .dark {
-    --background: 198 100% 10%; /* darker navy */
-    --foreground: 36 30% 94%; /* beige text */
+    /* Dark Theme - Updated with Dark Navy Blue and Cyan/Teal accents */
+    --background: 222 59% 12%; /* Dark Navy Blue: #0A192F */
+    --foreground: 204 93% 94%; /* Primary: #E0F2FE (light blue/white mix) */
 
-    --card: 198 100% 13%;
-    --card-foreground: 36 30% 94%;
+    --card: 221 50% 16%; /* Alternative Panel Background: #112240 */
+    --card-foreground: 204 93% 94%;
 
-    --popover: 198 100% 13%;
-    --popover-foreground: 36 30% 94%;
+    --popover: 221 50% 16%;
+    --popover-foreground: 204 93% 94%;
 
-    --primary: 201 65% 55%; /* light blue */
-    --primary-foreground: 0 0% 100%; /* white */
+    --primary: 199 98% 48%; /* Cyan / Teal Blue Glow: #38BDF8 */
+    --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 36 100% 71%; /* orange */
-    --secondary-foreground: 198 100% 13%; /* navy */
+    --secondary: 221 30% 24%; /* Slightly lighter navy for secondary elements */
+    --secondary-foreground: 204 93% 94%;
 
-    --muted: 198 50% 20%;
-    --muted-foreground: 36 20% 80%;
+    --muted: 217 33% 18%; /* Subtle Hover Background: #1E293B */
+    --muted-foreground: 215 20% 65%; /* Secondary text: #94A3B8 (cool gray/blue) */
 
-    --accent: 36 100% 71%; /* orange */
-    --accent-foreground: 198 100% 13%; /* navy */
+    --accent: 199 98% 48%; /* Cyan accent */
+    --accent-foreground: 222 59% 12%; /* Dark navy background */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 36 30% 94%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 204 93% 94%;
 
-    --border: 198 50% 20%;
-    --input: 198 50% 20%;
-    --ring: 201 65% 55%;
+    --border: 0 0% 100% / 0.1; /* Soft lines: rgba(255, 255, 255, 0.1) */
+    --input: 217 33% 18%;
+    --ring: 199 98% 48%; /* Cyan ring */
 
-    --sidebar-background: 198 100% 16%; /* slightly lighter navy */
-    --sidebar-foreground: 36 30% 94%; /* beige */
-    --sidebar-primary: 201 65% 55%; /* light blue */
-    --sidebar-primary-foreground: 0 0% 100%; /* white */
-    --sidebar-accent: 36 100% 71%; /* orange */
-    --sidebar-accent-foreground: 198 100% 13%; /* navy */
-    --sidebar-border: 198 50% 25%;
-    --sidebar-ring: 201 65% 55%;
+    /* Dark Theme Sidebar */
+    --sidebar-background: 221 50% 16%; /* Alternative Panel Background: #112240 */
+    --sidebar-foreground: 204 93% 94%; /* Light blue/white mix */
+    --sidebar-primary: 199 98% 48%; /* Cyan / Teal Blue */
+    --sidebar-primary-foreground: 0 0% 100%; /* White */
+    --sidebar-accent: 199 90% 60%; /* Lighter cyan for accents */
+    --sidebar-accent-foreground: 222 59% 12%; /* Dark navy */
+    --sidebar-border: 0 0% 100% / 0.1; /* Soft lines */
+    --sidebar-ring: 199 98% 48%;
   }
 }
 
@@ -104,7 +107,11 @@
   
   /* Typography */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold tracking-tight text-navy-800;
+    @apply font-display font-semibold tracking-tight;
+  }
+  
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    @apply text-foreground;
   }
   
   h1 {
@@ -133,16 +140,28 @@
     @apply w-2 h-2;
   }
   
+  .dark ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-primary/70 rounded-full;
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary;
+  }
+  
   ::-webkit-scrollbar-track {
-    @apply bg-beige-100;
+    @apply bg-muted;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-lightblue-300 rounded-full;
+    @apply bg-primary/70 rounded-full;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-lightblue-400;
+    @apply bg-primary;
   }
 
   /* Mobile-first adjustments */
@@ -154,7 +173,7 @@
 /* Custom components */
 @layer components {
   .clinical-card {
-    @apply bg-white rounded-lg shadow p-4 border border-border transition-all hover:shadow-md;
+    @apply bg-card rounded-lg shadow p-4 border border-border transition-all hover:shadow-md text-card-foreground;
   }
   
   .stat-card {
@@ -162,7 +181,7 @@
   }
   
   .stat-value {
-    @apply text-xl sm:text-2xl font-bold text-clinical;
+    @apply text-xl sm:text-2xl font-bold text-primary;
   }
   
   .stat-label {
@@ -174,28 +193,31 @@
     @apply flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-200;
   }
 
+  /* Light theme navigation */
   .nav-item-light {
-    @apply nav-item text-navy-700 hover:bg-lightblue-50 hover:text-lightblue-600;
+    @apply nav-item text-foreground hover:bg-muted hover:text-primary;
   }
 
   .nav-item-light.active {
-    @apply bg-lightblue-100 text-lightblue-700 font-medium;
+    @apply bg-primary/10 text-primary font-medium;
   }
 
+  /* Dark theme navigation */
   .nav-item-dark {
-    @apply nav-item text-beige-100 hover:bg-navy-700 hover:text-orange-400;
+    @apply nav-item text-foreground hover:bg-muted hover:text-primary;
   }
 
   .nav-item-dark.active {
-    @apply bg-navy-700 text-orange-400 font-medium;
+    @apply bg-muted text-primary font-medium;
   }
 
+  /* Sidebar navigation */
   .nav-item-sidebar {
     @apply nav-item text-sidebar-foreground hover:bg-sidebar-primary/20 hover:text-sidebar-primary;
   }
 
   .nav-item-sidebar.active {
-    @apply bg-sidebar-accent text-sidebar-accent-foreground font-medium;
+    @apply bg-sidebar-accent/30 text-sidebar-primary font-medium;
   }
 
   /* Responsive grid layouts */
@@ -221,7 +243,7 @@
 
   /* Button hover effects */
   .btn-hover-glow {
-    @apply hover:shadow-[0_0_8px_rgba(58,161,222,0.5)] transition-shadow duration-300;
+    @apply hover:shadow-[0_0_12px_rgba(56,189,248,0.6)] dark:hover:shadow-[0_0_12px_rgba(56,189,248,0.6)] transition-shadow duration-300;
   }
 
   .btn-hover-scale {
@@ -235,7 +257,7 @@
 
   /* Section styling */
   .section-divider {
-    @apply w-16 h-1 bg-orange-400 rounded-full my-4;
+    @apply w-16 h-1 bg-primary rounded-full my-4;
   }
 }
 
