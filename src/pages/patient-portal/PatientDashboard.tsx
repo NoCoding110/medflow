@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Calendar as CalendarIcon, FileText, Pill, Activity, Heart, Bell, CreditCard, 
-  TrendingUp, ChevronRight, Plus, Users, MessageSquare, Video } from "lucide-react";
+  TrendingUp, ChevronRight, Plus, Users, MessageSquare, Video, Brain } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
