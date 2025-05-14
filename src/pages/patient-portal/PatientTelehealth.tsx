@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Video, Calendar, Clock, Users, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Video, Calendar as CalendarIcon, Clock, Users, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -73,7 +73,7 @@ const PatientTelehealth = () => {
               <CardContent className="pt-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-blue-500" />
+                    <CalendarIcon className="h-5 w-5 text-blue-500" />
                     <span>May 10, 2025</span>
                   </div>
                   <div className="flex items-center gap-3">

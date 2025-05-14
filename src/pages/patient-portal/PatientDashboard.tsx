@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, FileText, Pill, Activity, Heart, Bell, CreditCard, 
+import { Calendar as CalendarIcon, FileText, Pill, Activity, Heart, Bell, CreditCard, 
   TrendingUp, ChevronRight, Plus, Users, MessageSquare, Video } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -259,7 +259,7 @@ const PatientDashboard = () => {
                   <div className="flex items-center gap-2">
                     {nextAppointment.virtual ? 
                       <Video className="h-5 w-5 text-primary" /> : 
-                      <Calendar className="h-5 w-5 text-primary" />
+                      <CalendarIcon className="h-5 w-5 text-primary" />
                     }
                     <span>Your Next Appointment</span>
                   </div>

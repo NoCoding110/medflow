@@ -5,7 +5,7 @@ import { WearableDataPanel } from "@/components/patient-dashboard/WearableDataPa
 import { AIInsightsPanel } from "@/components/patient-dashboard/AIInsightsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Activity, Calendar, Clock, User } from "lucide-react";
+import { Activity, Calendar as CalendarIcon, Clock, User } from "lucide-react";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -51,7 +51,7 @@ export const PatientDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Next Appointment</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {nextAppointment ? (

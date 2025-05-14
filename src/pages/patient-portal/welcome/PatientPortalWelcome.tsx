@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Users, Calendar, FileText, Shield, Wrench, MessageSquare, CreditCard, ChevronRight, ArrowRight, Settings, Activity } from "lucide-react";
+import { Heart, Users, Calendar as CalendarIcon, FileText, Shield, Wrench, MessageSquare, CreditCard, ChevronRight, ArrowRight, Settings, Activity } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -28,7 +28,7 @@ export default function PatientPortalWelcome() {
     {
       title: "Appointments",
       description: "Schedule, view, and manage your appointments",
-      icon: <Calendar className="h-10 w-10" />,
+      icon: <CalendarIcon className="h-10 w-10" />,
       path: "/patient/appointments",
       color: "text-blue-500",
     },

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import HealthChallenges from "@/components/patient-portal/HealthChallenges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Check, Calendar } from "lucide-react";
+import { Trophy, Check, Calendar as CalendarIcon } from "lucide-react";
 import { handleActionWithToast } from "@/lib/portal-utils";
 import { Progress } from "@/components/ui/progress";
 
@@ -92,7 +92,7 @@ const PatientChallenges = () => {
                   <Progress value={challengeProgress["walking"]} className="h-2" />
                 </div>
                 <div className="text-sm text-gray-500 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" /> Ends in 5 days
+                  <CalendarIcon className="h-4 w-4" /> Ends in 5 days
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-3">
@@ -131,7 +131,7 @@ const PatientChallenges = () => {
                   <Progress value={challengeProgress["hydration"]} className="h-2" />
                 </div>
                 <div className="text-sm text-gray-500 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" /> Ends in 3 days
+                  <CalendarIcon className="h-4 w-4" /> Ends in 3 days
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-3">

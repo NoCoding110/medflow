@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Calendar,
   Clock,
   Mail,
   MapPin,
@@ -12,6 +11,7 @@ import {
   Search,
   Check,
   RefreshCw,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import {
   Card,
@@ -35,7 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getDoctorById, getDoctors } from "@/lib/services/doctor-service";
 import { format } from 'date-fns';
-import Calendar from '@/components/ui/calendar';
+import { DateCalendar } from '@/components/ui/date-calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 
@@ -373,7 +373,7 @@ const PatientAppointments = () => {
                         </div>
                         <div className="flex flex-col items-end">
                           <div className="flex items-center gap-1.5 text-sm font-medium text-blue-600">
-                            <Calendar className="h-4 w-4" />
+                            <CalendarIcon className="h-4 w-4" />
                             <span>{a.date}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -434,7 +434,7 @@ const PatientAppointments = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
+                      <DateCalendar
                         mode="single"
                         selected={rescheduleDate ? new Date(rescheduleDate) : undefined}
                         onSelect={date => setRescheduleDate(date ? format(date, 'yyyy-MM-dd') : "")}
