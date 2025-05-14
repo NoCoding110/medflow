@@ -20,12 +20,9 @@ import PatientNutrition from "@/pages/patient-portal/wellness/PatientNutrition";
 import PatientHealthTips from "@/pages/patient-portal/wellness/PatientHealthTips";
 import PatientVitalsTracker from "@/pages/patient-portal/wellness/PatientVitalsTracker";
 import PatientHealthAssistant from "@/pages/patient-portal/wellness/PatientHealthAssistant";
+import PatientPortalWelcome from "@/pages/patient-portal/welcome/PatientPortalWelcome";
 
-interface PatientRouteProps {
-  children: React.ReactNode;
-}
-
-export const PatientRoute = ({ children }: PatientRouteProps) => {
+export const PatientRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -59,6 +56,7 @@ export const patientRoutes = {
   ),
   children: [
     { path: "", element: <PatientDashboard /> },
+    { path: "welcome", element: <PatientPortalWelcome /> },
     { path: "appointments", element: <PatientAppointments /> },
     { path: "records", element: <PatientRecords /> },
     { path: "prescriptions", element: <PatientPrescriptions /> },

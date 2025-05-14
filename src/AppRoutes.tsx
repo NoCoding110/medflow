@@ -8,6 +8,7 @@ import { doctorRoutes } from "@/routes/doctorRoutes";
 import { adminRoutes } from "@/routes/adminRoutes";
 import PatientRegistration from "./pages/patient-portal/registration";
 import AppLayout from "./components/layout/AppLayout";
+import { PatientPortalLayout } from "./components/patient-portal/PatientPortalLayout";
 
 const AppRoutes = () => {
   return (
@@ -24,19 +25,21 @@ const AppRoutes = () => {
           <Route key={route.path} {...route} />
         ))}
         
-        {/* Patient routes */}
-        <Route path={patientRoutes.path} element={patientRoutes.element}>
-          {patientRoutes.children.map((childRoute) => (
+        {/* Admin routes */}
+        <Route path={adminRoutes.path} element={adminRoutes.element}>
+          {adminRoutes.children.map((childRoute) => (
             <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} />
           ))}
         </Route>
         
         {/* Doctor routes */}
         {doctorRoutes}
-        
-        {/* Admin routes */}
-        <Route path={adminRoutes.path} element={adminRoutes.element}>
-          {adminRoutes.children.map((childRoute) => (
+      </Route>
+      
+      {/* Patient Portal with custom layout */}
+      <Route element={<PatientPortalLayout />}>
+        <Route path={patientRoutes.path} element={patientRoutes.element}>
+          {patientRoutes.children.map((childRoute) => (
             <Route key={childRoute.path} path={childRoute.path} element={childRoute.element} />
           ))}
         </Route>

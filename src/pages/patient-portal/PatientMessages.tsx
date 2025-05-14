@@ -1,335 +1,505 @@
-
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useState, useRef, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, Send, Paperclip, MoreVertical } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { handleActionWithToast, formatDateTime } from "@/lib/portal-utils";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, Send, Paperclip, MoreVertical, Phone, Video, Clock, User, Globe, List, FileText, AlertCircle, Clipboard, X, Plus, Star, StarOff, Check, LockIcon, MessageSquare } from "lucide-react";
+import { format } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const PatientMessages = () => {
+// Mock data for conversations
+interface Message {
+  id: string;
+  sender: "patient" | "provider";
+  content: string;
+  timestamp: string;
+  read: boolean;
+  attachment?: {
+    name: string;
+    type: string;
+    url: string;
+  };
+}
+
+interface Conversation {
+  id: string;
+  provider: {
+    id: string;
+    name: string;
+    role: string;
+    avatar?: string;
+    department?: string;
+  };
+  messages: Message[];
+  lastMessageTime: string;
+  unreadCount: number;
+  status: "active" | "completed";
+  starred?: boolean;
+}
+
+const mockConversations: Conversation[] = [
+  {
+    id: "1",
+    provider: {
+      id: "p1",
+      name: "Dr. Sarah Johnson",
+      role: "Primary Care Physician",
+      avatar: "https://example.com/doctor-avatar.jpg",
+      department: "Internal Medicine"
+    },
+    messages: [
+      {
+        id: "m1",
+        sender: "provider",
+        content: "Hello! How can I help you today?",
+        timestamp: "2023-10-22T09:30:00",
+        read: true
+      },
+      {
+        id: "m2",
+        sender: "patient",
+        content: "I've been experiencing some headaches lately and wanted to discuss my options.",
+        timestamp: "2023-10-22T09:35:00",
+        read: true
+      },
+      {
+        id: "m3",
+        sender: "provider",
+        content: "I'm sorry to hear that. Can you tell me more about the frequency and intensity of these headaches?",
+        timestamp: "2023-10-22T09:40:00",
+        read: true
+      },
+      {
+        id: "m4",
+        sender: "patient",
+        content: "They've been occurring about 3 times a week, usually in the afternoon. The pain is moderate and located around my temples.",
+        timestamp: "2023-10-22T09:45:00",
+        read: true
+      },
+      {
+        id: "m5",
+        sender: "provider",
+        content: "Thank you for that information. I'd like to review your recent medical history and possibly schedule you for a check-up. In the meantime, are you taking any medications for the pain?",
+        timestamp: "2023-10-22T09:50:00",
+        read: false
+      }
+    ],
+    lastMessageTime: "2023-10-22T09:50:00",
+    unreadCount: 1,
+    status: "active"
+  },
+  {
+    id: "2",
+    provider: {
+      id: "p2",
+      name: "Dr. Michael Chen",
+      role: "Cardiologist",
+      department: "Cardiology"
+    },
+    messages: [
+      {
+        id: "m6",
+        sender: "provider",
+        content: "I've reviewed your recent test results. Your cholesterol levels have improved since your last visit.",
+        timestamp: "2023-10-20T14:15:00",
+        read: true,
+        attachment: {
+          name: "Cholesterol_Results.pdf",
+          type: "pdf",
+          url: "/documents/cholesterol-results.pdf"
+        }
+      },
+      {
+        id: "m7",
+        sender: "patient",
+        content: "That's great news! I've been following the diet plan you recommended.",
+        timestamp: "2023-10-20T14:20:00",
+        read: true
+      },
+      {
+        id: "m8",
+        sender: "provider",
+        content: "Excellent work. Let's continue with the current plan and schedule a follow-up in 3 months.",
+        timestamp: "2023-10-20T14:25:00",
+        read: true
+      }
+    ],
+    lastMessageTime: "2023-10-20T14:25:00",
+    unreadCount: 0,
+    status: "active",
+    starred: true
+  },
+  {
+    id: "3",
+    provider: {
+      id: "p3",
+      name: "Dr. Emily Rodriguez",
+      role: "Dermatologist",
+      department: "Dermatology"
+    },
+    messages: [
+      {
+        id: "m9",
+        sender: "patient",
+        content: "I've noticed a new mole on my back that seems to have changed shape recently.",
+        timestamp: "2023-10-15T11:05:00",
+        read: true,
+        attachment: {
+          name: "Mole_Photo.jpg",
+          type: "image",
+          url: "/documents/mole-photo.jpg"
+        }
+      },
+      {
+        id: "m10",
+        sender: "provider",
+        content: "Thank you for sharing the photo. Based on what I can see, we should examine this in person. Please schedule an appointment at your earliest convenience.",
+        timestamp: "2023-10-15T11:30:00",
+        read: true
+      },
+      {
+        id: "m11",
+        sender: "patient",
+        content: "I've booked an appointment for next Tuesday at 2 PM.",
+        timestamp: "2023-10-15T11:45:00",
+        read: true
+      },
+      {
+        id: "m12",
+        sender: "provider",
+        content: "Perfect. I'll see you then. In the meantime, keep an eye on it and let me know if you notice any significant changes.",
+        timestamp: "2023-10-15T12:00:00",
+        read: true
+      }
+    ],
+    lastMessageTime: "2023-10-15T12:00:00",
+    unreadCount: 0,
+    status: "completed"
+  }
+];
+
+// Mock data for provider directory
+const mockProviders = [
+  {
+    id: "p1",
+    name: "Dr. Sarah Johnson",
+    role: "Primary Care Physician",
+    department: "Internal Medicine",
+    available: true
+  },
+  {
+    id: "p2",
+    name: "Dr. Michael Chen",
+    role: "Cardiologist",
+    department: "Cardiology",
+    available: true
+  },
+  {
+    id: "p3",
+    name: "Dr. Emily Rodriguez",
+    role: "Dermatologist",
+    department: "Dermatology",
+    available: false
+  },
+  {
+    id: "p4",
+    name: "Dr. James Wilson",
+    role: "Orthopedic Surgeon",
+    department: "Orthopedics",
+    available: true
+  },
+  {
+    id: "p5",
+    name: "Dr. Lisa Park",
+    role: "Neurologist",
+    department: "Neurology",
+    available: true
+  },
+  {
+    id: "p6",
+    name: "Dr. Robert Thompson",
+    role: "Gastroenterologist",
+    department: "Gastroenterology",
+    available: true
+  }
+];
+
+// Component to display a conversation in the sidebar
+const ConversationItem = ({ 
+  conversation, 
+  isActive, 
+  onClick,
+  onStarToggle
+}: { 
+  conversation: Conversation; 
+  isActive: boolean; 
+  onClick: () => void;
+  onStarToggle: (id: string, starred: boolean) => void;
+}) => {
+  const lastMessage = conversation.messages[conversation.messages.length - 1];
+  
+  return (
+    <div 
+      className={`p-3 border-b cursor-pointer hover:bg-muted/50 ${isActive ? 'bg-muted/70' : ''}`}
+      onClick={onClick}
+    >
+      <div className="flex items-start space-x-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={conversation.provider.avatar} alt={conversation.provider.name} />
+          <AvatarFallback>{conversation.provider.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="font-medium truncate">{conversation.provider.name}</div>
+            <div className="flex items-center space-x-1">
+              {conversation.starred && <Star className="h-4 w-4 text-amber-400 fill-amber-400" />}
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(conversation.lastMessageTime), 'MMM d')}
+              </span>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground truncate">{conversation.provider.role}</div>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-sm truncate">
+              {lastMessage.sender === 'provider' ? '' : 'You: '}
+              {lastMessage.content}
+            </p>
+            {conversation.unreadCount > 0 && (
+              <Badge variant="default" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                {conversation.unreadCount}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <div 
+        className="flex mt-2 justify-end"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-6 w-6"
+          onClick={() => onStarToggle(conversation.id, !conversation.starred)}
+        >
+          {conversation.starred ? (
+            <StarOff className="h-4 w-4" />
+          ) : (
+            <Star className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Component to display a message in the conversation
+const MessageBubble = ({ message, providerName }: { message: Message; providerName: string }) => {
+  const isProvider = message.sender === 'provider';
+  
+  return (
+    <div className={`mb-4 flex ${isProvider ? 'justify-start' : 'justify-end'}`}>
+      <div className={`max-w-[80%] ${isProvider ? 'bg-muted' : 'bg-primary text-primary-foreground'} rounded-lg p-3`}>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium">
+            {isProvider ? providerName : 'You'}
+          </span>
+          <span className="text-xs opacity-70">
+            {format(new Date(message.timestamp), 'h:mm a')}
+          </span>
+        </div>
+        <p className="text-sm">{message.content}</p>
+        {message.attachment && (
+          <div className="mt-2 p-2 bg-background/50 rounded border flex items-center">
+            <FileText className="h-4 w-4 mr-2" />
+            <span className="text-xs">{message.attachment.name}</span>
+            <Button variant="ghost" size="sm" className="ml-auto h-6 p-1">
+              <Clipboard className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Main component
+export default function PatientMessages() {
+  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [newMessageOpen, setNewMessageOpen] = useState(false);
-  const [selectedConversation, setSelectedConversation] = useState<any>(null);
-  const [messageText, setMessageText] = useState("");
-  const [newMessageRecipient, setNewMessageRecipient] = useState("");
-  const [newMessageSubject, setNewMessageSubject] = useState("");
-  const [newMessageContent, setNewMessageContent] = useState("");
+  const [showNewMessageDialog, setShowNewMessageDialog] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState("");
+  const [messageSubject, setMessageSubject] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const [conversations, setConversations] = useState([
-    {
-      id: "1",
-      contact: {
-        name: "Dr. Sarah Johnson",
-        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-        role: "Primary Care Physician"
-      },
-      lastMessage: {
-        text: "Your lab results look normal. We'll discuss at your next appointment.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-        isUnread: true
-      },
-      subject: "Lab Results Review",
-      messages: [
-        {
-          id: "1-1",
-          sender: "patient",
-          text: "Hello Dr. Johnson, have my lab results come back yet?",
-          timestamp: new Date(Date.now() - 1000 * 60 * 90) // 90 minutes ago
-        },
-        {
-          id: "1-2",
-          sender: "doctor",
-          text: "Yes, they just came in. I've reviewed them and everything looks normal. We can go over the details at your appointment next week.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60) // 60 minutes ago
-        },
-        {
-          id: "1-3",
-          sender: "patient",
-          text: "That's great news! I was worried about my cholesterol levels.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 45) // 45 minutes ago
-        },
-        {
-          id: "1-4",
-          sender: "doctor",
-          text: "Your lab results look normal. We'll discuss at your next appointment.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30) // 30 minutes ago
-        }
-      ]
-    },
-    {
-      id: "2",
-      contact: {
-        name: "Nurse Emma Wilson",
-        avatar: "https://randomuser.me/api/portraits/women/63.jpg",
-        role: "Registered Nurse"
-      },
-      lastMessage: {
-        text: "Your prescription refill has been sent to your pharmacy.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
-        isUnread: false
-      },
-      subject: "Prescription Refill Request",
-      messages: [
-        {
-          id: "2-1",
-          sender: "patient",
-          text: "Hi Nurse Wilson, I need a refill for my blood pressure medication.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5) // 5 hours ago
-        },
-        {
-          id: "2-2",
-          sender: "nurse",
-          text: "I'll process that right away. Which pharmacy would you like it sent to?",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4.5) // 4.5 hours ago
-        },
-        {
-          id: "2-3",
-          sender: "patient",
-          text: "Please send it to the CVS on Main Street, thank you!",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4) // 4 hours ago
-        },
-        {
-          id: "2-4",
-          sender: "nurse",
-          text: "Your prescription refill has been sent to your pharmacy.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3) // 3 hours ago
-        }
-      ]
-    },
-    {
-      id: "3",
-      contact: {
-        name: "Admin Support",
-        avatar: "",
-        role: "Administrative Staff"
-      },
-      lastMessage: {
-        text: "Your appointment has been rescheduled to Thursday at 2:00 PM.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 24 hours ago
-        isUnread: false
-      },
-      subject: "Appointment Rescheduling",
-      messages: [
-        {
-          id: "3-1",
-          sender: "admin",
-          text: "Hello, we need to reschedule your appointment for next week due to a scheduling conflict.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 26) // 26 hours ago
-        },
-        {
-          id: "3-2",
-          sender: "patient",
-          text: "That's fine. What options do I have?",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 25) // 25 hours ago
-        },
-        {
-          id: "3-3",
-          sender: "admin",
-          text: "We have openings on Thursday at 2:00 PM or Friday at 9:00 AM.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24.5) // 24.5 hours ago
-        },
-        {
-          id: "3-4",
-          sender: "patient",
-          text: "Thursday at 2:00 PM works for me.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24.2) // 24.2 hours ago
-        },
-        {
-          id: "3-5",
-          sender: "admin",
-          text: "Your appointment has been rescheduled to Thursday at 2:00 PM.",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24) // 24 hours ago
-        }
-      ]
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  ]);
+  }, [activeConversation]);
   
-  const handleSelectConversation = (conversation: any) => {
-    setSelectedConversation(conversation);
-    
-    // Mark as read
-    setConversations(prevConversations => 
-      prevConversations.map(conv => 
-        conv.id === conversation.id 
-        ? { 
-            ...conv, 
-            lastMessage: { 
-              ...conv.lastMessage, 
-              isUnread: false 
-            } 
-          }
-        : conv
-      )
-    );
-  };
+  useEffect(() => {
+    // Set the first conversation as active by default
+    if (conversations.length > 0 && !activeConversation) {
+      setActiveConversation(conversations[0]);
+    }
+  }, [conversations, activeConversation]);
   
-  const handleSendMessage = async () => {
-    if (!selectedConversation || !messageText.trim()) return;
-    
-    await handleActionWithToast(
-      async () => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        const newMessage = {
-          id: `${selectedConversation.id}-${selectedConversation.messages.length + 1}`,
-          sender: "patient",
-          text: messageText.trim(),
-          timestamp: new Date()
-        };
-        
-        setConversations(prevConversations => 
-          prevConversations.map(conv => 
-            conv.id === selectedConversation.id 
-            ? { 
-                ...conv,
-                lastMessage: {
-                  text: newMessage.text,
-                  timestamp: newMessage.timestamp,
-                  isUnread: false
-                },
-                messages: [...conv.messages, newMessage]
-              }
-            : conv
-          )
-        );
-        
-        setMessageText("");
-        
-        // Simulate response after a delay (only for demo purposes)
-        setTimeout(() => {
-          const responseMessage = {
-            id: `${selectedConversation.id}-${selectedConversation.messages.length + 2}`,
-            sender: selectedConversation.contact.role === "Primary Care Physician" ? "doctor" : 
-                   selectedConversation.contact.role === "Registered Nurse" ? "nurse" : "admin",
-            text: "Thanks for your message. I'll get back to you soon.",
-            timestamp: new Date()
-          };
-          
-          setConversations(prevConversations => 
-            prevConversations.map(conv => 
-              conv.id === selectedConversation.id 
-              ? { 
-                  ...conv,
-                  lastMessage: {
-                    text: responseMessage.text,
-                    timestamp: responseMessage.timestamp,
-                    isUnread: true
-                  },
-                  messages: [...conv.messages, newMessage, responseMessage]
-                }
-              : conv
-            )
-          );
-          
-          setSelectedConversation(prev => ({
-            ...prev,
-            messages: [...prev.messages, newMessage, responseMessage],
-            lastMessage: {
-              text: responseMessage.text,
-              timestamp: responseMessage.timestamp,
-              isUnread: false
-            }
-          }));
-        }, 5000);
-      },
-      "Message sent successfully",
-      "Failed to send message"
-    );
-  };
-  
-  const handleCreateNewMessage = async () => {
-    if (!newMessageRecipient.trim() || !newMessageContent.trim()) return;
-    
-    await handleActionWithToast(
-      async () => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const newConversation = {
-          id: `${conversations.length + 1}`,
-          contact: {
-            name: newMessageRecipient,
-            avatar: "",
-            role: "Healthcare Provider"
-          },
-          subject: newMessageSubject || "New Conversation",
-          lastMessage: {
-            text: newMessageContent,
-            timestamp: new Date(),
-            isUnread: false
-          },
-          messages: [
-            {
-              id: `${conversations.length + 1}-1`,
-              sender: "patient",
-              text: newMessageContent,
-              timestamp: new Date()
-            }
-          ]
-        };
-        
-        setConversations(prev => [newConversation, ...prev]);
-        setNewMessageOpen(false);
-        setNewMessageRecipient("");
-        setNewMessageSubject("");
-        setNewMessageContent("");
-        
-        // Select the new conversation
-        setSelectedConversation(newConversation);
-      },
-      "Message sent successfully",
-      "Failed to send message"
-    );
-  };
-  
-  const handleDeleteConversation = async (conversationId: string) => {
-    await handleActionWithToast(
-      async () => {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        setConversations(prev => prev.filter(conv => conv.id !== conversationId));
-        
-        if (selectedConversation && selectedConversation.id === conversationId) {
-          setSelectedConversation(null);
-        }
-      },
-      "Conversation deleted successfully",
-      "Failed to delete conversation"
-    );
-  };
-  
-  const filteredConversations = conversations.filter(conv => 
-    conv.contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.lastMessage.text.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter conversations based on search query
+  const filteredConversations = conversations.filter(
+    conv => 
+      conv.provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.provider.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.messages.some(msg => msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
-  const unreadCount = conversations.filter(conv => conv.lastMessage.isUnread).length;
-
+  // Function to handle sending a new message
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !activeConversation) return;
+    
+    const updatedMessage: Message = {
+      id: `m${Date.now()}`,
+      sender: "patient",
+      content: newMessage.trim(),
+      timestamp: new Date().toISOString(),
+      read: true
+    };
+    
+    const updatedConversations = conversations.map(conv => {
+      if (conv.id === activeConversation.id) {
+        return {
+          ...conv,
+          messages: [...conv.messages, updatedMessage],
+          lastMessageTime: updatedMessage.timestamp,
+          unreadCount: 0 // Reset unread count for the active conversation
+        };
+      }
+      return conv;
+    });
+    
+    setConversations(updatedConversations);
+    setActiveConversation({
+      ...activeConversation,
+      messages: [...activeConversation.messages, updatedMessage],
+      lastMessageTime: updatedMessage.timestamp,
+      unreadCount: 0
+    });
+    setNewMessage("");
+  };
+  
+  // Function to handle conversation selection
+  const handleSelectConversation = (conversation: Conversation) => {
+    // Mark all messages as read
+    const updatedConversations = conversations.map(conv => {
+      if (conv.id === conversation.id) {
+        return {
+          ...conv,
+          unreadCount: 0,
+          messages: conv.messages.map(msg => ({ ...msg, read: true }))
+        };
+      }
+      return conv;
+    });
+    
+    setConversations(updatedConversations);
+    setActiveConversation(
+      updatedConversations.find(conv => conv.id === conversation.id) || null
+    );
+  };
+  
+  // Function to start a new conversation
+  const handleStartNewConversation = () => {
+    if (!selectedProvider || !messageSubject.trim()) return;
+    
+    const provider = mockProviders.find(p => p.id === selectedProvider);
+    if (!provider) return;
+    
+    const newConv: Conversation = {
+      id: `conv${Date.now()}`,
+      provider: {
+        id: provider.id,
+        name: provider.name,
+        role: provider.role,
+        department: provider.department
+      },
+      messages: [
+        {
+          id: `m${Date.now()}`,
+          sender: "patient",
+          content: messageSubject.trim(),
+          timestamp: new Date().toISOString(),
+          read: true
+        }
+      ],
+      lastMessageTime: new Date().toISOString(),
+      unreadCount: 0,
+      status: "active"
+    };
+    
+    setConversations([newConv, ...conversations]);
+    setActiveConversation(newConv);
+    setShowNewMessageDialog(false);
+    setSelectedProvider("");
+    setMessageSubject("");
+  };
+  
+  // Function to toggle starred status of a conversation
+  const handleStarToggle = (conversationId: string, starred: boolean) => {
+    const updatedConversations = conversations.map(conv => {
+      if (conv.id === conversationId) {
+        return { ...conv, starred };
+      }
+      return conv;
+    });
+    
+    setConversations(updatedConversations);
+    
+    if (activeConversation && activeConversation.id === conversationId) {
+      setActiveConversation({ ...activeConversation, starred });
+    }
+  };
+  
   return (
-    <div className="container py-6">
-      <h1 className="text-2xl font-bold mb-6">Messages</h1>
+    <div className="h-[calc(100vh-13rem)] flex flex-col">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Secure Messages</h1>
+        <p className="text-muted-foreground">
+          Communicate securely with your healthcare providers
+        </p>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
-        <div className="md:col-span-1 border rounded-lg bg-white overflow-hidden flex flex-col">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Inbox</h2>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                {unreadCount} Unread
-              </Badge>
-            </div>
-            <div className="flex gap-2 mb-2">
+      <div className="flex flex-col md:flex-row h-full border rounded-lg shadow-sm overflow-hidden">
+        {/* Left sidebar with conversations */}
+        <div className="w-full md:w-80 border-r flex flex-col">
+          <div className="p-3 border-b">
+            <div className="flex items-center space-x-2">
               <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search messages..."
                   className="pl-8"
@@ -337,137 +507,172 @@ const PatientMessages = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button size="icon" onClick={() => setNewMessageOpen(true)}>
-                <Plus className="h-4 w-4" />
-              </Button>
+              <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>New Message</DialogTitle>
+                    <DialogDescription>
+                      Start a new conversation with a healthcare provider
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="provider">Select Provider</Label>
+                      <Select
+                        value={selectedProvider}
+                        onValueChange={setSelectedProvider}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockProviders.map(provider => (
+                            <SelectItem
+                              key={provider.id}
+                              value={provider.id}
+                              disabled={!provider.available}
+                            >
+                              <div className="flex items-center">
+                                <span>{provider.name}</span>
+                                {!provider.available && (
+                                  <Badge variant="outline" className="ml-2">Unavailable</Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="subject">Message</Label>
+                      <Textarea
+                        id="subject"
+                        placeholder="Briefly describe your question or concern"
+                        value={messageSubject}
+                        onChange={(e) => setMessageSubject(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowNewMessageDialog(false)}>Cancel</Button>
+                    <Button onClick={handleStartNewConversation}>Send Message</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
-            <Tabs defaultValue="all">
+            
+            <Tabs defaultValue="all" className="mt-2">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="unread">Unread</TabsTrigger>
-                <TabsTrigger value="flagged">Flagged</TabsTrigger>
+                <TabsTrigger value="starred">Starred</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
           
-          <div className="flex-1 overflow-auto">
-            {filteredConversations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
-                  <Search className="h-6 w-6" />
+          <ScrollArea className="flex-1">
+            <div className="divide-y">
+              {filteredConversations.length > 0 ? (
+                filteredConversations.map(conversation => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isActive={activeConversation?.id === conversation.id}
+                    onClick={() => handleSelectConversation(conversation)}
+                    onStarToggle={handleStarToggle}
+                  />
+                ))
+              ) : (
+                <div className="p-6 text-center text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                  <p>No conversations found</p>
+                  <Button 
+                    variant="link" 
+                    onClick={() => setShowNewMessageDialog(true)}
+                    className="mt-2"
+                  >
+                    Start a new conversation
+                  </Button>
                 </div>
-                <h3 className="font-medium">No messages found</h3>
-                <p className="text-sm text-gray-500 mt-1">Try a different search term</p>
-              </div>
-            ) : (
-              filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
-                    selectedConversation?.id === conversation.id ? 'bg-blue-50' : ''
-                  } ${conversation.lastMessage.isUnread ? 'bg-blue-50/50' : ''}`}
-                  onClick={() => handleSelectConversation(conversation)}
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={conversation.contact.avatar} />
-                      <AvatarFallback>
-                        {conversation.contact.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="font-medium truncate">
-                          {conversation.contact.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {formatDateTime(conversation.lastMessage.timestamp).includes('at') 
-                            ? formatDateTime(conversation.lastMessage.timestamp).split(' at ')[0]
-                            : formatDateTime(conversation.lastMessage.timestamp)}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-600 font-medium truncate">{conversation.subject}</div>
-                      <div className="text-sm text-gray-500 truncate">{conversation.lastMessage.text}</div>
-                    </div>
-                  </div>
-                  {conversation.lastMessage.isUnread && (
-                    <div className="flex justify-end mt-1">
-                      <div className="h-2 w-2 rounded-full bg-blue-600"></div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+              )}
+            </div>
+          </ScrollArea>
         </div>
         
-        <div className="md:col-span-2 border rounded-lg bg-white overflow-hidden flex flex-col">
-          {selectedConversation ? (
+        {/* Right side with messages */}
+        <div className="flex-1 flex flex-col">
+          {activeConversation ? (
             <>
-              <div className="p-4 border-b flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={selectedConversation.contact.avatar} />
-                    <AvatarFallback>
-                      {selectedConversation.contact.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
+              {/* Conversation header */}
+              <div className="p-3 border-b flex items-center justify-between">
+                <div className="flex items-center">
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarImage src={activeConversation.provider.avatar} alt={activeConversation.provider.name} />
+                    <AvatarFallback>{activeConversation.provider.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{selectedConversation.contact.name}</h3>
-                    <p className="text-sm text-gray-500">{selectedConversation.contact.role}</p>
+                    <div className="font-medium">{activeConversation.provider.name}</div>
+                    <div className="text-xs text-muted-foreground">{activeConversation.provider.role}</div>
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleDeleteConversation(selectedConversation.id)}>
-                      Delete Conversation
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              
-              <div className="p-4 flex-1 overflow-auto">
-                <div className="space-y-6">
-                  <div className="flex justify-center">
-                    <Badge variant="outline" className="bg-gray-100 text-gray-600">
-                      {selectedConversation.subject}
-                    </Badge>
-                  </div>
-                  
-                  {selectedConversation.messages.map((message: any) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender === 'patient' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-lg p-4 ${
-                          message.sender === 'patient'
-                            ? 'bg-blue-100 text-blue-900'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        <div className="text-sm">{message.text}</div>
-                        <div className="text-xs mt-1 text-right text-gray-500">
-                          {formatDateTime(message.timestamp).split(' at ')[1]}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center space-x-1">
+                  <Button variant="ghost" size="sm">
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Video className="h-4 w-4" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Conversation</DropdownMenuLabel>
+                      <DropdownMenuItem>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>View Provider Profile</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Clock className="mr-2 h-4 w-4" />
+                        <span>Schedule Appointment</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <AlertCircle className="mr-2 h-4 w-4" />
+                        <span>Report Issue</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
               
-              <div className="p-4 border-t">
-                <div className="flex gap-2">
+              {/* Message list */}
+              <ScrollArea className="flex-1 p-4">
+                {activeConversation.messages.map(message => (
+                  <MessageBubble 
+                    key={message.id} 
+                    message={message} 
+                    providerName={activeConversation.provider.name} 
+                  />
+                ))}
+                <div ref={messagesEndRef} />
+              </ScrollArea>
+              
+              {/* Message input */}
+              <div className="p-3 border-t">
+                <div className="flex items-end space-x-2">
                   <Textarea
                     placeholder="Type your message..."
                     className="flex-1 min-h-[80px]"
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -475,117 +680,37 @@ const PatientMessages = () => {
                       }
                     }}
                   />
+                  <div className="flex flex-col space-y-2">
+                    <Button variant="outline" size="sm">
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                    <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex justify-between mt-2">
-                  <Button variant="outline" size="icon">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={!messageText.trim()}
-                  >
-                    <Send className="h-4 w-4 mr-1" />
-                    Send Message
-                  </Button>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center">
+                    <LockIcon className="mr-1 h-4 w-4" />
+                    <span>Your messages are private and securely encrypted</span>
+                  </div>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
-                <MessageSquare className="h-8 w-8" />
-              </div>
-              <h2 className="text-xl font-semibold mb-2">No Conversation Selected</h2>
-              <p className="text-gray-500 mb-6 max-w-md">
-                Select a conversation from the list or start a new one by clicking the + button.
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <MessageSquare className="h-16 w-16 mb-4 text-muted-foreground opacity-30" />
+              <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
+              <p className="text-muted-foreground mb-4">
+                Select a conversation from the list or start a new one
               </p>
-              <Button onClick={() => setNewMessageOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                New Message
+              <Button onClick={() => setShowNewMessageDialog(true)}>
+                Start New Conversation
               </Button>
             </div>
           )}
         </div>
       </div>
-      
-      {/* New Message Dialog */}
-      <Dialog open={newMessageOpen} onOpenChange={setNewMessageOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Message</DialogTitle>
-            <DialogDescription>
-              Send a secure message to your healthcare provider.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="recipient">Recipient</Label>
-              <Input
-                id="recipient"
-                placeholder="Select or enter recipient name"
-                value={newMessageRecipient}
-                onChange={(e) => setNewMessageRecipient(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                placeholder="Enter a subject"
-                value={newMessageSubject}
-                onChange={(e) => setNewMessageSubject(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="message">Message</Label>
-              <Textarea
-                id="message"
-                placeholder="Type your message here..."
-                className="min-h-[120px]"
-                value={newMessageContent}
-                onChange={(e) => setNewMessageContent(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter className="flex items-center">
-            <Button variant="outline" onClick={() => setNewMessageOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleCreateNewMessage}
-              disabled={!newMessageRecipient.trim() || !newMessageContent.trim()}
-            >
-              <Send className="h-4 w-4 mr-1" />
-              Send
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
-};
-
-export default PatientMessages;
-
-// Helper component for the label
-const Label = ({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) => (
-  <label htmlFor={htmlFor} className="text-sm font-medium text-gray-700">
-    {children}
-  </label>
-);
-
-// Helper component for MessageSquare to satisfy Lucide import requirements
-const MessageSquare = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
-);
+}
